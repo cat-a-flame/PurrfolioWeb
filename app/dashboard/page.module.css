@@ -1,0 +1,130 @@
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  padding: var(--space-8) var(--space-6);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.pageTitle {
+  font-family: var(--font-lora);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-5);
+}
+
+@media (max-width: 640px) {
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.cardBalance {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.cardIncome {
+  background: var(--color-income-light);
+  color: var(--color-income);
+}
+
+.cardExpenses {
+  background: var(--color-expense-light);
+  color: var(--color-expense);
+}
+
+.cardLabel {
+  font-size: 0.875rem;
+  font-weight: 600;
+  opacity: 0.85;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cardValue {
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-family: var(--font-figtree);
+  line-height: 1.2;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.viewAll {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.viewAll:hover {
+  text-decoration: underline;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.emptyState {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  padding: var(--space-8);
+  text-align: center;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--color-border);
+}
+
+.link {
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
