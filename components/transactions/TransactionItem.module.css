@@ -117,3 +117,11 @@
   display: flex;
   gap: var(--space-1);
 }
+
+.walletTag {
+  font-size: 0.6875rem;
+  color: var(--color-text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}

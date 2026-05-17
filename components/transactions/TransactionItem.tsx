@@ -1,7 +1,7 @@
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import type { Transaction } from '@/lib/types';
-import { formatHUF, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate } from '@/lib/utils';
 import styles from './TransactionItem.module.css';
 
 interface TransactionItemProps {
@@ -17,6 +17,7 @@ export default function TransactionItem({
 }: TransactionItemProps) {
   const category = transaction.category;
   const labels = transaction.labels ?? [];
+  const currency = transaction.wallet?.currency ?? 'HUF';
 
   return (
     <div className={styles.item}>
@@ -35,6 +36,11 @@ export default function TransactionItem({
           </span>
           <span className={styles.date}>{formatDate(transaction.date)}</span>
         </div>
+        {transaction.wallet && (
+          <span className={styles.walletTag}>
+            {transaction.wallet.icon} {transaction.wallet.name}
+          </span>
+        )}
 
         <div className={styles.midRow}>
           <Badge variant={transaction.type} />
@@ -66,7 +72,7 @@ export default function TransactionItem({
           ].join(' ')}
         >
           {transaction.type === 'income' ? '+' : '-'}
-          {formatHUF(transaction.amount)}
+          {formatCurrency(transaction.amount, currency)}
         </span>
 
         <div className={styles.actions}>

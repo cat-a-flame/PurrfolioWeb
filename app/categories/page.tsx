@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import Button from '@/components/ui/Button';
@@ -24,6 +24,7 @@ export default function CategoriesPage() {
   const [type, setType] = useState<CategoryTypeOption>('expense');
   const [icon, setIcon] = useState('');
   const [color, setColor] = useState('#f26e4d');
+  const [parentId, setParentId] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -83,6 +84,7 @@ export default function CategoriesPage() {
       icon: icon.trim() || '📁',
       color,
       is_default: false,
+      parent_id: parentId || null,
     });
 
     setSaving(false);
@@ -93,6 +95,7 @@ export default function CategoriesPage() {
       setIcon('');
       setColor('#f26e4d');
       setType('expense');
+      setParentId('');
       setToast({ message: 'Category added.', variant: 'success' });
       await fetchCategories();
     }
@@ -183,6 +186,21 @@ export default function CategoriesPage() {
                   />
                 </div>
 
+                <div className={styles.field}>
+                  <FormLabel htmlFor="cat-parent">Parent category</FormLabel>
+                  <select
+                    id="cat-parent"
+                    className={styles.select}
+                    value={parentId}
+                    onChange={(e) => setParentId(e.target.value)}
+                  >
+                    <option value="">— Top level —</option>
+                    {categories.filter((c) => !c.parent_id).map((c) => (
+                      <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className={styles.submitCol}>
                   <Button type="submit" variant="primary" size="md" loading={saving}>
                     Add
@@ -202,35 +220,71 @@ export default function CategoriesPage() {
               <p className={styles.emptyState}>No categories yet.</p>
             ) : (
               <div className={styles.list}>
-                {categories.map((cat) => (
-                  <div key={cat.id} className={styles.catItem}>
-                    <div className={styles.catIcon} style={{ backgroundColor: cat.color + '22' }}>
-                      <span>{cat.icon || '📁'}</span>
-                    </div>
-                    <span className={styles.catName}>{cat.name}</span>
-                    <div className={styles.catBadges}>
-                      {cat.type === 'both' ? (
-                        <span className={styles.bothBadge}>Both</span>
-                      ) : (
-                        <Badge variant={cat.type} />
-                      )}
-                    </div>
-                    <div
-                      className={styles.colorSwatch}
-                      style={{ backgroundColor: cat.color }}
-                      title={cat.color}
-                    />
-                    {!cat.is_default && (
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => setDeletingCategory(cat)}
-                      >
-                        Delete
-                      </Button>
-                    )}
-                  </div>
-                ))}
+                {(() => {
+                  const topLevel = categories.filter((c) => !c.parent_id);
+                  const getChildren = (pid: string) => categories.filter((c) => c.parent_id === pid);
+                  return topLevel.map((cat) => (
+                    <React.Fragment key={cat.id}>
+                      <div className={styles.catItem}>
+                        <div className={styles.catIcon} style={{ backgroundColor: cat.color + '22' }}>
+                          <span>{cat.icon || '📁'}</span>
+                        </div>
+                        <span className={styles.catName}>{cat.name}</span>
+                        <div className={styles.catBadges}>
+                          {cat.type === 'both' ? (
+                            <span className={styles.bothBadge}>Both</span>
+                          ) : (
+                            <Badge variant={cat.type} />
+                          )}
+                        </div>
+                        <div
+                          className={styles.colorSwatch}
+                          style={{ backgroundColor: cat.color }}
+                          title={cat.color}
+                        />
+                        {!cat.is_default && (
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => setDeletingCategory(cat)}
+                          >
+                            Delete
+                          </Button>
+                        )}
+                      </div>
+                      {getChildren(cat.id).map((child) => (
+                        <div key={child.id} className={[styles.catItem, styles.catItemChild].join(' ')}>
+                          <span className={styles.childIndent}>↳</span>
+                          <div className={styles.catIcon} style={{ backgroundColor: child.color + '22' }}>
+                            <span>{child.icon || '📁'}</span>
+                          </div>
+                          <span className={styles.catName}>{child.name}</span>
+                          <div className={styles.catBadges}>
+                            {child.type === 'both' ? (
+                              <span className={styles.bothBadge}>Both</span>
+                            ) : (
+                              <Badge variant={child.type} />
+                            )}
+                          </div>
+                          <div
+                            className={styles.colorSwatch}
+                            style={{ backgroundColor: child.color }}
+                            title={child.color}
+                          />
+                          {!child.is_default && (
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => setDeletingCategory(child)}
+                            >
+                              Delete
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </React.Fragment>
+                  ));
+                })()}
               </div>
             )}
           </section>

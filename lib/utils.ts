@@ -1,9 +1,16 @@
-export function formatHUF(amount: number): string {
-  return new Intl.NumberFormat('hu-HU', {
+import type { Currency } from './types';
+
+export function formatCurrency(amount: number, currency: Currency): string {
+  const locale = currency === 'HUF' ? 'hu-HU' : 'en-US';
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: 'HUF',
-    maximumFractionDigits: 0,
+    currency,
+    maximumFractionDigits: currency === 'HUF' ? 0 : 2,
   }).format(amount);
+}
+
+export function formatHUF(amount: number): string {
+  return formatCurrency(amount, 'HUF');
 }
 
 export function formatDate(iso: string): string {
