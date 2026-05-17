@@ -4,13 +4,14 @@ import { useState } from 'react';
 import Button from '@/components/ui/Button';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
-import type { Transaction, Category, Label, TransactionType } from '@/lib/types';
+import type { Transaction, Category, Label, TransactionType, Wallet } from '@/lib/types';
 import { todayInputDate } from '@/lib/utils';
 import styles from './TransactionForm.module.css';
 
 export interface TransactionFormData {
   type: TransactionType;
   amount: number;
+  wallet_id: string | null;
   category_id: string | null;
   date: string;
   notes: string;
@@ -19,6 +20,7 @@ export interface TransactionFormData {
 
 interface TransactionFormProps {
   transaction?: Transaction;
+  wallets: Wallet[];
   categories: Category[];
   labels: Label[];
   onSave: (data: TransactionFormData) => Promise<void>;
@@ -27,6 +29,7 @@ interface TransactionFormProps {
 
 export default function TransactionForm({
   transaction,
+  wallets,
   categories,
   labels,
   onSave,
@@ -36,6 +39,12 @@ export default function TransactionForm({
   const [amount, setAmount] = useState<string>(
     transaction ? String(transaction.amount) : ''
   );
+
+  const defaultWallet = wallets.find(w => w.is_default) ?? wallets[0];
+  const [walletId, setWalletId] = useState<string>(
+    transaction?.wallet_id ?? defaultWallet?.id ?? ''
+  );
+
   const [categoryId, setCategoryId] = useState<string>(
     transaction?.category_id ?? ''
   );
@@ -50,6 +59,13 @@ export default function TransactionForm({
   const filteredCategories = categories.filter(
     (c) => c.type === type || c.type === 'both'
   );
+
+  // Build hierarchy for select display
+  const parentCategories = filteredCategories.filter(c => !c.parent_id);
+  const childCategories = filteredCategories.filter(c => c.parent_id);
+
+  const selectedWallet = wallets.find(w => w.id === walletId);
+  const currencyLabel = selectedWallet?.currency ?? 'HUF';
 
   function toggleLabel(id: string) {
     setLabelIds((prev) =>
@@ -70,6 +86,7 @@ export default function TransactionForm({
       await onSave({
         type,
         amount: parsedAmount,
+        wallet_id: walletId || null,
         category_id: categoryId || null,
         date,
         notes,
@@ -126,6 +143,26 @@ export default function TransactionForm({
             </div>
           </div>
 
+          {/* Wallet */}
+          {wallets.length > 0 && (
+            <div className={styles.field}>
+              <FormLabel htmlFor="wallet">Wallet</FormLabel>
+              <select
+                id="wallet"
+                className={styles.select}
+                value={walletId}
+                onChange={e => setWalletId(e.target.value)}
+              >
+                <option value="">— No wallet —</option>
+                {wallets.map(w => (
+                  <option key={w.id} value={w.id}>
+                    {w.icon} {w.name} ({w.currency})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Amount */}
           <div className={styles.field}>
             <FormLabel htmlFor="amount" required>
@@ -142,7 +179,7 @@ export default function TransactionForm({
                 placeholder="0"
                 required
               />
-              <span className={styles.currencyLabel}>HUF</span>
+              <span className={styles.currencyLabel}>{currencyLabel}</span>
             </div>
           </div>
 
@@ -156,11 +193,26 @@ export default function TransactionForm({
               onChange={(e) => setCategoryId(e.target.value)}
             >
               <option value="">— No category —</option>
-              {filteredCategories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.icon} {c.name}
-                </option>
+              {parentCategories.map(parent => (
+                <optgroup key={parent.id} label={`${parent.icon} ${parent.name}`}>
+                  <option value={parent.id}>{parent.icon} {parent.name}</option>
+                  {childCategories
+                    .filter(c => c.parent_id === parent.id)
+                    .map(child => (
+                      <option key={child.id} value={child.id}>
+                        {'  ↳ '}{child.icon} {child.name}
+                      </option>
+                    ))}
+                </optgroup>
               ))}
+              {/* Children whose parent isn't in filtered list */}
+              {childCategories
+                .filter(c => !parentCategories.find(p => p.id === c.parent_id))
+                .map(child => (
+                  <option key={child.id} value={child.id}>
+                    {child.icon} {child.name}
+                  </option>
+                ))}
             </select>
           </div>
 
