@@ -10,7 +10,7 @@ import TransactionForm, { TransactionFormData } from '@/components/transactions/
 import TransactionItem from '@/components/transactions/TransactionItem';
 import FormLabel from '@/components/ui/FormLabel';
 import { createClient } from '@/lib/supabase/client';
-import type { Transaction, Category, Label, TransactionType } from '@/lib/types';
+import type { Transaction, Category, Label, TransactionType, Wallet } from '@/lib/types';
 import styles from './page.module.css';
 
 type RawTransactionLabel = {
@@ -24,6 +24,7 @@ type RawTransactionLabel = {
 };
 
 type RawTransaction = Omit<Transaction, 'labels'> & {
+  wallet: Wallet | null;
   category: Transaction['category'];
   labels: RawTransactionLabel[];
 };
@@ -32,12 +33,14 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [labels, setLabels] = useState<Label[]>([]);
+  const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
   const [filterType, setFilterType] = useState<TransactionType | ''>('');
   const [filterCategoryId, setFilterCategoryId] = useState('');
   const [filterLabelId, setFilterLabelId] = useState('');
+  const [filterWalletId, setFilterWalletId] = useState('');
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
 
@@ -64,14 +67,15 @@ export default function TransactionsPage() {
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    const [txRes, catRes, lblRes] = await Promise.all([
+    const [txRes, catRes, lblRes, walletRes] = await Promise.all([
       supabase
         .from('transactions')
-        .select(`*, category:categories(*), labels:transaction_labels(label:labels(*))`)
+        .select(`*, wallet:wallets(*), category:categories(*), labels:transaction_labels(label:labels(*))`)
         .eq('user_id', user.id)
         .order('date', { ascending: false }),
       supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
       supabase.from('labels').select('*').eq('user_id', user.id).order('name'),
+      supabase.from('wallets').select('*').eq('user_id', user.id).order('name'),
     ]);
 
     if (txRes.data) {
@@ -85,6 +89,7 @@ export default function TransactionsPage() {
     }
     if (catRes.data) setCategories(catRes.data);
     if (lblRes.data) setLabels(lblRes.data);
+    if (walletRes.data) setWallets(walletRes.data);
     setLoading(false);
   }, []);
 
@@ -96,6 +101,7 @@ export default function TransactionsPage() {
     if (filterType && t.type !== filterType) return false;
     if (filterCategoryId && t.category_id !== filterCategoryId) return false;
     if (filterLabelId && !t.labels?.some((l) => l.id === filterLabelId)) return false;
+    if (filterWalletId && t.wallet_id !== filterWalletId) return false;
     if (filterFrom && t.date < filterFrom) return false;
     if (filterTo && t.date > filterTo) return false;
     return true;
@@ -105,6 +111,7 @@ export default function TransactionsPage() {
     setFilterType('');
     setFilterCategoryId('');
     setFilterLabelId('');
+    setFilterWalletId('');
     setFilterFrom('');
     setFilterTo('');
   }
@@ -123,6 +130,7 @@ export default function TransactionsPage() {
         .update({
           type: data.type,
           amount: data.amount,
+          wallet_id: data.wallet_id,
           category_id: data.category_id,
           date: data.date,
           notes: data.notes || null,
@@ -156,6 +164,7 @@ export default function TransactionsPage() {
           user_id: user.id,
           type: data.type,
           amount: data.amount,
+          wallet_id: data.wallet_id,
           category_id: data.category_id,
           date: data.date,
           notes: data.notes || null,
@@ -275,6 +284,23 @@ export default function TransactionsPage() {
             </div>
 
             <div className={styles.filterField}>
+              <FormLabel htmlFor="filter-wallet">Wallet</FormLabel>
+              <select
+                id="filter-wallet"
+                className={styles.filterSelect}
+                value={filterWalletId}
+                onChange={(e) => setFilterWalletId(e.target.value)}
+              >
+                <option value="">All wallets</option>
+                {wallets.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.icon} {w.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.filterField}>
               <FormLabel htmlFor="filter-from">From</FormLabel>
               <input
                 id="filter-from"
@@ -325,6 +351,7 @@ export default function TransactionsPage() {
       {showForm && (
         <TransactionForm
           transaction={editingTransaction}
+          wallets={wallets}
           categories={categories}
           labels={labels}
           onSave={handleSave}

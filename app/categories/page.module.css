@@ -168,3 +168,14 @@
   border-radius: var(--radius-lg);
   border: 1px dashed var(--color-border);
 }
+
+.catItemChild {
+  margin-left: 2rem;
+  border-left: 2px solid var(--color-border);
+}
+
+.childIndent {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}

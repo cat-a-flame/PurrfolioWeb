@@ -128,3 +128,67 @@
 .link:hover {
   text-decoration: underline;
 }
+
+.walletGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+.walletCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-accent);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.walletCardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.walletCardIcon {
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.walletCardName {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text);
+  flex: 1;
+}
+
+.walletCardCurrency {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.walletCardBalance {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-family: var(--font-figtree);
+  color: var(--color-text);
+}
+
+.walletCardDetails {
+  display: flex;
+  gap: var(--space-3);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.walletCardIncome {
+  color: var(--color-income);
+}
+
+.walletCardExpenses {
+  color: var(--color-expense);
+}

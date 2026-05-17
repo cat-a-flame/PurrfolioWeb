@@ -149,7 +149,7 @@ export default function WalletsPage() {
                   </label>
                 </div>
                 <div className={styles.submitCol}>
-                  <Button type="submit" variant="primary" size="md" disabled={saving}>{saving ? 'Adding…' : 'Add'}</Button>
+                  <Button type="submit" variant="primary" size="md" loading={saving}>Add</Button>
                 </div>
               </div>
               {formError && <p className={styles.formError}>{formError}</p>}

@@ -6,8 +6,8 @@ import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import TransactionItem from '@/components/transactions/TransactionItem';
 import { createClient } from '@/lib/supabase/client';
-import { formatHUF } from '@/lib/utils';
-import type { Transaction } from '@/lib/types';
+import { formatHUF, formatCurrency } from '@/lib/utils';
+import type { Transaction, Wallet } from '@/lib/types';
 import styles from './page.module.css';
 
 type RawTransactionLabel = {
@@ -21,12 +21,14 @@ type RawTransactionLabel = {
 };
 
 type RawTransaction = Omit<Transaction, 'labels'> & {
+  wallet: Wallet | null;
   category: Transaction['category'];
   labels: RawTransactionLabel[];
 };
 
 export default function DashboardPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchTransactions = useCallback(async () => {
@@ -36,14 +38,17 @@ export default function DashboardPage() {
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data } = await supabase
-      .from('transactions')
-      .select(`*, category:categories(*), labels:transaction_labels(label:labels(*))`)
-      .eq('user_id', user.id)
-      .order('date', { ascending: false });
+    const [txRes, walletRes] = await Promise.all([
+      supabase
+        .from('transactions')
+        .select(`*, wallet:wallets(*), category:categories(*), labels:transaction_labels(label:labels(*))`)
+        .eq('user_id', user.id)
+        .order('date', { ascending: false }),
+      supabase.from('wallets').select('*').eq('user_id', user.id).order('name'),
+    ]);
 
-    if (data) {
-      const normalized: Transaction[] = (data as RawTransaction[]).map((t) => ({
+    if (txRes.data) {
+      const normalized: Transaction[] = (txRes.data as RawTransaction[]).map((t) => ({
         ...t,
         labels: t.labels
           .map((l) => l.label)
@@ -51,6 +56,7 @@ export default function DashboardPage() {
       }));
       setTransactions(normalized);
     }
+    if (walletRes.data) setWallets(walletRes.data);
     setLoading(false);
   }, []);
 
@@ -69,6 +75,13 @@ export default function DashboardPage() {
   const balance = totalIncome - totalExpenses;
 
   const recent = transactions.slice(0, 8);
+
+  const walletSummaries = wallets.map((wallet) => {
+    const wTxs = transactions.filter((t) => t.wallet_id === wallet.id);
+    const income = wTxs.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const expenses = wTxs.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    return { wallet, income, expenses, balance: income - expenses };
+  });
 
   function handleEdit() {
     // No-op on dashboard — navigation to /transactions for editing
@@ -100,6 +113,33 @@ export default function DashboardPage() {
               <span className={styles.cardValue}>{formatHUF(totalExpenses)}</span>
             </div>
           </div>
+
+          {/* Wallet breakdown */}
+          {walletSummaries.length > 0 && (
+            <section className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>By wallet</h2>
+              </div>
+              <div className={styles.walletGrid}>
+                {walletSummaries.map(({ wallet, income, expenses, balance: wBalance }) => (
+                  <div key={wallet.id} className={styles.walletCard} style={{ borderLeftColor: wallet.color }}>
+                    <div className={styles.walletCardHeader}>
+                      <span className={styles.walletCardIcon}>{wallet.icon}</span>
+                      <span className={styles.walletCardName}>{wallet.name}</span>
+                      <span className={styles.walletCardCurrency}>{wallet.currency}</span>
+                    </div>
+                    <div className={styles.walletCardBalance}>
+                      {formatCurrency(wBalance, wallet.currency)}
+                    </div>
+                    <div className={styles.walletCardDetails}>
+                      <span className={styles.walletCardIncome}>+{formatCurrency(income, wallet.currency)}</span>
+                      <span className={styles.walletCardExpenses}>−{formatCurrency(expenses, wallet.currency)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Recent transactions */}
           <section className={styles.section}>
