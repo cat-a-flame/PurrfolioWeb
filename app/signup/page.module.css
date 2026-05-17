@@ -1,0 +1,14 @@
+.successCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--color-income-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.successText {
+  font-size: 0.9375rem;
+  color: var(--color-income);
+  font-weight: 500;
+}

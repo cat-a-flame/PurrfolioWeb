@@ -1,0 +1,20 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.income {
+  background: var(--color-income-light);
+  color: var(--color-income);
+}
+
+.expense {
+  background: var(--color-expense-light);
+  color: var(--color-expense);
+}

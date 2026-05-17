@@ -1,0 +1,73 @@
+.toast {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  max-width: 360px;
+  animation: slideInRight 300ms ease forwards;
+}
+
+.leaving {
+  animation: slideOutRight 300ms ease forwards;
+}
+
+.success {
+  background: #166534;
+  color: #fff;
+}
+
+.error {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.message {
+  flex: 1;
+}
+
+.close {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.8;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.close:hover {
+  opacity: 1;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+}

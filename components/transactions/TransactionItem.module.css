@@ -1,0 +1,119 @@
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  transition: box-shadow var(--transition-fast);
+}
+
+.item:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.iconCol {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-md);
+}
+
+.categoryIcon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.categoryIconFallback {
+  font-size: 1rem;
+  color: var(--color-text-faint);
+  font-weight: 600;
+}
+
+.mainCol {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.topRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.categoryName {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.date {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.midRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.labelChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.labelChip {
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  border: 1px solid;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.notes {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 400px;
+}
+
+.rightCol {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.amount {
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: var(--font-figtree);
+}
+
+.amountIncome {
+  color: var(--color-income);
+}
+
+.amountExpense {
+  color: var(--color-expense);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-1);
+}
