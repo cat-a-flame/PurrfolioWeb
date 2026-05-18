@@ -113,7 +113,8 @@ CREATE POLICY "transaction_labels: own rows" ON transaction_labels
 -- ─────────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION seed_default_categories()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
 BEGIN
   INSERT INTO categories (user_id, name, type, icon, color, is_default) VALUES
     (NEW.id, 'Salary',         'income',  '💼', '#16a34a', true),
