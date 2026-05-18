@@ -17,6 +17,15 @@
   gap: var(--space-8);
 }
 
+/* ── Page header ── */
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
 .pageTitle {
   font-family: var(--font-lora);
   font-size: 1.75rem;
@@ -24,56 +33,201 @@
   color: var(--color-text);
 }
 
-.summaryGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-5);
+/* ── Period picker ── */
+.periodPicker {
+  display: flex;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
 }
 
-@media (max-width: 640px) {
-  .summaryGrid {
-    grid-template-columns: 1fr;
-  }
+.periodBtn {
+  height: 36px;
+  padding: 0 var(--space-4);
+  background: transparent;
+  border: none;
+  font-family: var(--font-figtree);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-.card {
+.periodBtn:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.periodBtnActive {
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.periodBtnActive:hover {
+  background: var(--color-accent-hover);
+  color: #fff;
+}
+
+.customRange {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.dateInput {
+  height: 40px;
+  padding: 0 var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-figtree);
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.dateInput:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-accent-light);
+}
+
+.dateSep {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+/* ── Cash Flow card ── */
+.cashFlowCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
-  padding: var(--space-6);
+  padding: var(--space-6) var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  box-shadow: var(--shadow-sm);
+}
+
+.cashFlowTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.cashFlowTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.cashFlowLeft {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.cashFlowPeriodLabel {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.cashFlowBalance {
+  font-family: var(--font-figtree);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.1;
+}
+
+.cashFlowRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.vsLabel {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.vsTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.vsTagPos {
+  background: var(--color-income-light);
+  color: var(--color-income);
+}
+
+.vsTagNeg {
+  background: var(--color-expense-light);
+  color: var(--color-expense);
+}
+
+.cashFlowBars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.barRow {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.cardBalance {
-  background: var(--color-accent);
-  color: #fff;
+.barMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.cardIncome {
-  background: var(--color-income-light);
-  color: var(--color-income);
-}
-
-.cardExpenses {
-  background: var(--color-expense-light);
-  color: var(--color-expense);
-}
-
-.cardLabel {
+.barLabel {
   font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.barAmount {
+  font-size: 0.9375rem;
   font-weight: 600;
-  opacity: 0.85;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.cardValue {
-  font-size: 1.75rem;
-  font-weight: 700;
+  color: var(--color-text);
   font-family: var(--font-figtree);
-  line-height: 1.2;
 }
 
+.barTrack {
+  width: 100%;
+  height: 10px;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.4s ease;
+}
+
+.barFillIncome { background: var(--color-income); }
+.barFillExpense { background: var(--color-expense); }
+
+/* ── Sections ── */
 .section {
   display: flex;
   flex-direction: column;
@@ -99,36 +253,9 @@
   text-decoration: none;
 }
 
-.viewAll:hover {
-  text-decoration: underline;
-}
+.viewAll:hover { text-decoration: underline; }
 
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.emptyState {
-  font-size: 0.9375rem;
-  color: var(--color-text-muted);
-  padding: var(--space-8);
-  text-align: center;
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  border: 1px dashed var(--color-border);
-}
-
-.link {
-  color: var(--color-accent);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.link:hover {
-  text-decoration: underline;
-}
-
+/* ── Wallet grid ── */
 .walletGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -146,49 +273,144 @@
   gap: var(--space-2);
 }
 
-.walletCardHeader {
+.walletCardHeader { display: flex; align-items: center; gap: var(--space-2); }
+.walletCardIcon { font-size: 1.125rem; line-height: 1; }
+.walletCardName { font-size: 0.9375rem; font-weight: 600; color: var(--color-text); flex: 1; }
+.walletCardCurrency { font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.04em; }
+.walletCardBalance { font-size: 1.25rem; font-weight: 700; font-family: var(--font-figtree); color: var(--color-text); }
+.walletCardDetails { display: flex; gap: var(--space-3); font-size: 0.8125rem; font-weight: 500; }
+.walletCardIncome { color: var(--color-income); }
+.walletCardExpense { color: var(--color-expense); }
+
+/* ── Grouped transaction list ── */
+.groupedList {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.dayGroup {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-2);
 }
 
-.walletCardIcon {
-  font-size: 1.125rem;
-  line-height: 1;
+.dayHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
 }
 
-.walletCardName {
+.dayDate {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.dayNet {
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-family: var(--font-figtree);
+}
+
+.dayNetPos { color: var(--color-income); }
+.dayNetNeg { color: var(--color-expense); }
+
+.dayTxList {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* ── Transaction row ── */
+.txRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  transition: background var(--transition-fast);
+}
+
+.txRow + .txRow {
+  border-top: 1px solid var(--color-border);
+}
+
+.txRow:hover { background: var(--color-surface-2); }
+
+.txIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+  flex-shrink: 0;
+}
+
+.txMain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.txCategory {
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--color-text);
-  flex: 1;
 }
 
-.walletCardCurrency {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  letter-spacing: 0.04em;
-}
-
-.walletCardBalance {
-  font-size: 1.25rem;
-  font-weight: 700;
-  font-family: var(--font-figtree);
-  color: var(--color-text);
-}
-
-.walletCardDetails {
+.txWallet {
   display: flex;
-  gap: var(--space-3);
+  align-items: center;
+  gap: var(--space-1);
   font-size: 0.8125rem;
+  color: var(--color-text-muted);
   font-weight: 500;
 }
 
-.walletCardIncome {
-  color: var(--color-income);
+.txWalletDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
 }
 
-.walletCardExpenses {
-  color: var(--color-expense);
+.txRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.txAmount {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-family: var(--font-figtree);
+}
+
+.txIncome { color: var(--color-income); }
+.txExpense { color: var(--color-expense); }
+
+.txTime {
+  font-size: 0.75rem;
+  color: var(--color-text-faint);
+}
+
+/* ── Empty state ── */
+.emptyState {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  padding: var(--space-8);
+  text-align: center;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--color-border);
 }
