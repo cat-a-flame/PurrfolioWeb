@@ -4,11 +4,11 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useAddRecord } from '@/components/transactions/AddRecordProvider';
 import styles from './AppHeader.module.css';
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Transactions', href: '/transactions' },
   { label: 'Wallets', href: '/wallets' },
   { label: 'Categories', href: '/categories' },
   { label: 'Labels', href: '/labels' },
@@ -17,6 +17,7 @@ const navItems = [
 export default function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
+  const { openAddDialog } = useAddRecord();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -52,6 +53,10 @@ export default function AppHeader() {
             </Link>
           ))}
         </nav>
+
+        <button className={styles.addRecordBtn} onClick={openAddDialog}>
+          + Add record
+        </button>
 
         <div className={styles.userArea}>
           <button

@@ -95,6 +95,8 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     fetchAll();
+    window.addEventListener('transaction-added', fetchAll);
+    return () => window.removeEventListener('transaction-added', fetchAll);
   }, [fetchAll]);
 
   const filteredTransactions = transactions.filter((t) => {
@@ -228,9 +230,6 @@ export default function TransactionsPage() {
         <div className={styles.container}>
           <div className={styles.pageHeader}>
             <h1 className={styles.pageTitle}>Transactions</h1>
-            <Button variant="primary" size="md" onClick={openAdd}>
-              + Add transaction
-            </Button>
           </div>
 
           {/* Filter bar */}

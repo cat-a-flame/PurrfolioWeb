@@ -62,6 +62,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchTransactions();
+    window.addEventListener('transaction-added', fetchTransactions);
+    return () => window.removeEventListener('transaction-added', fetchTransactions);
   }, [fetchTransactions]);
 
   const totalIncome = transactions
