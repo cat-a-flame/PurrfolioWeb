@@ -1,0 +1,313 @@
+.container {
+  position: relative;
+}
+
+/* ── Trigger row ── */
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.navBtn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 1.375rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.navBtn:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.labelBtn {
+  height: 36px;
+  padding: 0 var(--space-4);
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-accent);
+  border-radius: var(--radius-full);
+  font-family: var(--font-figtree);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+  transition: box-shadow var(--transition-fast);
+}
+
+.labelBtn:hover {
+  box-shadow: 0 0 0 3px var(--color-accent-light);
+}
+
+.caret {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  transform: translateY(1px);
+}
+
+/* ── Dropdown ── */
+.dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 300;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  width: 300px;
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-3) 0;
+}
+
+.tab {
+  flex: 1;
+  height: 30px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-figtree);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.tab:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.tabActive {
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.tabActive:hover {
+  background: var(--color-accent-hover);
+  color: #fff;
+}
+
+/* ── Panel ── */
+.panel {
+  padding: var(--space-4) var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ── Panel navigation ── */
+.panelNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panelNavBtn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.panelNavBtn:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.panelNavLabel {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* ── Month / Year grid (3-col) ── */
+.monthGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.cell {
+  height: 42px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-figtree);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.cell:hover {
+  background: var(--color-surface-2);
+}
+
+.cellSelected {
+  background: var(--color-accent) !important;
+  color: #fff !important;
+  font-weight: 700;
+}
+
+.cellCurrent {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+/* ── Week grid ── */
+.dayHeaders {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.dayHeader {
+  text-align: center;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-text-faint);
+  padding: var(--space-1) 0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.weekGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.weekRow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  padding: 3px 2px;
+  transition: background var(--transition-fast);
+}
+
+.weekRow:hover {
+  background: var(--color-surface-2);
+}
+
+.weekRow.cellSelected {
+  background: var(--color-accent) !important;
+}
+
+.weekDay {
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--color-text);
+  padding: 3px 0;
+  line-height: 1.4;
+}
+
+.weekRow.cellSelected .weekDay {
+  color: #fff;
+}
+
+.weekDayOut {
+  color: var(--color-text-faint);
+}
+
+.weekRow.cellSelected .weekDayOut {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.weekDayToday {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.weekRow.cellSelected .weekDayToday {
+  color: #fff;
+}
+
+/* ── Custom range ── */
+.customFields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.customField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.customLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.customDate {
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-figtree);
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.customDate:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-accent-light);
+}
+
+.applyBtn {
+  height: 38px;
+  width: 100%;
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-figtree);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.applyBtn:hover:not(:disabled) { opacity: 0.88; }
+.applyBtn:disabled { opacity: 0.4; cursor: not-allowed; }
