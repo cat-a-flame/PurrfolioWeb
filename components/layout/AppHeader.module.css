@@ -58,6 +58,25 @@
   color: var(--color-accent);
 }
 
+.addRecordBtn {
+  height: 36px;
+  padding: 0 var(--space-4);
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-figtree);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.addRecordBtn:hover {
+  opacity: 0.88;
+}
+
 .userArea {
   position: relative;
   margin-left: auto;

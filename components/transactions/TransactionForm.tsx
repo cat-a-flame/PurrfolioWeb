@@ -60,7 +60,6 @@ export default function TransactionForm({
     (c) => c.type === type || c.type === 'both'
   );
 
-  // Build hierarchy for select display
   const parentCategories = filteredCategories.filter(c => !c.parent_id);
   const childCategories = filteredCategories.filter(c => c.parent_id);
 
@@ -107,182 +106,182 @@ export default function TransactionForm({
         aria-modal="true"
         aria-labelledby="form-title"
       >
-        <h2 id="form-title" className={styles.title}>
-          {transaction ? 'Edit transaction' : 'Add transaction'}
-        </h2>
+        <div className={styles.modalHeader}>
+          <h2 id="form-title" className={styles.title}>
+            {transaction ? 'Edit record' : 'Add record'}
+          </h2>
+          <button className={styles.closeBtn} type="button" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
-          {/* Type toggle */}
-          <div className={styles.field}>
-            <FormLabel>Type</FormLabel>
-            <div className={styles.typeToggle}>
-              <button
-                type="button"
-                className={[
-                  styles.typeBtn,
-                  type === 'income' ? styles.typeBtnIncomeActive : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                onClick={() => setType('income')}
-              >
-                Income
-              </button>
-              <button
-                type="button"
-                className={[
-                  styles.typeBtn,
-                  type === 'expense' ? styles.typeBtnExpenseActive : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                onClick={() => setType('expense')}
-              >
-                Expense
-              </button>
-            </div>
-          </div>
+          <div className={styles.columns}>
+            {/* Left column */}
+            <div className={styles.leftCol}>
+              {/* Type tabs */}
+              <div className={styles.typeTabs}>
+                <button
+                  type="button"
+                  className={[styles.typeTab, type === 'expense' ? styles.typeTabExpenseActive : ''].filter(Boolean).join(' ')}
+                  onClick={() => setType('expense')}
+                >
+                  Expense
+                </button>
+                <button
+                  type="button"
+                  className={[styles.typeTab, type === 'income' ? styles.typeTabIncomeActive : ''].filter(Boolean).join(' ')}
+                  onClick={() => setType('income')}
+                >
+                  Income
+                </button>
+              </div>
 
-          {/* Wallet */}
-          {wallets.length > 0 && (
-            <div className={styles.field}>
-              <FormLabel htmlFor="wallet">Wallet</FormLabel>
-              <select
-                id="wallet"
-                className={styles.select}
-                value={walletId}
-                onChange={e => setWalletId(e.target.value)}
-              >
-                <option value="">— No wallet —</option>
-                {wallets.map(w => (
-                  <option key={w.id} value={w.id}>
-                    {w.icon} {w.name} ({w.currency})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+              {/* Amount */}
+              <div className={styles.field}>
+                <FormLabel htmlFor="amount" required>Amount</FormLabel>
+                <div className={styles.amountRow}>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step={1}
+                    min={1}
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0"
+                    required
+                  />
+                  <select
+                    className={styles.currencySelect}
+                    value={walletId}
+                    onChange={e => setWalletId(e.target.value)}
+                    aria-label="Wallet / currency"
+                  >
+                    {wallets.length === 0 && (
+                      <option value="">{currencyLabel}</option>
+                    )}
+                    {wallets.map(w => (
+                      <option key={w.id} value={w.id}>{w.currency}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-          {/* Amount */}
-          <div className={styles.field}>
-            <FormLabel htmlFor="amount" required>
-              Amount
-            </FormLabel>
-            <div className={styles.amountRow}>
-              <Input
-                id="amount"
-                type="number"
-                step={1}
-                min={1}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0"
-                required
-              />
-              <span className={styles.currencyLabel}>{currencyLabel}</span>
-            </div>
-          </div>
-
-          {/* Category */}
-          <div className={styles.field}>
-            <FormLabel htmlFor="category">Category</FormLabel>
-            <select
-              id="category"
-              className={styles.select}
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-            >
-              <option value="">— No category —</option>
-              {parentCategories.map(parent => (
-                <optgroup key={parent.id} label={`${parent.icon} ${parent.name}`}>
-                  <option value={parent.id}>{parent.icon} {parent.name}</option>
-                  {childCategories
-                    .filter(c => c.parent_id === parent.id)
-                    .map(child => (
-                      <option key={child.id} value={child.id}>
-                        {'  ↳ '}{child.icon} {child.name}
+              {/* Account */}
+              {wallets.length > 0 && (
+                <div className={styles.field}>
+                  <FormLabel htmlFor="wallet">Account</FormLabel>
+                  <select
+                    id="wallet"
+                    className={styles.select}
+                    value={walletId}
+                    onChange={e => setWalletId(e.target.value)}
+                  >
+                    <option value="">— No account —</option>
+                    {wallets.map(w => (
+                      <option key={w.id} value={w.id}>
+                        {w.icon} {w.name}
                       </option>
                     ))}
-                </optgroup>
-              ))}
-              {/* Children whose parent isn't in filtered list */}
-              {childCategories
-                .filter(c => !parentCategories.find(p => p.id === c.parent_id))
-                .map(child => (
-                  <option key={child.id} value={child.id}>
-                    {child.icon} {child.name}
-                  </option>
-                ))}
-            </select>
-          </div>
+                  </select>
+                </div>
+              )}
 
-          {/* Date */}
-          <div className={styles.field}>
-            <FormLabel htmlFor="date" required>
-              Date
-            </FormLabel>
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-            />
-          </div>
+              {/* Category */}
+              <div className={styles.field}>
+                <FormLabel htmlFor="category" required>Category</FormLabel>
+                <select
+                  id="category"
+                  className={styles.select}
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                >
+                  <option value="">Choose</option>
+                  {parentCategories.map(parent => (
+                    <optgroup key={parent.id} label={`${parent.icon} ${parent.name}`}>
+                      <option value={parent.id}>{parent.icon} {parent.name}</option>
+                      {childCategories
+                        .filter(c => c.parent_id === parent.id)
+                        .map(child => (
+                          <option key={child.id} value={child.id}>
+                            {'  ↳ '}{child.icon} {child.name}
+                          </option>
+                        ))}
+                    </optgroup>
+                  ))}
+                  {childCategories
+                    .filter(c => !parentCategories.find(p => p.id === c.parent_id))
+                    .map(child => (
+                      <option key={child.id} value={child.id}>
+                        {child.icon} {child.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
 
-          {/* Labels */}
-          {labels.length > 0 && (
-            <div className={styles.field}>
-              <FormLabel>Labels</FormLabel>
-              <div className={styles.labelChips}>
-                {labels.map((label) => {
-                  const selected = labelIds.includes(label.id);
-                  return (
-                    <button
-                      key={label.id}
-                      type="button"
-                      className={[
-                        styles.labelChip,
-                        selected ? styles.labelChipSelected : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' ')}
-                      style={
-                        selected
-                          ? { backgroundColor: label.color, borderColor: label.color, color: '#fff' }
-                          : { borderColor: label.color, color: label.color }
-                      }
-                      onClick={() => toggleLabel(label.id)}
-                    >
-                      {label.name}
-                    </button>
-                  );
-                })}
+              {/* Labels */}
+              {labels.length > 0 && (
+                <div className={styles.field}>
+                  <FormLabel>Labels</FormLabel>
+                  <div className={styles.labelChips}>
+                    {labels.map((label) => {
+                      const selected = labelIds.includes(label.id);
+                      return (
+                        <button
+                          key={label.id}
+                          type="button"
+                          className={[styles.labelChip, selected ? styles.labelChipSelected : ''].filter(Boolean).join(' ')}
+                          style={
+                            selected
+                              ? { backgroundColor: label.color, borderColor: label.color, color: '#fff' }
+                              : { borderColor: label.color, color: label.color }
+                          }
+                          onClick={() => toggleLabel(label.id)}
+                        >
+                          {label.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Date */}
+              <div className={styles.field}>
+                <FormLabel htmlFor="date" required>Date &amp; Time</FormLabel>
+                <Input
+                  id="date"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  required
+                />
               </div>
             </div>
-          )}
 
-          {/* Notes */}
-          <div className={styles.field}>
-            <FormLabel htmlFor="notes">Notes</FormLabel>
-            <textarea
-              id="notes"
-              className={styles.textarea}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              placeholder="Optional notes…"
-            />
+            {/* Right column */}
+            <div className={styles.rightCol}>
+              <p className={styles.rightColTitle}>Other details</p>
+
+              <div className={styles.field}>
+                <FormLabel htmlFor="notes">Note</FormLabel>
+                <textarea
+                  id="notes"
+                  className={styles.textarea}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={4}
+                  placeholder="Describe your record"
+                />
+              </div>
+            </div>
           </div>
 
           {error && <p className={styles.errorMsg}>{error}</p>}
 
           <div className={styles.actions}>
-            <Button type="button" variant="secondary" onClick={onClose} disabled={saving}>
-              Cancel
-            </Button>
             <Button type="submit" variant="primary" loading={saving}>
-              Save
+              {transaction ? 'Save changes' : 'Add record'}
             </Button>
           </div>
         </form>

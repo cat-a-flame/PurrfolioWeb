@@ -1,0 +1,95 @@
+'use client';
+
+import { createContext, useContext, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import TransactionForm, { TransactionFormData } from './TransactionForm';
+import Toast from '@/components/ui/Toast';
+import { createClient } from '@/lib/supabase/client';
+import type { Category, Label, Wallet } from '@/lib/types';
+
+type AddRecordContextType = {
+  openAddDialog: () => void;
+};
+
+const AddRecordContext = createContext<AddRecordContextType>({ openAddDialog: () => {} });
+
+export function useAddRecord() {
+  return useContext(AddRecordContext);
+}
+
+export default function AddRecordProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [labels, setLabels] = useState<Label[]>([]);
+  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
+
+  const openAddDialog = useCallback(async () => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const [catRes, lblRes, walletRes] = await Promise.all([
+      supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
+      supabase.from('labels').select('*').eq('user_id', user.id).order('name'),
+      supabase.from('wallets').select('*').eq('user_id', user.id).order('name'),
+    ]);
+
+    if (catRes.data) setCategories(catRes.data);
+    if (lblRes.data) setLabels(lblRes.data);
+    if (walletRes.data) setWallets(walletRes.data);
+    setOpen(true);
+  }, []);
+
+  async function handleSave(data: TransactionFormData) {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const { data: inserted, error } = await supabase
+      .from('transactions')
+      .insert({
+        user_id: user.id,
+        type: data.type,
+        amount: data.amount,
+        wallet_id: data.wallet_id,
+        category_id: data.category_id,
+        date: data.date,
+        notes: data.notes || null,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (data.label_ids.length > 0 && inserted) {
+      await supabase.from('transaction_labels').insert(
+        data.label_ids.map((lid) => ({ transaction_id: inserted.id, label_id: lid }))
+      );
+    }
+
+    setOpen(false);
+    setToast({ message: 'Transaction added.', variant: 'success' });
+    window.dispatchEvent(new Event('transaction-added'));
+    router.refresh();
+  }
+
+  return (
+    <AddRecordContext.Provider value={{ openAddDialog }}>
+      {children}
+      {open && (
+        <TransactionForm
+          wallets={wallets}
+          categories={categories}
+          labels={labels}
+          onSave={handleSave}
+          onClose={() => setOpen(false)}
+        />
+      )}
+      {toast && (
+        <Toast message={toast.message} variant={toast.variant} onDismiss={() => setToast(null)} />
+      )}
+    </AddRecordContext.Provider>
+  );
+}

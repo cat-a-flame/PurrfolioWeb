@@ -15,12 +15,18 @@
   box-shadow: var(--shadow-lg);
   padding: var(--space-8);
   width: 100%;
-  max-width: 520px;
+  max-width: 780px;
   max-height: 90vh;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .title {
@@ -30,10 +36,52 @@
   color: var(--color-text);
 }
 
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: var(--space-1);
+  line-height: 1;
+  transition: color var(--transition-fast);
+}
+
+.closeBtn:hover {
+  color: var(--color-text);
+}
+
 .form {
   display: flex;
   flex-direction: column;
+  gap: var(--space-6);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-8);
+}
+
+@media (max-width: 600px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.leftCol,
+.rightCol {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-5);
+}
+
+.rightColTitle {
+  font-family: var(--font-figtree);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
 }
 
 .field {
@@ -42,58 +90,72 @@
   gap: var(--space-2);
 }
 
-.typeToggle {
+/* Type pill tabs */
+.typeTabs {
   display: flex;
-  gap: var(--space-2);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 2px;
 }
 
-.typeBtn {
+.typeTab {
   flex: 1;
-  height: 42px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-2);
+  height: 38px;
+  border-radius: calc(var(--radius-md) - 2px);
+  border: none;
+  background: transparent;
   color: var(--color-text-muted);
   font-family: var(--font-figtree);
   font-size: 0.9375rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast),
-    border-color var(--transition-fast);
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-.typeBtn:hover {
-  background: var(--color-surface-3);
+.typeTab:hover {
   color: var(--color-text);
 }
 
-.typeBtnIncomeActive {
-  background: var(--color-income-light);
-  color: var(--color-income);
-  border-color: var(--color-income);
+.typeTabExpenseActive {
+  background: var(--color-expense);
+  color: #fff;
 }
 
-.typeBtnExpenseActive {
-  background: var(--color-expense-light);
-  color: var(--color-expense);
-  border-color: var(--color-expense);
+.typeTabIncomeActive {
+  background: var(--color-income);
+  color: #fff;
 }
 
+/* Amount + currency row */
 .amountRow {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .amountRow > div {
   flex: 1;
 }
 
-.currencyLabel {
+.currencySelect {
+  width: 90px;
+  height: 42px;
+  padding: 0 var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-figtree);
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--color-text-muted);
+  outline: none;
+  cursor: pointer;
   flex-shrink: 0;
+}
+
+.currencySelect:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-accent-light);
 }
 
 .select {
@@ -175,5 +237,4 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--space-3);
-  margin-top: var(--space-2);
 }
