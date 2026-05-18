@@ -28,6 +28,7 @@ export default function WalletsPage() {
   const [currency, setCurrency] = useState<Currency>('HUF');
   const [icon, setIcon] = useState('');
   const [color, setColor] = useState('#f26e4d');
+  const [startingBalance, setStartingBalance] = useState('0');
   const [isDefault, setIsDefault] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
@@ -68,6 +69,7 @@ export default function WalletsPage() {
       await supabase.from('wallets').update({ is_default: false }).eq('user_id', user.id);
     }
 
+    const parsedBalance = parseFloat(startingBalance);
     const { error } = await supabase.from('wallets').insert({
       user_id: user.id,
       name: name.trim(),
@@ -75,13 +77,14 @@ export default function WalletsPage() {
       icon: icon.trim() || '💰',
       color,
       is_default: isDefault,
+      starting_balance: isNaN(parsedBalance) ? 0 : parsedBalance,
     });
 
     setSaving(false);
     if (error) {
       setFormError(error.message);
     } else {
-      setName(''); setIcon(''); setColor('#f26e4d'); setCurrency('HUF'); setIsDefault(false);
+      setName(''); setIcon(''); setColor('#f26e4d'); setCurrency('HUF'); setIsDefault(false); setStartingBalance('0');
       setToast({ message: 'Wallet added.', variant: 'success' });
       await fetchWallets();
     }
@@ -99,6 +102,16 @@ export default function WalletsPage() {
 
   async function handleDelete() {
     if (!deletingWallet) return;
+    if (deletingWallet.is_default) {
+      setToast({ message: 'The default wallet cannot be deleted.', variant: 'error' });
+      setDeletingWallet(null);
+      return;
+    }
+    if (wallets.length <= 1) {
+      setToast({ message: 'You must have at least one wallet.', variant: 'error' });
+      setDeletingWallet(null);
+      return;
+    }
     setDeleteLoading(true);
     const supabase = createClient();
     const { error } = await supabase.from('wallets').delete().eq('id', deletingWallet.id);
@@ -132,6 +145,10 @@ export default function WalletsPage() {
                   <select id="w-currency" className={styles.select} value={currency} onChange={e => setCurrency(e.target.value as Currency)}>
                     {CURRENCIES.map(c => <option key={c} value={c}>{CURRENCY_LABELS[c]}</option>)}
                   </select>
+                </div>
+                <div className={styles.field}>
+                  <FormLabel htmlFor="w-balance">Starting balance</FormLabel>
+                  <Input id="w-balance" type="number" step="0.01" value={startingBalance} onChange={e => setStartingBalance(e.target.value)} placeholder="0" />
                 </div>
                 <div className={styles.field}>
                   <FormLabel htmlFor="w-icon">Icon (emoji)</FormLabel>
@@ -171,7 +188,14 @@ export default function WalletsPage() {
                     </div>
                     <div className={styles.walletInfo}>
                       <span className={styles.walletName}>{wallet.name}</span>
-                      <span className={styles.walletCurrency}>{wallet.currency}</span>
+                      <span className={styles.walletCurrency}>
+                        {wallet.currency}
+                        {wallet.starting_balance !== 0 && (
+                          <span className={styles.walletStartingBalance}>
+                            {' '}· Starting: {wallet.starting_balance > 0 ? '+' : ''}{wallet.starting_balance.toLocaleString()}
+                          </span>
+                        )}
+                      </span>
                     </div>
                     {wallet.is_default && <span className={styles.defaultBadge}>Default</span>}
                     <div className={styles.colorSwatch} style={{ backgroundColor: wallet.color }} />
@@ -181,7 +205,13 @@ export default function WalletsPage() {
                           Set default
                         </Button>
                       )}
-                      <Button variant="danger" size="sm" onClick={() => setDeletingWallet(wallet)}>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => setDeletingWallet(wallet)}
+                        disabled={wallet.is_default || wallets.length <= 1}
+                        title={wallet.is_default ? 'Default wallet cannot be deleted' : wallets.length <= 1 ? 'Must have at least one wallet' : undefined}
+                      >
                         Delete
                       </Button>
                     </div>

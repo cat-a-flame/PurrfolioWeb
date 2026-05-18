@@ -57,6 +57,7 @@ export default function AddRecordProvider({ children }: { children: React.ReactN
         category_id: data.category_id,
         date: data.date,
         notes: data.notes || null,
+        payer: data.payer || null,
       })
       .select()
       .single();

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Button from '@/components/ui/Button';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
+import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
 import type { Transaction, Category, Label, TransactionType, Wallet } from '@/lib/types';
 import { todayInputDate } from '@/lib/utils';
 import styles from './TransactionForm.module.css';
@@ -11,10 +12,11 @@ import styles from './TransactionForm.module.css';
 export interface TransactionFormData {
   type: TransactionType;
   amount: number;
-  wallet_id: string | null;
+  wallet_id: string;
   category_id: string | null;
   date: string;
   notes: string;
+  payer: string;
   label_ids: string[];
 }
 
@@ -36,45 +38,51 @@ export default function TransactionForm({
   onClose,
 }: TransactionFormProps) {
   const [type, setType] = useState<TransactionType>(transaction?.type ?? 'expense');
-  const [amount, setAmount] = useState<string>(
-    transaction ? String(transaction.amount) : ''
-  );
 
   const defaultWallet = wallets.find(w => w.is_default) ?? wallets[0];
   const [walletId, setWalletId] = useState<string>(
     transaction?.wallet_id ?? defaultWallet?.id ?? ''
   );
 
-  const [categoryId, setCategoryId] = useState<string>(
-    transaction?.category_id ?? ''
+  const [amount, setAmount] = useState<string>(
+    transaction ? String(transaction.amount) : ''
   );
+  const [categoryId, setCategoryId] = useState<string>(transaction?.category_id ?? '');
   const [date, setDate] = useState<string>(transaction?.date ?? todayInputDate());
   const [notes, setNotes] = useState<string>(transaction?.notes ?? '');
+  const [payer, setPayer] = useState<string>(transaction?.payer ?? '');
   const [labelIds, setLabelIds] = useState<string[]>(
-    transaction?.labels?.map((l) => l.id) ?? []
+    transaction?.labels?.map(l => l.id) ?? []
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const filteredCategories = categories.filter(
-    (c) => c.type === type || c.type === 'both'
-  );
+  const selectedWallet = wallets.find(w => w.id === walletId);
+  const currency = selectedWallet?.currency ?? '';
 
+  const filteredCategories = categories.filter(c => c.type === type || c.type === 'both');
   const parentCategories = filteredCategories.filter(c => !c.parent_id);
   const childCategories = filteredCategories.filter(c => c.parent_id);
 
-  const selectedWallet = wallets.find(w => w.id === walletId);
-  const currencyLabel = selectedWallet?.currency ?? 'HUF';
+  const categoryOptions: SelectOption[] = [];
+  for (const parent of parentCategories) {
+    categoryOptions.push({ value: parent.id, label: `${parent.icon} ${parent.name}`, group: `${parent.icon} ${parent.name}` });
+    for (const child of childCategories.filter(c => c.parent_id === parent.id)) {
+      categoryOptions.push({ value: child.id, label: `${child.icon} ${child.name}`, group: `${parent.icon} ${parent.name}` });
+    }
+  }
+  for (const child of childCategories.filter(c => !parentCategories.find(p => p.id === c.parent_id))) {
+    categoryOptions.push({ value: child.id, label: `${child.icon} ${child.name}` });
+  }
 
   function toggleLabel(id: string) {
-    setLabelIds((prev) =>
-      prev.includes(id) ? prev.filter((l) => l !== id) : [...prev, id]
-    );
+    setLabelIds(prev => prev.includes(id) ? prev.filter(l => l !== id) : [...prev, id]);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+    if (!walletId) { setError('Please select a wallet.'); return; }
     const parsedAmount = Number(amount);
     if (!amount || isNaN(parsedAmount) || parsedAmount < 1) {
       setError('Please enter a valid amount (minimum 1).');
@@ -85,10 +93,11 @@ export default function TransactionForm({
       await onSave({
         type,
         amount: parsedAmount,
-        wallet_id: walletId || null,
+        wallet_id: walletId,
         category_id: categoryId || null,
         date,
         notes,
+        payer,
         label_ids: labelIds,
       });
     } catch {
@@ -97,11 +106,27 @@ export default function TransactionForm({
     }
   }
 
+  if (wallets.length === 0) {
+    return (
+      <div className={styles.overlay} onClick={onClose}>
+        <div className={styles.modal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+          <div className={styles.modalHeader}>
+            <h2 className={styles.title}>Add record</h2>
+            <button className={styles.closeBtn} type="button" onClick={onClose} aria-label="Close">✕</button>
+          </div>
+          <p className={styles.noWalletMsg}>
+            You need at least one wallet before adding records. Go to <strong>Wallets</strong> to create one.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div
         className={styles.modal}
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="form-title"
@@ -110,9 +135,7 @@ export default function TransactionForm({
           <h2 id="form-title" className={styles.title}>
             {transaction ? 'Edit record' : 'Add record'}
           </h2>
-          <button className={styles.closeBtn} type="button" onClick={onClose} aria-label="Close">
-            ✕
-          </button>
+          <button className={styles.closeBtn} type="button" onClick={onClose} aria-label="Close">✕</button>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
@@ -147,76 +170,42 @@ export default function TransactionForm({
                     step={1}
                     min={1}
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    onChange={e => setAmount(e.target.value)}
                     placeholder="0"
                     required
                   />
-                  <select
-                    className={styles.currencySelect}
-                    value={walletId}
-                    onChange={e => setWalletId(e.target.value)}
-                    aria-label="Wallet / currency"
-                  >
-                    {wallets.length === 0 && (
-                      <option value="">{currencyLabel}</option>
-                    )}
-                    {wallets.map(w => (
-                      <option key={w.id} value={w.id}>{w.currency}</option>
-                    ))}
-                  </select>
+                  <span className={styles.currencyBadge}>{currency}</span>
                 </div>
               </div>
 
-              {/* Account */}
-              {wallets.length > 0 && (
-                <div className={styles.field}>
-                  <FormLabel htmlFor="wallet">Account</FormLabel>
-                  <select
-                    id="wallet"
-                    className={styles.select}
-                    value={walletId}
-                    onChange={e => setWalletId(e.target.value)}
-                  >
-                    <option value="">— No account —</option>
-                    {wallets.map(w => (
-                      <option key={w.id} value={w.id}>
-                        {w.icon} {w.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              {/* Account / Wallet */}
+              <div className={styles.field}>
+                <FormLabel htmlFor="wallet" required>Account</FormLabel>
+                <select
+                  id="wallet"
+                  className={styles.select}
+                  value={walletId}
+                  onChange={e => setWalletId(e.target.value)}
+                  required
+                >
+                  {wallets.map(w => (
+                    <option key={w.id} value={w.id}>
+                      {w.icon} {w.name} ({w.currency})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               {/* Category */}
               <div className={styles.field}>
-                <FormLabel htmlFor="category" required>Category</FormLabel>
-                <select
+                <FormLabel htmlFor="category">Category</FormLabel>
+                <SearchableSelect
                   id="category"
-                  className={styles.select}
+                  options={categoryOptions}
                   value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
-                >
-                  <option value="">Choose</option>
-                  {parentCategories.map(parent => (
-                    <optgroup key={parent.id} label={`${parent.icon} ${parent.name}`}>
-                      <option value={parent.id}>{parent.icon} {parent.name}</option>
-                      {childCategories
-                        .filter(c => c.parent_id === parent.id)
-                        .map(child => (
-                          <option key={child.id} value={child.id}>
-                            {'  ↳ '}{child.icon} {child.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                  ))}
-                  {childCategories
-                    .filter(c => !parentCategories.find(p => p.id === c.parent_id))
-                    .map(child => (
-                      <option key={child.id} value={child.id}>
-                        {child.icon} {child.name}
-                      </option>
-                    ))}
-                </select>
+                  onChange={setCategoryId}
+                  placeholder="Choose category"
+                />
               </div>
 
               {/* Labels */}
@@ -224,7 +213,7 @@ export default function TransactionForm({
                 <div className={styles.field}>
                   <FormLabel>Labels</FormLabel>
                   <div className={styles.labelChips}>
-                    {labels.map((label) => {
+                    {labels.map(label => {
                       const selected = labelIds.includes(label.id);
                       return (
                         <button
@@ -248,12 +237,12 @@ export default function TransactionForm({
 
               {/* Date */}
               <div className={styles.field}>
-                <FormLabel htmlFor="date" required>Date &amp; Time</FormLabel>
+                <FormLabel htmlFor="date" required>Date</FormLabel>
                 <Input
                   id="date"
                   type="date"
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
+                  onChange={e => setDate(e.target.value)}
                   required
                 />
               </div>
@@ -269,9 +258,20 @@ export default function TransactionForm({
                   id="notes"
                   className={styles.textarea}
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  onChange={e => setNotes(e.target.value)}
                   rows={4}
                   placeholder="Describe your record"
+                />
+              </div>
+
+              <div className={styles.field}>
+                <FormLabel htmlFor="payer">Payer</FormLabel>
+                <Input
+                  id="payer"
+                  type="text"
+                  value={payer}
+                  onChange={e => setPayer(e.target.value)}
+                  placeholder="Who paid?"
                 />
               </div>
             </div>

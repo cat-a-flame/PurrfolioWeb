@@ -136,6 +136,7 @@ export default function TransactionsPage() {
           category_id: data.category_id,
           date: data.date,
           notes: data.notes || null,
+          payer: data.payer || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', editingTransaction.id);
@@ -170,6 +171,7 @@ export default function TransactionsPage() {
           category_id: data.category_id,
           date: data.date,
           notes: data.notes || null,
+          payer: data.payer || null,
         })
         .select()
         .single();
