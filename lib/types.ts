@@ -9,6 +9,7 @@ export type Wallet = {
   icon: string;
   color: string;
   is_default: boolean;
+  starting_balance: number;
   created_at: string;
 };
 
@@ -38,10 +39,11 @@ export type Transaction = {
   user_id: string;
   type: TransactionType;
   amount: number;
-  wallet_id: string | null;
+  wallet_id: string;
   category_id: string | null;
   date: string;
   notes: string | null;
+  payer: string | null;
   created_at: string;
   updated_at: string;
   wallet?: Wallet | null;

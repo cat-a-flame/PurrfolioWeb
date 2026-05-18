@@ -20,18 +20,32 @@ const CURRENCY_LABELS: Record<Currency, string> = {
   EUR: 'EUR — Euro',
 };
 
+interface EditFields {
+  name: string;
+  icon: string;
+  color: string;
+}
+
 export default function WalletsPage() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Add form
   const [name, setName] = useState('');
   const [currency, setCurrency] = useState<Currency>('HUF');
   const [icon, setIcon] = useState('');
   const [color, setColor] = useState('#f26e4d');
-  const [isDefault, setIsDefault] = useState(false);
+  const [startingBalance, setStartingBalance] = useState('0');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
+  // Inline edit
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editFields, setEditFields] = useState<EditFields>({ name: '', icon: '', color: '#f26e4d' });
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+
+  // Delete
   const [deletingWallet, setDeletingWallet] = useState<Wallet | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -63,26 +77,49 @@ export default function WalletsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSaving(false); return; }
 
-    // If new wallet is default, unset existing defaults first
-    if (isDefault) {
-      await supabase.from('wallets').update({ is_default: false }).eq('user_id', user.id);
-    }
-
+    const parsedBalance = parseFloat(startingBalance);
     const { error } = await supabase.from('wallets').insert({
       user_id: user.id,
       name: name.trim(),
       currency,
       icon: icon.trim() || '💰',
       color,
-      is_default: isDefault,
+      is_default: false,
+      starting_balance: isNaN(parsedBalance) ? 0 : parsedBalance,
     });
 
     setSaving(false);
     if (error) {
       setFormError(error.message);
     } else {
-      setName(''); setIcon(''); setColor('#f26e4d'); setCurrency('HUF'); setIsDefault(false);
+      setName(''); setIcon(''); setColor('#f26e4d'); setCurrency('HUF'); setStartingBalance('0');
       setToast({ message: 'Wallet added.', variant: 'success' });
+      await fetchWallets();
+    }
+  }
+
+  function startEdit(wallet: Wallet) {
+    setEditingId(wallet.id);
+    setEditFields({ name: wallet.name, icon: wallet.icon, color: wallet.color });
+    setEditError('');
+  }
+
+  async function handleEditSave(wallet: Wallet) {
+    setEditError('');
+    if (!editFields.name.trim()) { setEditError('Name is required.'); return; }
+    setEditSaving(true);
+    const supabase = createClient();
+    const { error } = await supabase.from('wallets').update({
+      name: editFields.name.trim(),
+      icon: editFields.icon.trim() || '💰',
+      color: editFields.color,
+    }).eq('id', wallet.id);
+    setEditSaving(false);
+    if (error) {
+      setEditError(error.message);
+    } else {
+      setEditingId(null);
+      setToast({ message: 'Wallet updated.', variant: 'success' });
       await fetchWallets();
     }
   }
@@ -99,6 +136,16 @@ export default function WalletsPage() {
 
   async function handleDelete() {
     if (!deletingWallet) return;
+    if (deletingWallet.is_default) {
+      setToast({ message: 'The default wallet cannot be deleted.', variant: 'error' });
+      setDeletingWallet(null);
+      return;
+    }
+    if (wallets.length <= 1) {
+      setToast({ message: 'You must have at least one wallet.', variant: 'error' });
+      setDeletingWallet(null);
+      return;
+    }
     setDeleteLoading(true);
     const supabase = createClient();
     const { error } = await supabase.from('wallets').delete().eq('id', deletingWallet.id);
@@ -134,19 +181,16 @@ export default function WalletsPage() {
                   </select>
                 </div>
                 <div className={styles.field}>
+                  <FormLabel htmlFor="w-balance">Starting balance</FormLabel>
+                  <Input id="w-balance" type="number" step="0.01" value={startingBalance} onChange={e => setStartingBalance(e.target.value)} placeholder="0" />
+                </div>
+                <div className={styles.field}>
                   <FormLabel htmlFor="w-icon">Icon (emoji)</FormLabel>
                   <Input id="w-icon" type="text" value={icon} onChange={e => setIcon(e.target.value)} placeholder="💰" maxLength={4} />
                 </div>
                 <div className={styles.field}>
                   <FormLabel htmlFor="w-color">Color</FormLabel>
                   <input id="w-color" type="color" className={styles.colorPicker} value={color} onChange={e => setColor(e.target.value)} />
-                </div>
-                <div className={styles.field}>
-                  <FormLabel htmlFor="w-default">Default</FormLabel>
-                  <label className={styles.checkboxLabel}>
-                    <input id="w-default" type="checkbox" checked={isDefault} onChange={e => setIsDefault(e.target.checked)} />
-                    Set as default wallet
-                  </label>
                 </div>
                 <div className={styles.submitCol}>
                   <Button type="submit" variant="primary" size="md" loading={saving}>Add</Button>
@@ -164,29 +208,81 @@ export default function WalletsPage() {
               <p className={styles.emptyState}>No wallets yet. Add one above.</p>
             ) : (
               <div className={styles.list}>
-                {wallets.map(wallet => (
-                  <div key={wallet.id} className={styles.walletItem}>
-                    <div className={styles.walletIcon} style={{ backgroundColor: wallet.color + '22' }}>
-                      <span>{wallet.icon}</span>
-                    </div>
-                    <div className={styles.walletInfo}>
-                      <span className={styles.walletName}>{wallet.name}</span>
-                      <span className={styles.walletCurrency}>{wallet.currency}</span>
-                    </div>
-                    {wallet.is_default && <span className={styles.defaultBadge}>Default</span>}
-                    <div className={styles.colorSwatch} style={{ backgroundColor: wallet.color }} />
-                    <div className={styles.walletActions}>
-                      {!wallet.is_default && (
-                        <Button variant="ghost" size="sm" onClick={() => handleSetDefault(wallet)}>
-                          Set default
+                {wallets.map(wallet => {
+                  if (editingId === wallet.id) {
+                    return (
+                      <div key={wallet.id} className={[styles.walletItem, styles.walletItemEditing].join(' ')}>
+                        <div className={styles.editRow}>
+                          <div className={styles.editFields}>
+                            <Input
+                              type="text"
+                              value={editFields.name}
+                              onChange={e => setEditFields(f => ({ ...f, name: e.target.value }))}
+                              placeholder="Name"
+                            />
+                            <Input
+                              type="text"
+                              value={editFields.icon}
+                              onChange={e => setEditFields(f => ({ ...f, icon: e.target.value }))}
+                              placeholder="💰"
+                              maxLength={4}
+                              style={{ width: 72 }}
+                            />
+                            <input
+                              type="color"
+                              className={styles.colorPicker}
+                              value={editFields.color}
+                              onChange={e => setEditFields(f => ({ ...f, color: e.target.value }))}
+                              style={{ width: 52 }}
+                            />
+                          </div>
+                          {editError && <p className={styles.formError}>{editError}</p>}
+                          <div className={styles.editActions}>
+                            <Button variant="primary" size="sm" onClick={() => handleEditSave(wallet)} loading={editSaving}>Save</Button>
+                            <Button variant="secondary" size="sm" onClick={() => setEditingId(null)} disabled={editSaving}>Cancel</Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={wallet.id} className={styles.walletItem}>
+                      <div className={styles.walletIcon} style={{ backgroundColor: wallet.color + '22' }}>
+                        <span>{wallet.icon}</span>
+                      </div>
+                      <div className={styles.walletInfo}>
+                        <span className={styles.walletName}>{wallet.name}</span>
+                        <span className={styles.walletCurrency}>
+                          {wallet.currency}
+                          {wallet.starting_balance !== 0 && (
+                            <span className={styles.walletStartingBalance}>
+                              {' '}· Starting: {wallet.starting_balance > 0 ? '+' : ''}{wallet.starting_balance.toLocaleString()}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      {wallet.is_default && <span className={styles.defaultBadge}>Default</span>}
+                      <div className={styles.walletActions}>
+                        <Button variant="ghost" size="sm" onClick={() => startEdit(wallet)}>Edit</Button>
+                        {!wallet.is_default && (
+                          <Button variant="ghost" size="sm" onClick={() => handleSetDefault(wallet)}>
+                            Set default
+                          </Button>
+                        )}
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => setDeletingWallet(wallet)}
+                          disabled={wallet.is_default || wallets.length <= 1}
+                          title={wallet.is_default ? 'Default wallet cannot be deleted' : wallets.length <= 1 ? 'Must have at least one wallet' : undefined}
+                        >
+                          Delete
                         </Button>
-                      )}
-                      <Button variant="danger" size="sm" onClick={() => setDeletingWallet(wallet)}>
-                        Delete
-                      </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
@@ -197,7 +293,7 @@ export default function WalletsPage() {
       {deletingWallet && (
         <ConfirmDialog
           title="Delete wallet"
-          message={`Delete "${deletingWallet.name}"? Transactions will keep their data but lose the wallet link.`}
+          message={`Delete "${deletingWallet.name}"? Transactions linked to it cannot be deleted while this wallet exists.`}
           onConfirm={handleDelete}
           onCancel={() => setDeletingWallet(null)}
           loading={deleteLoading}

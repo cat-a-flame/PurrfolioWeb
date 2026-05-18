@@ -26,25 +26,27 @@ CREATE TABLE labels (
 );
 
 CREATE TABLE wallets (
-  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  name       TEXT        NOT NULL,
-  currency   TEXT        NOT NULL CHECK (currency IN ('HUF', 'USD', 'EUR')),
-  icon       TEXT        NOT NULL DEFAULT '💰',
-  color      TEXT        NOT NULL DEFAULT '#f26e4d',
-  is_default BOOLEAN     NOT NULL DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name            TEXT        NOT NULL,
+  currency        TEXT        NOT NULL CHECK (currency IN ('HUF', 'USD', 'EUR')),
+  icon            TEXT        NOT NULL DEFAULT '💰',
+  color           TEXT        NOT NULL DEFAULT '#f26e4d',
+  is_default      BOOLEAN     NOT NULL DEFAULT false,
+  starting_balance NUMERIC(15, 2) NOT NULL DEFAULT 0,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE transactions (
   id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  wallet_id   UUID        REFERENCES wallets(id) ON DELETE SET NULL,
+  wallet_id   UUID        NOT NULL REFERENCES wallets(id) ON DELETE RESTRICT,
   type        TEXT        NOT NULL CHECK (type IN ('income', 'expense')),
   amount      NUMERIC(15, 2) NOT NULL CHECK (amount > 0),
   category_id UUID        REFERENCES categories(id) ON DELETE SET NULL,
   date        DATE        NOT NULL DEFAULT CURRENT_DATE,
   notes       TEXT,
+  payer       TEXT,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -152,3 +154,10 @@ $$;
 CREATE TRIGGER transactions_updated_at
   BEFORE UPDATE ON transactions
   FOR EACH ROW EXECUTE PROCEDURE update_updated_at();
+
+-- ─────────────────────────────────────────
+-- Migration: run these if upgrading an existing database
+-- ─────────────────────────────────────────
+-- ALTER TABLE wallets ADD COLUMN IF NOT EXISTS starting_balance NUMERIC(15, 2) NOT NULL DEFAULT 0;
+-- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS payer TEXT;
+-- ALTER TABLE transactions ALTER COLUMN wallet_id SET NOT NULL;
