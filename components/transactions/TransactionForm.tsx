@@ -60,9 +60,8 @@ export default function TransactionForm({
   const selectedWallet = wallets.find(w => w.id === walletId);
   const currency = selectedWallet?.currency ?? '';
 
-  const filteredCategories = categories.filter(c => c.type === type || c.type === 'both');
-  const parentCategories = filteredCategories.filter(c => !c.parent_id);
-  const childCategories = filteredCategories.filter(c => c.parent_id);
+  const parentCategories = categories.filter(c => !c.parent_id);
+  const childCategories = categories.filter(c => c.parent_id);
 
   const categoryOptions: SelectOption[] = [];
   for (const parent of parentCategories) {
