@@ -125,9 +125,15 @@ export default function TransactionForm({
   const childCategories = categories.filter(c => c.parent_id);
   const categoryOptions: SelectOption[] = [];
   for (const parent of parentCategories) {
-    categoryOptions.push({ value: parent.id, label: `${parent.icon} ${parent.name}`, group: `${parent.icon} ${parent.name}` });
-    for (const child of childCategories.filter(c => c.parent_id === parent.id)) {
-      categoryOptions.push({ value: child.id, label: `${child.icon} ${child.name}`, group: `${parent.icon} ${parent.name}` });
+    const children = childCategories.filter(c => c.parent_id === parent.id);
+    if (children.length > 0) {
+      // Parent has children → heading only, children are the selectable items
+      for (const child of children) {
+        categoryOptions.push({ value: child.id, label: `${child.icon} ${child.name}`, group: `${parent.icon} ${parent.name}` });
+      }
+    } else {
+      // Parent has no children → selectable on its own
+      categoryOptions.push({ value: parent.id, label: `${parent.icon} ${parent.name}` });
     }
   }
   for (const child of childCategories.filter(c => !parentCategories.find(p => p.id === c.parent_id))) {
