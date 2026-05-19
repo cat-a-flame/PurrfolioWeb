@@ -151,3 +151,9 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.dropdownDivider {
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--space-1) 0;
+}

@@ -10,10 +10,7 @@ import styles from './AppHeader.module.css';
 const navItems = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Statistics', href: '/statistics' },
-  { label: 'Wallets', href: '/wallets' },
-  { label: 'Categories', href: '/categories' },
-  { label: 'Labels', href: '/labels' },
-  { label: 'Templates', href: '/templates' },
+  { label: 'Transactions', href: '/transactions' },
 ];
 
 export default function AppHeader() {
@@ -78,20 +75,14 @@ export default function AppHeader() {
                 onClick={() => setDropdownOpen(false)}
               />
               <div className={styles.dropdown} role="menu">
-                <Link
-                  href="/account"
-                  className={styles.dropdownItem}
-                  role="menuitem"
-                  onClick={() => setDropdownOpen(false)}
-                >
+                <Link href="/settings" className={styles.dropdownItem} role="menuitem" onClick={() => setDropdownOpen(false)}>
+                  Settings
+                </Link>
+                <Link href="/account" className={styles.dropdownItem} role="menuitem" onClick={() => setDropdownOpen(false)}>
                   Account
                 </Link>
-                <button
-                  className={styles.dropdownItem}
-                  role="menuitem"
-                  onClick={handleSignOut}
-                  disabled={signingOut}
-                >
+                <div className={styles.dropdownDivider} />
+                <button className={styles.dropdownItem} role="menuitem" onClick={handleSignOut} disabled={signingOut}>
                   {signingOut ? 'Signing out…' : 'Sign out'}
                 </button>
               </div>
