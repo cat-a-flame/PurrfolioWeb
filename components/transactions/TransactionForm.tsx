@@ -7,7 +7,7 @@ import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
-import type { Transaction, Category, Label, TransactionType, Wallet } from '@/lib/types';
+import type { Transaction, Category, Label, Template, TransactionType, Wallet } from '@/lib/types';
 import { todayInputDate } from '@/lib/utils';
 import styles from './TransactionForm.module.css';
 
@@ -33,6 +33,7 @@ interface TransactionFormProps {
   wallets: Wallet[];
   categories: Category[];
   labels: Label[];
+  templates?: Template[];
   onSave: (data: TransactionFormData) => Promise<void>;
   onClose: () => void;
 }
@@ -42,6 +43,7 @@ export default function TransactionForm({
   wallets,
   categories,
   labels,
+  templates,
   onSave,
   onClose,
 }: TransactionFormProps) {
@@ -60,6 +62,7 @@ export default function TransactionForm({
   const [toWalletId, setToWalletId] = useState<string>('');
   const [toAmount, setToAmount] = useState<string>('');
 
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
@@ -71,6 +74,20 @@ export default function TransactionForm({
     || categoryId !== ''
     || labelIds.length > 0
     || (mode === 'transfer' && (toWalletId !== '' || toAmount !== ''));
+
+  function applyTemplate(templateId: string) {
+    setSelectedTemplateId(templateId);
+    if (!templateId) return;
+    const tpl = templates?.find(t => t.id === templateId);
+    if (!tpl) return;
+    setMode(tpl.type);
+    if (tpl.wallet_id) setWalletId(tpl.wallet_id);
+    setAmount(String(tpl.amount));
+    setCategoryId(tpl.category_id ?? '');
+    setPayer(tpl.payer ?? '');
+    setNotes(tpl.notes ?? '');
+    setLabelIds(tpl.labels?.map(l => l.id) ?? []);
+  }
 
   function handleClose() {
     if (dirty) {
@@ -233,6 +250,24 @@ export default function TransactionForm({
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
+          {/* Template selector — only for new records */}
+          {!transaction && templates && templates.length > 0 && (
+            <div className={styles.templateRow}>
+              <select
+                className={styles.templateSelect}
+                value={selectedTemplateId}
+                onChange={e => applyTemplate(e.target.value)}
+              >
+                <option value="">Apply a template…</option>
+                {templates.map(t => (
+                  <option key={t.id} value={t.id}>
+                    {t.type === 'income' ? '↑' : '↓'} {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Mode tabs */}
           <div className={styles.typeTabs}>
             <button type="button" className={[styles.typeTab, mode === 'expense' ? styles.typeTabExpenseActive : ''].filter(Boolean).join(' ')} onClick={() => setMode('expense')}>Expense</button>

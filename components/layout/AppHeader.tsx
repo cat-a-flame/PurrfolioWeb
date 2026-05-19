@@ -13,6 +13,7 @@ const navItems = [
   { label: 'Wallets', href: '/wallets' },
   { label: 'Categories', href: '/categories' },
   { label: 'Labels', href: '/labels' },
+  { label: 'Templates', href: '/templates' },
 ];
 
 export default function AppHeader() {

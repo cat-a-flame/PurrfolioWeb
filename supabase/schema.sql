@@ -58,6 +58,26 @@ CREATE TABLE transaction_labels (
   PRIMARY KEY (transaction_id, label_id)
 );
 
+CREATE TABLE templates (
+  id          UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID           NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name        TEXT           NOT NULL,
+  type        TEXT           NOT NULL CHECK (type IN ('income', 'expense')),
+  wallet_id   UUID           REFERENCES wallets(id) ON DELETE SET NULL,
+  amount      NUMERIC(15, 2) NOT NULL CHECK (amount > 0),
+  category_id UUID           REFERENCES categories(id) ON DELETE SET NULL,
+  payer       TEXT,
+  notes       TEXT,
+  created_at  TIMESTAMPTZ    NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ    NOT NULL DEFAULT now()
+);
+
+CREATE TABLE template_labels (
+  template_id UUID NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
+  label_id    UUID NOT NULL REFERENCES labels(id) ON DELETE CASCADE,
+  PRIMARY KEY (template_id, label_id)
+);
+
 -- ─────────────────────────────────────────
 -- Indexes
 -- ─────────────────────────────────────────
@@ -72,6 +92,8 @@ CREATE INDEX idx_transactions_category_id ON transactions(category_id);
 CREATE INDEX idx_transactions_date       ON transactions(date DESC);
 CREATE INDEX idx_tx_labels_transaction   ON transaction_labels(transaction_id);
 CREATE INDEX idx_tx_labels_label         ON transaction_labels(label_id);
+CREATE INDEX idx_templates_user_id       ON templates(user_id);
+CREATE INDEX idx_template_labels_tmpl    ON template_labels(template_id);
 
 -- ─────────────────────────────────────────
 -- Row Level Security
@@ -82,6 +104,8 @@ ALTER TABLE labels            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wallets           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transaction_labels ENABLE ROW LEVEL SECURITY;
+ALTER TABLE templates          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE template_labels    ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "categories: own rows" ON categories
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
@@ -109,6 +133,17 @@ CREATE POLICY "transaction_labels: own rows" ON transaction_labels
       WHERE t.id = transaction_labels.transaction_id
         AND t.user_id = auth.uid()
     )
+  );
+
+CREATE POLICY "templates: own rows" ON templates
+  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "template_labels: own rows" ON template_labels
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM templates t WHERE t.id = template_labels.template_id AND t.user_id = auth.uid())
+  )
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM templates t WHERE t.id = template_labels.template_id AND t.user_id = auth.uid())
   );
 
 -- ─────────────────────────────────────────
@@ -156,6 +191,10 @@ CREATE TRIGGER transactions_updated_at
   BEFORE UPDATE ON transactions
   FOR EACH ROW EXECUTE PROCEDURE update_updated_at();
 
+CREATE TRIGGER templates_updated_at
+  BEFORE UPDATE ON templates
+  FOR EACH ROW EXECUTE PROCEDURE update_updated_at();
+
 -- ─────────────────────────────────────────
 -- Migration: run these if upgrading an existing database
 -- ─────────────────────────────────────────
@@ -163,3 +202,12 @@ CREATE TRIGGER transactions_updated_at
 -- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS payer TEXT;
 -- ALTER TABLE transactions ALTER COLUMN wallet_id SET NOT NULL;
 -- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS transfer_group_id UUID;
+-- CREATE TABLE templates ( id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, name TEXT NOT NULL, type TEXT NOT NULL CHECK (type IN ('income', 'expense')), wallet_id UUID REFERENCES wallets(id) ON DELETE SET NULL, amount NUMERIC(15,2) NOT NULL CHECK (amount > 0), category_id UUID REFERENCES categories(id) ON DELETE SET NULL, payer TEXT, notes TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now() );
+-- CREATE TABLE template_labels ( template_id UUID NOT NULL REFERENCES templates(id) ON DELETE CASCADE, label_id UUID NOT NULL REFERENCES labels(id) ON DELETE CASCADE, PRIMARY KEY (template_id, label_id) );
+-- ALTER TABLE templates ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE template_labels ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "templates: own rows" ON templates FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+-- CREATE POLICY "template_labels: own rows" ON template_labels FOR ALL USING ( EXISTS (SELECT 1 FROM templates t WHERE t.id = template_labels.template_id AND t.user_id = auth.uid()) ) WITH CHECK ( EXISTS (SELECT 1 FROM templates t WHERE t.id = template_labels.template_id AND t.user_id = auth.uid()) );
+-- CREATE INDEX idx_templates_user_id ON templates(user_id);
+-- CREATE INDEX idx_template_labels_tmpl ON template_labels(template_id);
+-- CREATE TRIGGER templates_updated_at BEFORE UPDATE ON templates FOR EACH ROW EXECUTE PROCEDURE update_updated_at();
