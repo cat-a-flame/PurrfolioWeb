@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Lora, Figtree } from 'next/font/google';
 import AddRecordProvider from '@/components/transactions/AddRecordProvider';
+import BottomNav from '@/components/layout/BottomNav';
 import './globals.css';
 
 const lora = Lora({ subsets: ['latin'], variable: '--font-lora', display: 'swap' });
@@ -15,7 +16,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${lora.variable} ${figtree.variable}`}>
       <body>
-        <AddRecordProvider>{children}</AddRecordProvider>
+        <AddRecordProvider>
+          {children}
+          <BottomNav />
+        </AddRecordProvider>
       </body>
     </html>
   );

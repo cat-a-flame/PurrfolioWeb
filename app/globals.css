@@ -104,6 +104,20 @@ svg {
   display: block;
 }
 
+/* Mobile: reserve space for bottom nav */
+@media (max-width: 768px) {
+  body {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Touch devices: prevent tap flash on interactive elements */
+@media (hover: none) {
+  a, button {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
 /* Toast animation */
 @keyframes slideInRight {
   from {
