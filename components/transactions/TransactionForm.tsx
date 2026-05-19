@@ -338,9 +338,9 @@ export default function TransactionForm({
                             key={label.id}
                             type="button"
                             className={[styles.labelChip, selected ? styles.labelChipSelected : ''].filter(Boolean).join(' ')}
-                            style={selected ? { backgroundColor: label.color, borderColor: label.color, color: '#fff' } : { borderColor: label.color, color: label.color }}
                             onClick={() => toggleLabel(label.id)}
                           >
+                            <span className={styles.labelDot} style={{ backgroundColor: label.color }} />
                             {label.name}
                           </button>
                         );

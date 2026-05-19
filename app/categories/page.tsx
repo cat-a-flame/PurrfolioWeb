@@ -22,6 +22,7 @@ interface EditFields {
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   // Add form
   const [name, setName] = useState('');
@@ -54,6 +55,14 @@ export default function CategoriesPage() {
   }, []);
 
   useEffect(() => { fetchCategories(); }, [fetchCategories]);
+
+  function toggleExpand(id: string) {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -130,65 +139,63 @@ export default function CategoriesPage() {
   const topLevel = categories.filter(c => !c.parent_id);
   const getChildren = (pid: string) => categories.filter(c => c.parent_id === pid);
 
-  function renderCatRow(cat: Category, isChild = false) {
-    const isEditing = editingId === cat.id;
-
-    if (isEditing) {
-      const parentOptions = categories.filter(c => !c.parent_id && c.id !== cat.id);
-      return (
-        <div key={cat.id} className={[styles.catItem, styles.catItemEditing, isChild ? styles.catItemChild : ''].filter(Boolean).join(' ')}>
-          {isChild && <span className={styles.childIndent}>↳</span>}
-          <div className={styles.editRow}>
-            <div className={styles.editFields}>
-              <Input
-                type="text"
-                value={editFields.name}
-                onChange={e => setEditFields(f => ({ ...f, name: e.target.value }))}
-                placeholder="Name"
-                required
-              />
-              <Input
-                type="text"
-                value={editFields.icon}
-                onChange={e => setEditFields(f => ({ ...f, icon: e.target.value }))}
-                placeholder="📁"
-                maxLength={4}
-                style={{ width: 72 }}
-              />
-              <input
-                type="color"
-                className={styles.colorPicker}
-                value={editFields.color}
-                onChange={e => setEditFields(f => ({ ...f, color: e.target.value }))}
-                style={{ width: 52 }}
-              />
-              {!isChild && (
-                <select
-                  className={styles.select}
-                  value={editFields.parent_id}
-                  onChange={e => setEditFields(f => ({ ...f, parent_id: e.target.value }))}
-                  style={{ minWidth: 140 }}
-                >
-                  <option value="">— Top level —</option>
-                  {parentOptions.map(c => (
-                    <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-            {editError && <p className={styles.formError}>{editError}</p>}
-            <div className={styles.editActions}>
-              <Button variant="primary" size="sm" onClick={() => handleEditSave(cat)} loading={editSaving}>Save</Button>
-              <Button variant="secondary" size="sm" onClick={() => setEditingId(null)} disabled={editSaving}>Cancel</Button>
-            </div>
+  function renderEditRow(cat: Category, isChild: boolean) {
+    const parentOptions = categories.filter(c => !c.parent_id && c.id !== cat.id);
+    return (
+      <div className={[styles.catItem, styles.catItemEditing, isChild ? styles.catItemChild : ''].filter(Boolean).join(' ')}>
+        <div className={styles.editRow}>
+          <div className={styles.editFields}>
+            <Input
+              type="text"
+              value={editFields.name}
+              onChange={e => setEditFields(f => ({ ...f, name: e.target.value }))}
+              placeholder="Name"
+              required
+            />
+            <Input
+              type="text"
+              value={editFields.icon}
+              onChange={e => setEditFields(f => ({ ...f, icon: e.target.value }))}
+              placeholder="📁"
+              maxLength={4}
+              style={{ width: 72 }}
+            />
+            <input
+              type="color"
+              className={styles.colorPicker}
+              value={editFields.color}
+              onChange={e => setEditFields(f => ({ ...f, color: e.target.value }))}
+              style={{ width: 52 }}
+            />
+            {!isChild && (
+              <select
+                className={styles.select}
+                value={editFields.parent_id}
+                onChange={e => setEditFields(f => ({ ...f, parent_id: e.target.value }))}
+                style={{ minWidth: 140 }}
+              >
+                <option value="">— Top level —</option>
+                {parentOptions.map(c => (
+                  <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+          {editError && <p className={styles.formError}>{editError}</p>}
+          <div className={styles.editActions}>
+            <Button variant="primary" size="sm" onClick={() => handleEditSave(cat)} loading={editSaving}>Save</Button>
+            <Button variant="secondary" size="sm" onClick={() => setEditingId(null)} disabled={editSaving}>Cancel</Button>
           </div>
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
+  function renderChildRow(cat: Category) {
+    if (editingId === cat.id) return <React.Fragment key={cat.id}>{renderEditRow(cat, true)}</React.Fragment>;
     return (
-      <div key={cat.id} className={[styles.catItem, isChild ? styles.catItemChild : ''].filter(Boolean).join(' ')}>
-        {isChild && <span className={styles.childIndent}>↳</span>}
+      <div key={cat.id} className={[styles.catItem, styles.catItemChild].join(' ')}>
+        <span className={styles.childIndent}>↳</span>
         <div className={styles.catIcon} style={{ backgroundColor: cat.color + '22' }}>
           <span>{cat.icon || '📁'}</span>
         </div>
@@ -199,6 +206,50 @@ export default function CategoriesPage() {
             <Button variant="danger" size="sm" onClick={() => setDeletingCategory(cat)}>Delete</Button>
           )}
         </div>
+      </div>
+    );
+  }
+
+  function renderParentRow(cat: Category) {
+    const children = getChildren(cat.id);
+    const hasChildren = children.length > 0;
+    const isExpanded = expandedIds.has(cat.id);
+
+    if (editingId === cat.id) return <React.Fragment key={cat.id}>{renderEditRow(cat, false)}</React.Fragment>;
+
+    return (
+      <div key={cat.id} className={styles.parentGroup}>
+        <div className={styles.catItem}>
+          <button
+            type="button"
+            className={[styles.expandBtn, hasChildren ? '' : styles.expandBtnHidden].filter(Boolean).join(' ')}
+            onClick={() => hasChildren && toggleExpand(cat.id)}
+            aria-expanded={isExpanded}
+            aria-label={isExpanded ? 'Collapse' : 'Expand'}
+          >
+            {isExpanded ? '▾' : '▸'}
+          </button>
+          <div className={styles.catIcon} style={{ backgroundColor: cat.color + '22' }}>
+            <span>{cat.icon || '📁'}</span>
+          </div>
+          <span className={styles.catName}>
+            {cat.name}
+            {hasChildren && (
+              <span className={styles.childCount}>{children.length}</span>
+            )}
+          </span>
+          <div className={styles.catActions}>
+            <Button variant="ghost" size="sm" onClick={() => startEdit(cat)}>Edit</Button>
+            {!cat.is_default && (
+              <Button variant="danger" size="sm" onClick={() => setDeletingCategory(cat)}>Delete</Button>
+            )}
+          </div>
+        </div>
+        {isExpanded && hasChildren && (
+          <div className={styles.childList}>
+            {children.map(child => renderChildRow(child))}
+          </div>
+        )}
       </div>
     );
   }
@@ -251,12 +302,7 @@ export default function CategoriesPage() {
               <p className={styles.emptyState}>No categories yet.</p>
             ) : (
               <div className={styles.list}>
-                {topLevel.map(cat => (
-                  <React.Fragment key={cat.id}>
-                    {renderCatRow(cat, false)}
-                    {getChildren(cat.id).map(child => renderCatRow(child, true))}
-                  </React.Fragment>
-                ))}
+                {topLevel.map(cat => renderParentRow(cat))}
               </div>
             )}
           </section>

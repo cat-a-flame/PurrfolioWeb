@@ -193,23 +193,37 @@
 }
 
 .labelChip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-full);
-  border: 1px solid;
-  background: transparent;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
   font-family: var(--font-figtree);
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 500;
+  color: var(--color-text);
   cursor: pointer;
-  transition: opacity var(--transition-fast);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .labelChip:hover {
-  opacity: 0.8;
+  background: var(--color-surface);
+  border-color: var(--color-border-focus);
 }
 
 .labelChipSelected {
-  opacity: 1;
+  background: var(--color-accent-light);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.labelDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .textarea {
