@@ -404,7 +404,7 @@
 
 .txIncome { color: var(--color-income); }
 .txExpense { color: var(--color-expense); }
-.txTransfer { color: var(--color-accent); }
+.txTransfer { color: var(--color-text-muted); }
 
 .txEditBtn {
   font-size: 0.75rem;

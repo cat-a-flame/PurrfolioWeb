@@ -62,6 +62,7 @@ export default function TransactionsPage() {
 
   // Edit dialog
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
+  const [editingTransferPair, setEditingTransferPair] = useState<Transaction | undefined>();
 
   // Toast
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
@@ -179,65 +180,121 @@ export default function TransactionsPage() {
     if (!user) throw new Error('Not authenticated');
 
     if (editingTransaction) {
-      const { error } = await supabase
-        .from('transactions')
-        .update({
-          type: data.type,
-          amount: data.amount,
-          wallet_id: data.wallet_id,
-          category_id: data.category_id,
-          date: data.date,
-          notes: data.notes || null,
-          payer: data.payer || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', editingTransaction.id);
-      if (error) throw error;
+      if (data.transfer) {
+        if (editingTransaction.transfer_group_id) {
+          await supabase.from('transactions').delete().eq('transfer_group_id', editingTransaction.transfer_group_id);
+        } else {
+          await supabase.from('transactions').delete().eq('id', editingTransaction.id);
+        }
+        const transferGroupId = crypto.randomUUID();
+        const common = { user_id: user.id, date: data.date, notes: data.notes || null, transfer_group_id: transferGroupId };
+        const { error } = await supabase.from('transactions').insert([
+          { ...common, type: 'expense', amount: data.amount, wallet_id: data.wallet_id },
+          { ...common, type: 'income', amount: data.transfer.to_amount, wallet_id: data.transfer.to_wallet_id },
+        ]);
+        if (error) throw error;
+      } else {
+        if (editingTransaction.transfer_group_id) {
+          const { data: paired } = await supabase
+            .from('transactions')
+            .select('id')
+            .eq('transfer_group_id', editingTransaction.transfer_group_id)
+            .neq('id', editingTransaction.id);
+          if (paired && paired.length > 0) {
+            await supabase.from('transactions').delete().in('id', paired.map((p: { id: string }) => p.id));
+          }
+        }
+        const { error } = await supabase
+          .from('transactions')
+          .update({
+            type: data.type,
+            amount: data.amount,
+            wallet_id: data.wallet_id,
+            category_id: data.category_id,
+            date: data.date,
+            notes: data.notes || null,
+            payer: data.payer || null,
+            transfer_group_id: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', editingTransaction.id);
+        if (error) throw error;
 
-      await supabase.from('transaction_labels').delete().eq('transaction_id', editingTransaction.id);
-      if (data.label_ids.length > 0) {
-        await supabase.from('transaction_labels').insert(
-          data.label_ids.map(lid => ({ transaction_id: editingTransaction.id, label_id: lid }))
-        );
+        await supabase.from('transaction_labels').delete().eq('transaction_id', editingTransaction.id);
+        if (data.label_ids.length > 0) {
+          await supabase.from('transaction_labels').insert(
+            data.label_ids.map(lid => ({ transaction_id: editingTransaction.id, label_id: lid }))
+          );
+        }
       }
       setToast({ message: 'Transaction updated.', variant: 'success' });
     } else {
-      const { data: inserted, error } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: user.id,
-          type: data.type,
-          amount: data.amount,
-          wallet_id: data.wallet_id,
-          category_id: data.category_id,
-          date: data.date,
-          notes: data.notes || null,
-          payer: data.payer || null,
-        })
-        .select()
-        .single();
-      if (error) throw error;
+      if (data.transfer) {
+        const transferGroupId = crypto.randomUUID();
+        const common = { user_id: user.id, date: data.date, notes: data.notes || null, transfer_group_id: transferGroupId };
+        const { error } = await supabase.from('transactions').insert([
+          { ...common, type: 'expense', amount: data.amount, wallet_id: data.wallet_id },
+          { ...common, type: 'income', amount: data.transfer.to_amount, wallet_id: data.transfer.to_wallet_id },
+        ]);
+        if (error) throw error;
+      } else {
+        const { data: inserted, error } = await supabase
+          .from('transactions')
+          .insert({
+            user_id: user.id,
+            type: data.type,
+            amount: data.amount,
+            wallet_id: data.wallet_id,
+            category_id: data.category_id,
+            date: data.date,
+            notes: data.notes || null,
+            payer: data.payer || null,
+          })
+          .select()
+          .single();
+        if (error) throw error;
 
-      if (data.label_ids.length > 0 && inserted) {
-        await supabase.from('transaction_labels').insert(
-          data.label_ids.map(lid => ({ transaction_id: inserted.id, label_id: lid }))
-        );
+        if (data.label_ids.length > 0 && inserted) {
+          await supabase.from('transaction_labels').insert(
+            data.label_ids.map(lid => ({ transaction_id: inserted.id, label_id: lid }))
+          );
+        }
       }
       setToast({ message: 'Transaction added.', variant: 'success' });
     }
 
     setEditingTransaction(undefined);
+    setEditingTransferPair(undefined);
     await fetchAll();
   }
 
   async function handleDelete() {
     if (!editingTransaction) return;
     const supabase = createClient();
-    const { error } = await supabase.from('transactions').delete().eq('id', editingTransaction.id);
-    if (error) throw error;
+    if (editingTransaction.transfer_group_id) {
+      const { error } = await supabase.from('transactions').delete().eq('transfer_group_id', editingTransaction.transfer_group_id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from('transactions').delete().eq('id', editingTransaction.id);
+      if (error) throw error;
+    }
     setToast({ message: 'Transaction deleted.', variant: 'success' });
     setEditingTransaction(undefined);
+    setEditingTransferPair(undefined);
     await fetchAll();
+  }
+
+  function openEdit(t: Transaction) {
+    if (t.transfer_group_id) {
+      const allLegs = transactions.filter(tx => tx.transfer_group_id === t.transfer_group_id);
+      const expenseLeg = allLegs.find(tx => tx.type === 'expense') ?? t;
+      const incomeLeg = allLegs.find(tx => tx.type === 'income');
+      setEditingTransaction(expenseLeg);
+      setEditingTransferPair(incomeLeg);
+    } else {
+      setEditingTransaction(t);
+      setEditingTransferPair(undefined);
+    }
   }
 
   return (
@@ -379,9 +436,7 @@ export default function TransactionsPage() {
                           </div>
                           <div className={styles.txMain}>
                             <span className={styles.txCategory}>
-                              {isTransfer
-                                ? (t.type === 'expense' ? 'Transfer out' : 'Transfer in')
-                                : (t.category?.name ?? 'Uncategorised')}
+                              {isTransfer ? 'Transfer' : (t.category?.name ?? 'Uncategorised')}
                             </span>
                             {t.wallet && (
                               <span className={styles.txWallet}>
@@ -399,19 +454,17 @@ export default function TransactionsPage() {
                               isTransfer ? styles.txTransfer : t.type === 'income' ? styles.txIncome : styles.txExpense,
                             ].join(' ')}>
                               {isTransfer
-                                ? (t.type === 'expense' ? '−' : '+')
+                                ? (t.type === 'expense' ? '−' : '')
                                 : (t.type === 'income' ? '' : '−')
                               }{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
                             </span>
-                            {!isTransfer && (
-                              <button
-                                className={styles.txEditBtn}
-                                onClick={() => setEditingTransaction(t)}
-                                aria-label="Edit transaction"
-                              >
-                                Edit
-                              </button>
-                            )}
+                            <button
+                              className={styles.txEditBtn}
+                              onClick={() => openEdit(t)}
+                              aria-label="Edit transaction"
+                            >
+                              Edit
+                            </button>
                           </div>
                         </div>
                       );
@@ -429,12 +482,13 @@ export default function TransactionsPage() {
       {editingTransaction && (
         <TransactionForm
           transaction={editingTransaction}
+          transferPair={editingTransferPair}
           wallets={wallets}
           categories={categories}
           labels={labels}
           onSave={handleSave}
           onDelete={handleDelete}
-          onClose={() => setEditingTransaction(undefined)}
+          onClose={() => { setEditingTransaction(undefined); setEditingTransferPair(undefined); }}
         />
       )}
 
