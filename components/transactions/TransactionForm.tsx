@@ -6,6 +6,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
+import LabelSelect from '@/components/ui/LabelSelect';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
 import type { Transaction, Category, Label, Template, TransactionType, Wallet } from '@/lib/types';
 import { todayInputDate } from '@/lib/utils';
@@ -371,22 +372,7 @@ export default function TransactionForm({
                 {labels.length > 0 && (
                   <div className={styles.field}>
                     <FormLabel>Labels</FormLabel>
-                    <div className={styles.labelChips}>
-                      {labels.map(label => {
-                        const selected = labelIds.includes(label.id);
-                        return (
-                          <button
-                            key={label.id}
-                            type="button"
-                            className={[styles.labelChip, selected ? styles.labelChipSelected : ''].filter(Boolean).join(' ')}
-                            onClick={() => toggleLabel(label.id)}
-                          >
-                            <span className={styles.labelDot} style={{ backgroundColor: label.color }} />
-                            {label.name}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <LabelSelect labels={labels} selectedIds={labelIds} onChange={setLabelIds} />
                   </div>
                 )}
 
