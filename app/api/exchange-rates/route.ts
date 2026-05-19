@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// MNB (Magyar Nemzeti Bank) SOAP API – returns középárfolyam
-const MNB_ENDPOINT = 'https://www.mnb.hu/webservices/MNBArfolyamServiceSoap';
-const CURRENCIES = 'EUR,USD,GBP,CHF,CZK,PLN,RON';
-
-function isoDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+// Frankfurter API — ECB reference rates, free & cloud-accessible.
+// Returns EUR-based rates; we derive HUF-per-X from those.
+// Automatically resolves to the nearest published business day.
+const FRANKFURTER = 'https://api.frankfurter.app';
 
 export async function GET(req: NextRequest) {
   const date = req.nextUrl.searchParams.get('date');
@@ -14,65 +11,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
   }
 
-  // Look back 7 days to find the nearest published business-day rate
-  const end = new Date(date + 'T12:00:00');
-  const start = new Date(end);
-  start.setDate(start.getDate() - 7);
-
-  const soap = `<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-    <GetExchangeRates xmlns="http://www.mnb.hu/webservices">
-      <startDate>${isoDate(start)}</startDate>
-      <endDate>${isoDate(end)}</endDate>
-      <currencyNames>${CURRENCIES}</currencyNames>
-    </GetExchangeRates>
-  </soap:Body>
-</soap:Envelope>`;
-
   try {
-    const res = await fetch(MNB_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/xml; charset=utf-8', 'SOAPAction': '' },
-      body: soap,
-      // Cache at the edge for 24 h — rates only publish once per business day
-      next: { revalidate: 86400 },
+    // Fetch all rates with EUR as the base for a single round-trip.
+    // ?base=EUR gives { rates: { HUF: 404.23, USD: 1.1302, GBP: 0.8612, … } }
+    const res = await fetch(`${FRANKFURTER}/${date}?base=EUR`, {
+      next: { revalidate: 86400 }, // cache at the edge for 24 h
     });
 
     if (!res.ok) return NextResponse.json({ rates: {} });
 
-    const text = await res.text();
+    const data: { date: string; base: string; rates: Record<string, number> } = await res.json();
+    const eurToHUF = data.rates['HUF'];
+    if (!eurToHUF) return NextResponse.json({ rates: {} });
 
-    // The result element contains HTML-encoded XML
-    const resultMatch = text.match(/<GetExchangeRatesResult>([\s\S]*?)<\/GetExchangeRatesResult>/);
-    if (!resultMatch) return NextResponse.json({ rates: {} });
-
-    const inner = resultMatch[1]
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&amp;/g, '&')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'");
-
-    // Find all <Day date="…">…</Day> blocks, take the most recent one
-    const days = [...inner.matchAll(/<Day date="([^"]+)">([\s\S]*?)<\/Day>/g)];
-    if (!days.length) return NextResponse.json({ rates: {} });
-
-    days.sort((a, b) => b[1].localeCompare(a[1]));
-    const [, publishedDate, ratesXml] = days[0];
-
-    // Parse <Rate unit="1" curr="EUR">390,12</Rate>
-    // MNB uses comma as decimal separator
-    const rates: Record<string, number> = {};
-    for (const [, unit, curr, value] of ratesXml.matchAll(/<Rate unit="(\d+)" curr="([^"]+)">([^<]+)<\/Rate>/g)) {
-      const hufPerUnit = parseFloat(value.replace(',', '.'));
-      const unitCount = parseInt(unit, 10);
-      if (!isNaN(hufPerUnit) && unitCount > 0) {
-        rates[curr] = hufPerUnit / unitCount; // HUF per 1 unit of currency
+    // Convert each currency to "HUF per 1 unit"
+    const rates: Record<string, number> = { EUR: eurToHUF };
+    for (const [currency, eurRate] of Object.entries(data.rates)) {
+      if (currency !== 'HUF') {
+        rates[currency] = eurToHUF / eurRate;
       }
     }
 
-    return NextResponse.json({ rates, publishedDate });
+    return NextResponse.json({ rates, publishedDate: data.date });
   } catch {
     return NextResponse.json({ rates: {} });
   }
