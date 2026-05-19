@@ -50,6 +50,12 @@
   min-width: 140px;
 }
 
+/* Make SearchableSelect trigger match filter input height */
+.filterField :global([class*="trigger"]) {
+  height: 38px;
+  font-size: 0.875rem;
+}
+
 .filterSelect,
 .filterInput {
   height: 38px;

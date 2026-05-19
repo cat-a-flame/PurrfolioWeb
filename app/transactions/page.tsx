@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import Toast from '@/components/ui/Toast';
 import TransactionForm, { TransactionFormData } from '@/components/transactions/TransactionForm';
 import FormLabel from '@/components/ui/FormLabel';
+import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
 import { createClient } from '@/lib/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import type { Transaction, Category, Label, TransactionType, Wallet } from '@/lib/types';
@@ -90,9 +91,34 @@ export default function TransactionsPage() {
     return () => window.removeEventListener('transaction-added', fetchAll);
   }, [fetchAll]);
 
+  const categoryFilterOptions: SelectOption[] = (() => {
+    const parents = categories.filter(c => !c.parent_id);
+    const children = categories.filter(c => c.parent_id);
+    const opts: SelectOption[] = [
+      { value: '', label: 'All categories' },
+      { value: '__none__', label: '— Uncategorized' },
+    ];
+    for (const parent of parents) {
+      const kids = children.filter(c => c.parent_id === parent.id);
+      if (kids.length > 0) {
+        for (const child of kids) {
+          opts.push({ value: child.id, label: `${child.icon} ${child.name}`, group: `${parent.icon} ${parent.name}` });
+        }
+      } else {
+        opts.push({ value: parent.id, label: `${parent.icon} ${parent.name}` });
+      }
+    }
+    for (const child of children.filter(c => !parents.find(p => p.id === c.parent_id))) {
+      opts.push({ value: child.id, label: `${child.icon} ${child.name}` });
+    }
+    return opts;
+  })();
+
   const filteredTransactions = transactions.filter(t => {
     if (filterType && t.type !== filterType) return false;
-    if (filterCategoryId && t.category_id !== filterCategoryId) return false;
+    if (filterCategoryId === '__none__') {
+      if (t.category_id !== null) return false;
+    } else if (filterCategoryId && t.category_id !== filterCategoryId) return false;
     if (filterLabelId && !t.labels?.some(l => l.id === filterLabelId)) return false;
     if (filterWalletId && t.wallet_id !== filterWalletId) return false;
     if (filterFrom && t.date < filterFrom) return false;
@@ -220,17 +246,13 @@ export default function TransactionsPage() {
 
             <div className={styles.filterField}>
               <FormLabel htmlFor="filter-cat">Category</FormLabel>
-              <select
+              <SearchableSelect
                 id="filter-cat"
-                className={styles.filterSelect}
+                options={categoryFilterOptions}
                 value={filterCategoryId}
-                onChange={e => setFilterCategoryId(e.target.value)}
-              >
-                <option value="">All categories</option>
-                {categories.map(c => (
-                  <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-                ))}
-              </select>
+                onChange={setFilterCategoryId}
+                placeholder="All categories"
+              />
             </div>
 
             <div className={styles.filterField}>
