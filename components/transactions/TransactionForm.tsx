@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Button from '@/components/ui/Button';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
+import NumberInput from '@/components/ui/NumberInput';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
 import type { Transaction, Category, Label, TransactionType, Wallet } from '@/lib/types';
 import { todayInputDate } from '@/lib/utils';
@@ -216,7 +217,7 @@ export default function TransactionForm({
               <div className={styles.field}>
                 <FormLabel htmlFor="from-amount" required>Amount sent</FormLabel>
                 <div className={styles.amountRow}>
-                  <Input id="from-amount" type="number" step="any" min={0.01} value={amount} onChange={e => handleFromAmountChange(e.target.value)} placeholder="0" required />
+                  <NumberInput id="from-amount" value={amount} onChange={handleFromAmountChange} placeholder="0" required />
                   <span className={styles.currencyBadge}>{selectedWallet?.currency ?? '—'}</span>
                 </div>
               </div>
@@ -239,13 +240,10 @@ export default function TransactionForm({
               <div className={styles.field}>
                 <FormLabel htmlFor="to-amount" required>Amount received</FormLabel>
                 <div className={styles.amountRow}>
-                  <Input
+                  <NumberInput
                     id="to-amount"
-                    type="number"
-                    step="any"
-                    min={0.01}
                     value={toAmount}
-                    onChange={e => setToAmount(e.target.value)}
+                    onChange={setToAmount}
                     placeholder="0"
                     required
                     readOnly={sameCurrency ?? false}
@@ -276,7 +274,7 @@ export default function TransactionForm({
                 <div className={styles.field}>
                   <FormLabel htmlFor="amount" required>Amount</FormLabel>
                   <div className={styles.amountRow}>
-                    <Input id="amount" type="number" step={1} min={1} value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" required />
+                    <NumberInput id="amount" value={amount} onChange={setAmount} placeholder="0" required />
                     <span className={styles.currencyBadge}>{selectedWallet?.currency ?? ''}</span>
                   </div>
                 </div>
