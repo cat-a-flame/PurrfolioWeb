@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import ReactSelect from 'react-select';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import Button from '@/components/ui/Button';
@@ -8,6 +9,7 @@ import Toast from '@/components/ui/Toast';
 import TransactionForm, { TransactionFormData } from '@/components/transactions/TransactionForm';
 import FormLabel from '@/components/ui/FormLabel';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
+import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import { createClient } from '@/lib/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import type { Transaction, Category, Label, TransactionType, Wallet } from '@/lib/types';
@@ -251,16 +253,20 @@ export default function TransactionsPage() {
           <div className={styles.filterBar}>
             <div className={styles.filterField}>
               <FormLabel htmlFor="filter-type">Type</FormLabel>
-              <select
-                id="filter-type"
-                className={styles.filterSelect}
-                value={filterType}
-                onChange={e => setFilterType(e.target.value as TransactionType | '')}
-              >
-                <option value="">All types</option>
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
-              </select>
+              <ReactSelect<{ value: string; label: string }>
+                inputId="filter-type"
+                options={[
+                  { value: '', label: 'All types' },
+                  { value: 'income', label: 'Income' },
+                  { value: 'expense', label: 'Expense' },
+                ]}
+                value={{ value: filterType, label: filterType === 'income' ? 'Income' : filterType === 'expense' ? 'Expense' : 'All types' }}
+                onChange={(opt) => setFilterType((opt?.value ?? '') as TransactionType | '')}
+                isSearchable={false}
+                styles={makeRsStyles('sm')}
+                theme={rsTheme}
+                menuPosition="fixed"
+              />
             </div>
 
             <div className={styles.filterField}>
@@ -276,32 +282,46 @@ export default function TransactionsPage() {
 
             <div className={styles.filterField}>
               <FormLabel htmlFor="filter-label">Label</FormLabel>
-              <select
-                id="filter-label"
-                className={styles.filterSelect}
-                value={filterLabelId}
-                onChange={e => setFilterLabelId(e.target.value)}
-              >
-                <option value="">All labels</option>
-                {labels.map(l => (
-                  <option key={l.id} value={l.id}>{l.name}</option>
-                ))}
-              </select>
+              {(() => {
+                const labelOptions = [
+                  { value: '', label: 'All labels' },
+                  ...labels.map(l => ({ value: l.id, label: l.name })),
+                ];
+                return (
+                  <ReactSelect<{ value: string; label: string }>
+                    inputId="filter-label"
+                    options={labelOptions}
+                    value={labelOptions.find(o => o.value === filterLabelId) ?? labelOptions[0]}
+                    onChange={(opt) => setFilterLabelId(opt?.value ?? '')}
+                    isSearchable
+                    styles={makeRsStyles('sm')}
+                    theme={rsTheme}
+                    menuPosition="fixed"
+                  />
+                );
+              })()}
             </div>
 
             <div className={styles.filterField}>
               <FormLabel htmlFor="filter-wallet">Wallet</FormLabel>
-              <select
-                id="filter-wallet"
-                className={styles.filterSelect}
-                value={filterWalletId}
-                onChange={e => setFilterWalletId(e.target.value)}
-              >
-                <option value="">All wallets</option>
-                {wallets.map(w => (
-                  <option key={w.id} value={w.id}>{w.icon} {w.name}</option>
-                ))}
-              </select>
+              {(() => {
+                const walletOptions = [
+                  { value: '', label: 'All wallets' },
+                  ...wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` })),
+                ];
+                return (
+                  <ReactSelect<{ value: string; label: string }>
+                    inputId="filter-wallet"
+                    options={walletOptions}
+                    value={walletOptions.find(o => o.value === filterWalletId) ?? walletOptions[0]}
+                    onChange={(opt) => setFilterWalletId(opt?.value ?? '')}
+                    isSearchable
+                    styles={makeRsStyles('sm')}
+                    theme={rsTheme}
+                    menuPosition="fixed"
+                  />
+                );
+              })()}
             </div>
 
             <div className={styles.filterField}>

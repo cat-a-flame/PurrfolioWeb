@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import Link from 'next/link';
+import ReactSelect from 'react-select';
 import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import Toast from '@/components/ui/Toast';
+import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import type { Wallet, Category, Label, TransactionType } from '@/lib/types';
 import styles from './page.module.css';
 
@@ -409,9 +411,9 @@ export default function ImportPage() {
 
   const headers = csv?.headers ?? [];
 
-  const colOptions = headers.map(h => (
-    <option key={h} value={h}>{h}</option>
-  ));
+  const colOptions = headers.map(h => ({ value: h, label: h }));
+  const colOptionsWithBlank = [{ value: '', label: '— select column —' }, ...colOptions];
+  const colOptionsWithSkip = [{ value: '', label: 'Skip' }, ...colOptions];
 
   const validCount = previewRows.filter(r => r.errors.length === 0).length;
   const skippedCount = previewRows.length - validCount;
@@ -523,14 +525,17 @@ export default function ImportPage() {
             <div className={styles.mapRow}>
               <span className={styles.fieldName}><span className={styles.req}>*</span>Amount</span>
               <div className={styles.mapControls}>
-                <select
-                  className={styles.sel}
-                  value={colMap.amount}
-                  onChange={e => setColMap(m => ({ ...m, amount: e.target.value }))}
-                >
-                  <option value="">— select column —</option>
-                  {colOptions}
-                </select>
+                <div style={{ minWidth: 200 }}>
+                  <ReactSelect<{ value: string; label: string }>
+                    options={colOptionsWithBlank}
+                    value={colOptionsWithBlank.find(o => o.value === colMap.amount) ?? colOptionsWithBlank[0]}
+                    onChange={(opt) => setColMap(m => ({ ...m, amount: opt?.value ?? '' }))}
+                    isSearchable={false}
+                    styles={makeRsStyles('sm')}
+                    theme={rsTheme}
+                    menuPosition="fixed"
+                  />
+                </div>
                 {colMap.amount && (
                   <span className={styles.sample}>{sampleValue(colMap.amount)}</span>
                 )}
@@ -541,14 +546,17 @@ export default function ImportPage() {
             <div className={styles.mapRow}>
               <span className={styles.fieldName}><span className={styles.req}>*</span>Date</span>
               <div className={styles.mapControls}>
-                <select
-                  className={styles.sel}
-                  value={colMap.date}
-                  onChange={e => setColMap(m => ({ ...m, date: e.target.value }))}
-                >
-                  <option value="">— select column —</option>
-                  {colOptions}
-                </select>
+                <div style={{ minWidth: 200 }}>
+                  <ReactSelect<{ value: string; label: string }>
+                    options={colOptionsWithBlank}
+                    value={colOptionsWithBlank.find(o => o.value === colMap.date) ?? colOptionsWithBlank[0]}
+                    onChange={(opt) => setColMap(m => ({ ...m, date: opt?.value ?? '' }))}
+                    isSearchable={false}
+                    styles={makeRsStyles('sm')}
+                    theme={rsTheme}
+                    menuPosition="fixed"
+                  />
+                </div>
                 {colMap.date && (
                   <span className={styles.sample}>{sampleValue(colMap.date)}</span>
                 )}
@@ -559,28 +567,43 @@ export default function ImportPage() {
             <div className={styles.mapRow}>
               <span className={styles.fieldName}><span className={styles.req}>*</span>Type</span>
               <div className={styles.mapControls}>
-                <select
-                  className={styles.sel}
-                  value={colMap.typeSource === 'column' ? 'column' : colMap.typeSource}
-                  onChange={e => {
-                    const v = e.target.value as TypeSource;
-                    if (v === 'column') setColMap(m => ({ ...m, typeSource: 'column' }));
-                    else setColMap(m => ({ ...m, typeSource: v, typeMapping: {} }));
-                  }}
-                >
-                  <option value="column">From column…</option>
-                  <option value="fixed-income">All Income</option>
-                  <option value="fixed-expense">All Expense</option>
-                </select>
+                {(() => {
+                  const typeSourceOptions = [
+                    { value: 'column', label: 'From column…' },
+                    { value: 'fixed-income', label: 'All Income' },
+                    { value: 'fixed-expense', label: 'All Expense' },
+                  ];
+                  const currentTypeSource = colMap.typeSource === 'column' ? 'column' : colMap.typeSource;
+                  return (
+                    <div style={{ minWidth: 200 }}>
+                      <ReactSelect<{ value: string; label: string }>
+                        options={typeSourceOptions}
+                        value={typeSourceOptions.find(o => o.value === currentTypeSource) ?? typeSourceOptions[0]}
+                        onChange={(opt) => {
+                          const v = (opt?.value ?? 'column') as TypeSource;
+                          if (v === 'column') setColMap(m => ({ ...m, typeSource: 'column' }));
+                          else setColMap(m => ({ ...m, typeSource: v, typeMapping: {} }));
+                        }}
+                        isSearchable={false}
+                        styles={makeRsStyles('sm')}
+                        theme={rsTheme}
+                        menuPosition="fixed"
+                      />
+                    </div>
+                  );
+                })()}
                 {colMap.typeSource === 'column' && (
-                  <select
-                    className={styles.sel}
-                    value={colMap.typeCol}
-                    onChange={e => onTypeColChange(e.target.value)}
-                  >
-                    <option value="">— select column —</option>
-                    {colOptions}
-                  </select>
+                  <div style={{ minWidth: 200 }}>
+                    <ReactSelect<{ value: string; label: string }>
+                      options={colOptionsWithBlank}
+                      value={colOptionsWithBlank.find(o => o.value === colMap.typeCol) ?? colOptionsWithBlank[0]}
+                      onChange={(opt) => onTypeColChange(opt?.value ?? '')}
+                      isSearchable={false}
+                      styles={makeRsStyles('sm')}
+                      theme={rsTheme}
+                      menuPosition="fixed"
+                    />
+                  </div>
                 )}
               </div>
             </div>
@@ -589,24 +612,33 @@ export default function ImportPage() {
             {colMap.typeSource === 'column' && colMap.typeCol && Object.keys(colMap.typeMapping).length > 0 && (
               <div className={styles.valueMapBlock}>
                 <p className={styles.valueMapTitle}>Assign each value to Income or Expense:</p>
-                {Object.entries(colMap.typeMapping).map(([val, mapped]) => (
-                  <div key={val} className={styles.valueMapRow}>
-                    <span className={styles.csvVal}>&ldquo;{val}&rdquo;</span>
-                    <span className={styles.arrow}>→</span>
-                    <select
-                      className={styles.selSm}
-                      value={mapped}
-                      onChange={e => setColMap(m => ({
-                        ...m,
-                        typeMapping: { ...m.typeMapping, [val]: e.target.value as TransactionType | '' },
-                      }))}
-                    >
-                      <option value="">— assign —</option>
-                      <option value="income">Income</option>
-                      <option value="expense">Expense</option>
-                    </select>
-                  </div>
-                ))}
+                {Object.entries(colMap.typeMapping).map(([val, mapped]) => {
+                  const typeMappingOpts = [
+                    { value: '', label: '— assign —' },
+                    { value: 'income', label: 'Income' },
+                    { value: 'expense', label: 'Expense' },
+                  ];
+                  return (
+                    <div key={val} className={styles.valueMapRow}>
+                      <span className={styles.csvVal}>&ldquo;{val}&rdquo;</span>
+                      <span className={styles.arrow}>→</span>
+                      <div style={{ minWidth: 160 }}>
+                        <ReactSelect<{ value: string; label: string }>
+                          options={typeMappingOpts}
+                          value={typeMappingOpts.find(o => o.value === (mapped ?? '')) ?? typeMappingOpts[0]}
+                          onChange={opt => setColMap(m => ({
+                            ...m,
+                            typeMapping: { ...m.typeMapping, [val]: (opt?.value ?? '') as TransactionType | '' },
+                          }))}
+                          isSearchable={false}
+                          styles={makeRsStyles('sm')}
+                          theme={rsTheme}
+                          menuPosition="fixed"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -614,34 +646,48 @@ export default function ImportPage() {
             <div className={styles.mapRow}>
               <span className={styles.fieldName}><span className={styles.req}>*</span>Wallet</span>
               <div className={styles.mapControls}>
-                <select
-                  className={styles.sel}
-                  value={colMap.walletSource}
-                  onChange={e => setColMap(m => ({ ...m, walletSource: e.target.value as WalletSource }))}
-                >
-                  <option value="fixed">Fixed wallet</option>
-                  <option value="column">From column…</option>
-                </select>
+                <div style={{ minWidth: 200 }}>
+                  <ReactSelect<{ value: string; label: string }>
+                    options={[
+                      { value: 'fixed', label: 'Fixed wallet' },
+                      { value: 'column', label: 'From column…' },
+                    ]}
+                    value={colMap.walletSource === 'fixed'
+                      ? { value: 'fixed', label: 'Fixed wallet' }
+                      : { value: 'column', label: 'From column…' }}
+                    onChange={opt => setColMap(m => ({ ...m, walletSource: (opt?.value ?? 'fixed') as WalletSource }))}
+                    isSearchable={false}
+                    styles={makeRsStyles('sm')}
+                    theme={rsTheme}
+                    menuPosition="fixed"
+                  />
+                </div>
                 {colMap.walletSource === 'fixed' ? (
-                  <select
-                    className={styles.sel}
-                    value={colMap.walletFixed}
-                    onChange={e => setColMap(m => ({ ...m, walletFixed: e.target.value }))}
-                  >
-                    <option value="">— select wallet —</option>
-                    {wallets.map(w => (
-                      <option key={w.id} value={w.id}>{w.icon} {w.name}</option>
-                    ))}
-                  </select>
+                  <div style={{ minWidth: 200 }}>
+                    <ReactSelect<{ value: string; label: string }>
+                      options={[{ value: '', label: '— select wallet —' }, ...wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` }))]}
+                      value={wallets.find(w => w.id === colMap.walletFixed)
+                        ? { value: colMap.walletFixed, label: `${wallets.find(w => w.id === colMap.walletFixed)!.icon} ${wallets.find(w => w.id === colMap.walletFixed)!.name}` }
+                        : { value: '', label: '— select wallet —' }}
+                      onChange={opt => setColMap(m => ({ ...m, walletFixed: opt?.value ?? '' }))}
+                      isSearchable={false}
+                      styles={makeRsStyles('sm')}
+                      theme={rsTheme}
+                      menuPosition="fixed"
+                    />
+                  </div>
                 ) : (
-                  <select
-                    className={styles.sel}
-                    value={colMap.walletCol}
-                    onChange={e => onWalletColChange(e.target.value)}
-                  >
-                    <option value="">— select column —</option>
-                    {colOptions}
-                  </select>
+                  <div style={{ minWidth: 200 }}>
+                    <ReactSelect<{ value: string; label: string }>
+                      options={colOptionsWithBlank}
+                      value={colOptionsWithBlank.find(o => o.value === colMap.walletCol) ?? colOptionsWithBlank[0]}
+                      onChange={opt => onWalletColChange(opt?.value ?? '')}
+                      isSearchable={false}
+                      styles={makeRsStyles('sm')}
+                      theme={rsTheme}
+                      menuPosition="fixed"
+                    />
+                  </div>
                 )}
               </div>
             </div>
@@ -650,25 +696,29 @@ export default function ImportPage() {
             {colMap.walletSource === 'column' && colMap.walletCol && Object.keys(colMap.walletMapping).length > 0 && (
               <div className={styles.valueMapBlock}>
                 <p className={styles.valueMapTitle}>Match each wallet name to one of your wallets:</p>
-                {Object.entries(colMap.walletMapping).map(([val, wId]) => (
-                  <div key={val} className={styles.valueMapRow}>
-                    <span className={styles.csvVal}>&ldquo;{val}&rdquo;</span>
-                    <span className={styles.arrow}>→</span>
-                    <select
-                      className={styles.selSm}
-                      value={wId ?? ''}
-                      onChange={e => setColMap(m => ({
-                        ...m,
-                        walletMapping: { ...m.walletMapping, [val]: e.target.value || null },
-                      }))}
-                    >
-                      <option value="">— select wallet —</option>
-                      {wallets.map(w => (
-                        <option key={w.id} value={w.id}>{w.icon} {w.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
+                {Object.entries(colMap.walletMapping).map(([val, wId]) => {
+                  const walletOpts = [{ value: '', label: '— select wallet —' }, ...wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` }))];
+                  return (
+                    <div key={val} className={styles.valueMapRow}>
+                      <span className={styles.csvVal}>&ldquo;{val}&rdquo;</span>
+                      <span className={styles.arrow}>→</span>
+                      <div style={{ minWidth: 200 }}>
+                        <ReactSelect<{ value: string; label: string }>
+                          options={walletOpts}
+                          value={walletOpts.find(o => o.value === (wId ?? '')) ?? walletOpts[0]}
+                          onChange={opt => setColMap(m => ({
+                            ...m,
+                            walletMapping: { ...m.walletMapping, [val]: opt?.value || null },
+                          }))}
+                          isSearchable={false}
+                          styles={makeRsStyles('sm')}
+                          theme={rsTheme}
+                          menuPosition="fixed"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -681,14 +731,17 @@ export default function ImportPage() {
             <div className={styles.mapRow}>
               <span className={styles.fieldName}>Category</span>
               <div className={styles.mapControls}>
-                <select
-                  className={styles.sel}
-                  value={colMap.categoryCol}
-                  onChange={e => setColMap(m => ({ ...m, categoryCol: e.target.value }))}
-                >
-                  <option value="">Skip</option>
-                  {colOptions}
-                </select>
+                <div style={{ minWidth: 200 }}>
+                  <ReactSelect<{ value: string; label: string }>
+                    options={colOptionsWithSkip}
+                    value={colOptionsWithSkip.find(o => o.value === colMap.categoryCol) ?? colOptionsWithSkip[0]}
+                    onChange={opt => setColMap(m => ({ ...m, categoryCol: opt?.value ?? '' }))}
+                    isSearchable={false}
+                    styles={makeRsStyles('sm')}
+                    theme={rsTheme}
+                    menuPosition="fixed"
+                  />
+                </div>
                 {colMap.categoryCol && (
                   <span className={styles.sample}>{sampleValue(colMap.categoryCol)}</span>
                 )}
@@ -704,14 +757,17 @@ export default function ImportPage() {
             <div className={styles.mapRow}>
               <span className={styles.fieldName}>Notes</span>
               <div className={styles.mapControls}>
-                <select
-                  className={styles.sel}
-                  value={colMap.notesCol}
-                  onChange={e => setColMap(m => ({ ...m, notesCol: e.target.value }))}
-                >
-                  <option value="">Skip</option>
-                  {colOptions}
-                </select>
+                <div style={{ minWidth: 200 }}>
+                  <ReactSelect<{ value: string; label: string }>
+                    options={colOptionsWithSkip}
+                    value={colOptionsWithSkip.find(o => o.value === colMap.notesCol) ?? colOptionsWithSkip[0]}
+                    onChange={opt => setColMap(m => ({ ...m, notesCol: opt?.value ?? '' }))}
+                    isSearchable={false}
+                    styles={makeRsStyles('sm')}
+                    theme={rsTheme}
+                    menuPosition="fixed"
+                  />
+                </div>
                 {colMap.notesCol && (
                   <span className={styles.sample}>{sampleValue(colMap.notesCol)}</span>
                 )}
@@ -722,14 +778,17 @@ export default function ImportPage() {
             <div className={styles.mapRow}>
               <span className={styles.fieldName}>Payer / payee</span>
               <div className={styles.mapControls}>
-                <select
-                  className={styles.sel}
-                  value={colMap.payerCol}
-                  onChange={e => setColMap(m => ({ ...m, payerCol: e.target.value }))}
-                >
-                  <option value="">Skip</option>
-                  {colOptions}
-                </select>
+                <div style={{ minWidth: 200 }}>
+                  <ReactSelect<{ value: string; label: string }>
+                    options={colOptionsWithSkip}
+                    value={colOptionsWithSkip.find(o => o.value === colMap.payerCol) ?? colOptionsWithSkip[0]}
+                    onChange={opt => setColMap(m => ({ ...m, payerCol: opt?.value ?? '' }))}
+                    isSearchable={false}
+                    styles={makeRsStyles('sm')}
+                    theme={rsTheme}
+                    menuPosition="fixed"
+                  />
+                </div>
                 {colMap.payerCol && (
                   <span className={styles.sample}>{sampleValue(colMap.payerCol)}</span>
                 )}
@@ -740,14 +799,17 @@ export default function ImportPage() {
             <div className={styles.mapRow}>
               <span className={styles.fieldName}>Labels</span>
               <div className={styles.mapControls}>
-                <select
-                  className={styles.sel}
-                  value={colMap.labelsCol}
-                  onChange={e => setColMap(m => ({ ...m, labelsCol: e.target.value }))}
-                >
-                  <option value="">Skip</option>
-                  {colOptions}
-                </select>
+                <div style={{ minWidth: 200 }}>
+                  <ReactSelect<{ value: string; label: string }>
+                    options={colOptionsWithSkip}
+                    value={colOptionsWithSkip.find(o => o.value === colMap.labelsCol) ?? colOptionsWithSkip[0]}
+                    onChange={opt => setColMap(m => ({ ...m, labelsCol: opt?.value ?? '' }))}
+                    isSearchable={false}
+                    styles={makeRsStyles('sm')}
+                    theme={rsTheme}
+                    menuPosition="fixed"
+                  />
+                </div>
                 {colMap.labelsCol && (
                   <span className={styles.sample}>{sampleValue(colMap.labelsCol)}</span>
                 )}
