@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import Button from '@/components/ui/Button';
+import Dialog from '@/components/ui/Dialog';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
 import Toast from '@/components/ui/Toast';
@@ -23,6 +24,7 @@ export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [showAddDialog, setShowAddDialog] = useState(false);
 
   // Add form
   const [name, setName] = useState('');
@@ -88,9 +90,16 @@ export default function CategoriesPage() {
       setFormError(error.message);
     } else {
       setName(''); setIcon(''); setColor('#f26e4d'); setParentId('');
+      setShowAddDialog(false);
       setToast({ message: 'Category added.', variant: 'success' });
       await fetchCategories();
     }
+  }
+
+  function handleCloseAddDialog() {
+    setShowAddDialog(false);
+    setName(''); setIcon(''); setColor('#f26e4d'); setParentId('');
+    setFormError('');
   }
 
   function startEdit(cat: Category) {
@@ -259,40 +268,10 @@ export default function CategoriesPage() {
       <AppHeader />
       <main className={styles.main}>
         <div className={styles.container}>
-          <h1 className={styles.pageTitle}>Categories</h1>
-
-          <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>Add category</h2>
-            <form onSubmit={handleAdd} className={styles.form}>
-              <div className={styles.formRow}>
-                <div className={styles.field}>
-                  <FormLabel htmlFor="cat-name" required>Name</FormLabel>
-                  <Input id="cat-name" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Groceries" required />
-                </div>
-                <div className={styles.field}>
-                  <FormLabel htmlFor="cat-icon">Icon (emoji)</FormLabel>
-                  <Input id="cat-icon" type="text" value={icon} onChange={e => setIcon(e.target.value)} placeholder="📁" maxLength={4} />
-                </div>
-                <div className={styles.field}>
-                  <FormLabel htmlFor="cat-color">Color</FormLabel>
-                  <input id="cat-color" type="color" className={styles.colorPicker} value={color} onChange={e => setColor(e.target.value)} />
-                </div>
-                <div className={styles.field}>
-                  <FormLabel htmlFor="cat-parent">Parent category</FormLabel>
-                  <select id="cat-parent" className={styles.select} value={parentId} onChange={e => setParentId(e.target.value)}>
-                    <option value="">— Top level —</option>
-                    {categories.filter(c => !c.parent_id).map(c => (
-                      <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className={styles.submitCol}>
-                  <Button type="submit" variant="primary" size="md" loading={saving}>Add</Button>
-                </div>
-              </div>
-              {formError && <p className={styles.formError}>{formError}</p>}
-            </form>
-          </section>
+          <div className={styles.pageHeader}>
+            <h1 className={styles.pageTitle}>Categories</h1>
+            <Button variant="primary" size="md" onClick={() => setShowAddDialog(true)}>+ Add category</Button>
+          </div>
 
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Your categories</h2>
@@ -309,6 +288,41 @@ export default function CategoriesPage() {
         </div>
       </main>
       <AppFooter />
+
+      {showAddDialog && (
+        <Dialog title="Add category" onClose={handleCloseAddDialog}>
+          <form onSubmit={handleAdd} className={styles.form}>
+            <div className={styles.field}>
+              <FormLabel htmlFor="cat-name" required>Name</FormLabel>
+              <Input id="cat-name" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Groceries" required autoFocus />
+            </div>
+            <div className={styles.twoCol}>
+              <div className={styles.field}>
+                <FormLabel htmlFor="cat-icon">Icon (emoji)</FormLabel>
+                <Input id="cat-icon" type="text" value={icon} onChange={e => setIcon(e.target.value)} placeholder="📁" maxLength={4} />
+              </div>
+              <div className={styles.field}>
+                <FormLabel htmlFor="cat-color">Color</FormLabel>
+                <input id="cat-color" type="color" className={styles.colorPicker} value={color} onChange={e => setColor(e.target.value)} />
+              </div>
+            </div>
+            <div className={styles.field}>
+              <FormLabel htmlFor="cat-parent">Parent category</FormLabel>
+              <select id="cat-parent" className={styles.select} value={parentId} onChange={e => setParentId(e.target.value)}>
+                <option value="">— Top level —</option>
+                {categories.filter(c => !c.parent_id).map(c => (
+                  <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                ))}
+              </select>
+            </div>
+            {formError && <p className={styles.formError}>{formError}</p>}
+            <div className={styles.dialogActions}>
+              <Button variant="secondary" size="md" type="button" onClick={handleCloseAddDialog}>Cancel</Button>
+              <Button type="submit" variant="primary" size="md" loading={saving}>Add category</Button>
+            </div>
+          </form>
+        </Dialog>
+      )}
 
       {deletingCategory && (
         <ConfirmDialog
