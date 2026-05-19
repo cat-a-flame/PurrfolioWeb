@@ -6,11 +6,16 @@ export function formatCurrency(amount: number, currency: Currency): string {
     style: 'currency',
     currency,
     maximumFractionDigits: currency === 'HUF' ? 0 : 2,
-  }).format(amount);
+  }).formatToParts(amount).map(p => p.type === 'group' ? ' ' : p.value).join('');
 }
 
 export function formatHUF(amount: number): string {
   return formatCurrency(amount, 'HUF');
+}
+
+export function formatNumber(amount: number): string {
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
+    .formatToParts(amount).map(p => p.type === 'group' ? ' ' : p.value).join('');
 }
 
 export function formatDate(iso: string): string {

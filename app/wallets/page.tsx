@@ -6,9 +6,11 @@ import AppFooter from '@/components/layout/AppFooter';
 import Button from '@/components/ui/Button';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
+import NumberInput from '@/components/ui/NumberInput';
 import Toast from '@/components/ui/Toast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { createClient } from '@/lib/supabase/client';
+import { formatNumber } from '@/lib/utils';
 import type { Wallet, Currency } from '@/lib/types';
 import styles from './page.module.css';
 
@@ -182,7 +184,7 @@ export default function WalletsPage() {
                 </div>
                 <div className={styles.field}>
                   <FormLabel htmlFor="w-balance">Starting balance</FormLabel>
-                  <Input id="w-balance" type="number" step="0.01" value={startingBalance} onChange={e => setStartingBalance(e.target.value)} placeholder="0" />
+                  <NumberInput id="w-balance" value={startingBalance} onChange={setStartingBalance} placeholder="0" />
                 </div>
                 <div className={styles.field}>
                   <FormLabel htmlFor="w-icon">Icon (emoji)</FormLabel>
@@ -257,7 +259,7 @@ export default function WalletsPage() {
                           {wallet.currency}
                           {wallet.starting_balance !== 0 && (
                             <span className={styles.walletStartingBalance}>
-                              {' '}· Starting: {wallet.starting_balance > 0 ? '+' : ''}{wallet.starting_balance.toLocaleString()}
+                              {' '}· Starting: {wallet.starting_balance > 0 ? '+' : ''}{formatNumber(wallet.starting_balance)}
                             </span>
                           )}
                         </span>

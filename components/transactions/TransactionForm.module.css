@@ -127,6 +127,11 @@
   color: #fff;
 }
 
+.typeTabTransferActive {
+  background: var(--color-accent);
+  color: #fff;
+}
+
 /* Amount + currency row */
 .noWalletMsg {
   font-size: 0.9375rem;
@@ -188,23 +193,37 @@
 }
 
 .labelChip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-full);
-  border: 1px solid;
-  background: transparent;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
   font-family: var(--font-figtree);
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 500;
+  color: var(--color-text);
   cursor: pointer;
-  transition: opacity var(--transition-fast);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .labelChip:hover {
-  opacity: 0.8;
+  background: var(--color-surface);
+  border-color: var(--color-border-focus);
 }
 
 .labelChipSelected {
-  opacity: 1;
+  background: var(--color-accent-light);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.labelDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .textarea {
@@ -229,6 +248,33 @@
 .textarea:focus {
   border-color: var(--color-border-focus);
   box-shadow: 0 0 0 3px var(--color-accent-light);
+}
+
+/* ── Transfer form ── */
+.transferGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 400px;
+}
+
+.transferArrowRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1) 0;
+}
+
+.transferArrow {
+  font-size: 1.25rem;
+  color: var(--color-accent);
+  line-height: 1;
+}
+
+.sameHint {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 0;
 }
 
 .errorMsg {

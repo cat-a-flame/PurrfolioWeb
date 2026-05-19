@@ -398,6 +398,7 @@
 
 .txIncome { color: var(--color-income); }
 .txExpense { color: var(--color-expense); }
+.txTransfer { color: var(--color-accent); }
 
 .txTime {
   font-size: 0.75rem;

@@ -47,11 +47,8 @@ export default function TransactionItem({
           {labels.length > 0 && (
             <div className={styles.labelChips}>
               {labels.map((label) => (
-                <span
-                  key={label.id}
-                  className={styles.labelChip}
-                  style={{ backgroundColor: label.color + '22', color: label.color, borderColor: label.color }}
-                >
+                <span key={label.id} className={styles.labelChip}>
+                  <span className={styles.labelDot} style={{ backgroundColor: label.color }} />
                   {label.name}
                 </span>
               ))}

@@ -157,10 +157,8 @@ export default function LabelsPage() {
                           onChange={e => setEditColor(e.target.value)}
                           style={{ width: 52, flexShrink: 0 }}
                         />
-                        <span
-                          className={styles.labelChip}
-                          style={{ backgroundColor: editColor + '22', color: editColor, borderColor: editColor }}
-                        >
+                        <span className={styles.labelChip}>
+                          <span className={styles.labelDot} style={{ backgroundColor: editColor }} />
                           {editName || 'Preview'}
                         </span>
                         {editError && <p className={styles.formError}>{editError}</p>}
@@ -171,10 +169,8 @@ export default function LabelsPage() {
                   }
                   return (
                     <div key={label.id} className={styles.labelRow}>
-                      <span
-                        className={styles.labelChip}
-                        style={{ backgroundColor: label.color + '22', color: label.color, borderColor: label.color }}
-                      >
+                      <span className={styles.labelChip}>
+                        <span className={styles.labelDot} style={{ backgroundColor: label.color }} />
                         {label.name}
                       </span>
                       <div className={styles.labelActions}>

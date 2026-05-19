@@ -111,12 +111,12 @@ export default function DashboardPage() {
   const periodTxs = useMemo(() => filterByRange(allTransactions, period.from, period.to), [allTransactions, period]);
   const prevTxs   = useMemo(() => filterByRange(allTransactions, prevRange.from, prevRange.to), [allTransactions, prevRange]);
 
-  const income  = periodTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const expense = periodTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const income  = periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0);
+  const expense = periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;
 
-  const prevBalance = prevTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-                    - prevTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const prevBalance = prevTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0)
+                    - prevTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0);
 
   const vsPct = prevBalance === 0 ? null : Math.round(((balance - prevBalance) / Math.abs(prevBalance)) * 100);
 
@@ -143,8 +143,8 @@ export default function DashboardPage() {
       .map(([date, txs]) => ({
         date,
         transactions: [...txs].sort((a, b) => b.created_at.localeCompare(a.created_at)),
-        net: txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-           - txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0),
+        net: txs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0)
+           - txs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0),
       }));
   }, [periodTxs]);
 
@@ -242,28 +242,42 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     <div className={styles.dayTxList}>
-                      {dayTxs.map(t => (
-                        <div key={t.id} className={styles.txRow}>
-                          <div className={styles.txIcon} style={{ backgroundColor: (t.category?.color ?? '#94a3b8') + '22' }}>
-                            {t.category?.icon ?? '?'}
-                          </div>
-                          <div className={styles.txMain}>
-                            <span className={styles.txCategory}>{t.category?.name ?? 'Uncategorised'}</span>
-                            {t.wallet && (
-                              <span className={styles.txWallet}>
-                                <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
-                                {t.wallet.name}
+                      {dayTxs.map(t => {
+                        const isTransfer = !!t.transfer_group_id;
+                        return (
+                          <div key={t.id} className={styles.txRow}>
+                            <div
+                              className={styles.txIcon}
+                              style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
+                            >
+                              {isTransfer ? '↔' : (t.category?.icon ?? '?')}
+                            </div>
+                            <div className={styles.txMain}>
+                              <span className={styles.txCategory}>
+                                {isTransfer ? (t.type === 'expense' ? 'Transfer out' : 'Transfer in') : (t.category?.name ?? 'Uncategorised')}
                               </span>
-                            )}
+                              {t.wallet && (
+                                <span className={styles.txWallet}>
+                                  <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
+                                  {t.wallet.name}
+                                </span>
+                              )}
+                            </div>
+                            <div className={styles.txRight}>
+                              <span className={[
+                                styles.txAmount,
+                                isTransfer ? styles.txTransfer : t.type === 'income' ? styles.txIncome : styles.txExpense,
+                              ].join(' ')}>
+                                {isTransfer
+                                  ? (t.type === 'expense' ? '−' : '+')
+                                  : (t.type === 'income' ? '' : '−')
+                                }{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
+                              </span>
+                              <span className={styles.txTime}>{formatTime(t.created_at)}</span>
+                            </div>
                           </div>
-                          <div className={styles.txRight}>
-                            <span className={[styles.txAmount, t.type === 'income' ? styles.txIncome : styles.txExpense].join(' ')}>
-                              {t.type === 'income' ? '' : '−'}{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
-                            </span>
-                            <span className={styles.txTime}>{formatTime(t.created_at)}</span>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
