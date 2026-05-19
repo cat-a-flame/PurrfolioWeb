@@ -1,8 +1,14 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import ReactSelect, { MultiValue, components, MultiValueGenericProps } from 'react-select';
+import { makeRsStyles, rsTheme } from './rsStyles';
 import type { Label } from '@/lib/types';
-import styles from './LabelSelect.module.css';
+
+interface LabelOption {
+  value: string;
+  label: string;
+  color: string;
+}
 
 interface LabelSelectProps {
   labels: Label[];
@@ -10,77 +16,55 @@ interface LabelSelectProps {
   onChange: (ids: string[]) => void;
 }
 
+function ColorDot({ color }: { color: string }) {
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        width: 8,
+        height: 8,
+        borderRadius: '50%',
+        background: color,
+        flexShrink: 0,
+        marginRight: 6,
+      }}
+    />
+  );
+}
+
+function MultiValueLabel(props: MultiValueGenericProps<LabelOption>) {
+  return (
+    <components.MultiValueLabel {...props}>
+      <span style={{ display: 'flex', alignItems: 'center' }}>
+        <ColorDot color={props.data.color} />
+        {props.data.label}
+      </span>
+    </components.MultiValueLabel>
+  );
+}
+
 export default function LabelSelect({ labels, selectedIds, onChange }: LabelSelectProps) {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
-
-  function toggle(id: string) {
-    onChange(
-      selectedIds.includes(id)
-        ? selectedIds.filter(s => s !== id)
-        : [...selectedIds, id]
-    );
-  }
-
-  const selected = labels.filter(l => selectedIds.includes(l.id));
+  const options: LabelOption[] = labels.map(l => ({ value: l.id, label: l.name, color: l.color }));
+  const value = options.filter(o => selectedIds.includes(o.value));
+  const styles = makeRsStyles<LabelOption, true>();
 
   return (
-    <div className={styles.container} ref={containerRef}>
-      <button
-        type="button"
-        className={[styles.trigger, open ? styles.triggerOpen : ''].filter(Boolean).join(' ')}
-        onClick={() => setOpen(o => !o)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-      >
-        {selected.length === 0 ? (
-          <span className={styles.placeholder}>Choose labels…</span>
-        ) : (
-          <span className={styles.chips}>
-            {selected.map(l => (
-              <span key={l.id} className={styles.chip}>
-                <span className={styles.dot} style={{ backgroundColor: l.color }} />
-                {l.name}
-              </span>
-            ))}
-          </span>
-        )}
-        <span className={styles.chevron} aria-hidden>▾</span>
-      </button>
-
-      {open && (
-        <div className={styles.dropdown} role="listbox" aria-multiselectable="true">
-          {labels.map(label => {
-            const checked = selectedIds.includes(label.id);
-            return (
-              <button
-                key={label.id}
-                type="button"
-                role="option"
-                aria-selected={checked}
-                className={[styles.option, checked ? styles.optionChecked : ''].filter(Boolean).join(' ')}
-                onClick={() => toggle(label.id)}
-              >
-                <span className={styles.checkbox} aria-hidden>
-                  {checked ? '✓' : ''}
-                </span>
-                <span className={styles.dot} style={{ backgroundColor: label.color }} />
-                {label.name}
-              </button>
-            );
-          })}
-        </div>
+    <ReactSelect<LabelOption, true>
+      isMulti
+      options={options}
+      value={value}
+      onChange={(opts: MultiValue<LabelOption>) => onChange(opts.map(o => o.value))}
+      placeholder="Choose labels…"
+      formatOptionLabel={(opt) => (
+        <span style={{ display: 'flex', alignItems: 'center' }}>
+          <ColorDot color={opt.color} />
+          {opt.label}
+        </span>
       )}
-    </div>
+      components={{ MultiValueLabel }}
+      styles={styles as any}
+      theme={rsTheme}
+      menuPosition="fixed"
+    />
   );
 }

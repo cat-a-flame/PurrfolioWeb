@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import ReactSelect from 'react-select';
 import Button from '@/components/ui/Button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import FormLabel from '@/components/ui/FormLabel';
@@ -8,6 +9,7 @@ import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
 import LabelSelect from '@/components/ui/LabelSelect';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
+import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import type { Transaction, Category, Label, Template, TransactionType, Wallet } from '@/lib/types';
 import { todayInputDate } from '@/lib/utils';
 import styles from './TransactionForm.module.css';
@@ -258,18 +260,23 @@ export default function TransactionForm({
           {/* Template selector — only for new records */}
           {!transaction && templates && templates.length > 0 && (
             <div className={styles.templateRow}>
-              <select
-                className={styles.templateSelect}
-                value={selectedTemplateId}
-                onChange={e => applyTemplate(e.target.value)}
-              >
-                <option value="">Apply a template…</option>
-                {templates.map(t => (
-                  <option key={t.id} value={t.id}>
-                    {t.type === 'income' ? '↑' : '↓'} {t.name}
-                  </option>
-                ))}
-              </select>
+              {(() => {
+                const tplOptions = [
+                  { value: '', label: 'Apply a template…' },
+                  ...(templates ?? []).map(t => ({ value: t.id, label: `${t.type === 'income' ? '↑' : '↓'} ${t.name}` })),
+                ];
+                return (
+                  <ReactSelect<{ value: string; label: string }>
+                    options={tplOptions}
+                    value={tplOptions.find(o => o.value === selectedTemplateId) ?? tplOptions[0]}
+                    onChange={(opt) => applyTemplate(opt?.value ?? '')}
+                    isSearchable={false}
+                    styles={makeRsStyles()}
+                    theme={rsTheme}
+                    menuPosition="fixed"
+                  />
+                );
+              })()}
             </div>
           )}
 
@@ -286,10 +293,17 @@ export default function TransactionForm({
               {/* From wallet */}
               <div className={styles.field}>
                 <FormLabel htmlFor="from-wallet" required>From account</FormLabel>
-                <select id="from-wallet" className={styles.select} value={walletId} onChange={e => handleFromWalletChange(e.target.value)} required>
-                  <option value="">Select wallet…</option>
-                  {wallets.map(w => <option key={w.id} value={w.id}>{w.icon} {w.name} ({w.currency})</option>)}
-                </select>
+                <ReactSelect<{ value: string; label: string }>
+                  inputId="from-wallet"
+                  options={wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }))}
+                  value={wallets.find(w => w.id === walletId) ? { value: walletId, label: `${wallets.find(w => w.id === walletId)!.icon} ${wallets.find(w => w.id === walletId)!.name} (${wallets.find(w => w.id === walletId)!.currency})` } : null}
+                  onChange={(opt) => opt && handleFromWalletChange(opt.value)}
+                  isSearchable
+                  styles={makeRsStyles()}
+                  theme={rsTheme}
+                  menuPosition="fixed"
+                  placeholder="Select wallet…"
+                />
               </div>
 
               {/* Amount sent */}
@@ -309,10 +323,23 @@ export default function TransactionForm({
               {/* To wallet */}
               <div className={styles.field}>
                 <FormLabel htmlFor="to-wallet" required>To account</FormLabel>
-                <select id="to-wallet" className={styles.select} value={toWalletId} onChange={e => handleToWalletChange(e.target.value)} required>
-                  <option value="">Select wallet…</option>
-                  {wallets.filter(w => w.id !== walletId).map(w => <option key={w.id} value={w.id}>{w.icon} {w.name} ({w.currency})</option>)}
-                </select>
+                {(() => {
+                  const toWalletOptions = wallets.filter(w => w.id !== walletId).map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }));
+                  const toWalletValue = toWalletOptions.find(o => o.value === toWalletId) ?? null;
+                  return (
+                    <ReactSelect<{ value: string; label: string }>
+                      inputId="to-wallet"
+                      options={toWalletOptions}
+                      value={toWalletValue}
+                      onChange={(opt) => opt && handleToWalletChange(opt.value)}
+                      isSearchable
+                      styles={makeRsStyles()}
+                      theme={rsTheme}
+                      menuPosition="fixed"
+                      placeholder="Select wallet…"
+                    />
+                  );
+                })()}
               </div>
 
               {/* Amount received */}
@@ -361,9 +388,17 @@ export default function TransactionForm({
                 {/* Account / Wallet */}
                 <div className={styles.field}>
                   <FormLabel htmlFor="wallet" required>Account</FormLabel>
-                  <select id="wallet" className={styles.select} value={walletId} onChange={e => setWalletId(e.target.value)} required>
-                    {wallets.map(w => <option key={w.id} value={w.id}>{w.icon} {w.name} ({w.currency})</option>)}
-                  </select>
+                  <ReactSelect<{ value: string; label: string }>
+                    inputId="wallet"
+                    options={wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }))}
+                    value={wallets.find(w => w.id === walletId) ? { value: walletId, label: `${wallets.find(w => w.id === walletId)!.icon} ${wallets.find(w => w.id === walletId)!.name} (${wallets.find(w => w.id === walletId)!.currency})` } : null}
+                    onChange={(opt) => opt && setWalletId(opt.value)}
+                    isSearchable
+                    styles={makeRsStyles()}
+                    theme={rsTheme}
+                    menuPosition="fixed"
+                    placeholder="Select wallet…"
+                  />
                 </div>
 
                 {/* Category */}

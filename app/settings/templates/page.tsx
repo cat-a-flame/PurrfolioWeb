@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import ReactSelect from 'react-select';
 import Button from '@/components/ui/Button';
 import Dialog from '@/components/ui/Dialog';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
@@ -9,6 +10,7 @@ import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
 import Toast from '@/components/ui/Toast';
+import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import { createClient } from '@/lib/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import type { Template, Category, Label, Wallet, TransactionType } from '@/lib/types';
@@ -203,10 +205,22 @@ export default function TemplatesSettingsPage() {
         </div>
         <div className={styles.field}>
           <FormLabel htmlFor="tpl-wallet" required>Account</FormLabel>
-          <select id="tpl-wallet" className={styles.select} value={form.walletId} onChange={e => setForm({ ...form, walletId: e.target.value })} required>
-            <option value="">Select wallet…</option>
-            {wallets.map(w => <option key={w.id} value={w.id}>{w.icon} {w.name} ({w.currency})</option>)}
-          </select>
+          {(() => {
+            const walletOptions = wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }));
+            return (
+              <ReactSelect<{ value: string; label: string }>
+                inputId="tpl-wallet"
+                options={walletOptions}
+                value={walletOptions.find(o => o.value === form.walletId) ?? null}
+                onChange={(opt) => opt && setForm({ ...form, walletId: opt.value })}
+                isSearchable
+                styles={makeRsStyles()}
+                theme={rsTheme}
+                menuPosition="fixed"
+                placeholder="Select wallet…"
+              />
+            );
+          })()}
         </div>
         <div className={styles.field}>
           <FormLabel htmlFor="tpl-amount" required>Amount</FormLabel>

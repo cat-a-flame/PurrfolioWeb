@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import ReactSelect from 'react-select';
 import Button from '@/components/ui/Button';
 import Dialog from '@/components/ui/Dialog';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
 import Toast from '@/components/ui/Toast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import { createClient } from '@/lib/supabase/client';
 import type { Category } from '@/lib/types';
 import styles from './page.module.css';
@@ -134,12 +136,25 @@ export default function CategoriesSettingsPage() {
             <Input type="text" value={editFields.name} onChange={e => setEditFields(f => ({ ...f, name: e.target.value }))} placeholder="Name" required />
             <Input type="text" value={editFields.icon} onChange={e => setEditFields(f => ({ ...f, icon: e.target.value }))} placeholder="📁" maxLength={4} style={{ width: 72 }} />
             <input type="color" className={styles.colorPicker} value={editFields.color} onChange={e => setEditFields(f => ({ ...f, color: e.target.value }))} style={{ width: 52 }} />
-            {!isChild && (
-              <select className={styles.select} value={editFields.parent_id} onChange={e => setEditFields(f => ({ ...f, parent_id: e.target.value }))} style={{ minWidth: 140 }}>
-                <option value="">— Top level —</option>
-                {parentOptions.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-              </select>
-            )}
+            {!isChild && (() => {
+              const parentSelectOptions = [
+                { value: '', label: '— Top level —' },
+                ...parentOptions.map(c => ({ value: c.id, label: `${c.icon} ${c.name}` })),
+              ];
+              return (
+                <div style={{ minWidth: 160 }}>
+                  <ReactSelect<{ value: string; label: string }>
+                    options={parentSelectOptions}
+                    value={parentSelectOptions.find(o => o.value === editFields.parent_id) ?? parentSelectOptions[0]}
+                    onChange={(opt) => setEditFields(f => ({ ...f, parent_id: opt?.value ?? '' }))}
+                    isSearchable
+                    styles={makeRsStyles('sm')}
+                    theme={rsTheme}
+                    menuPosition="fixed"
+                  />
+                </div>
+              );
+            })()}
           </div>
           {editError && <p className={styles.formError}>{editError}</p>}
           <div className={styles.editActions}>
@@ -236,10 +251,24 @@ export default function CategoriesSettingsPage() {
             </div>
             <div className={styles.field}>
               <FormLabel htmlFor="cat-parent">Parent category</FormLabel>
-              <select id="cat-parent" className={styles.select} value={parentId} onChange={e => setParentId(e.target.value)}>
-                <option value="">— Top level —</option>
-                {categories.filter(c => !c.parent_id).map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-              </select>
+              {(() => {
+                const addParentOptions = [
+                  { value: '', label: '— Top level —' },
+                  ...categories.filter(c => !c.parent_id).map(c => ({ value: c.id, label: `${c.icon} ${c.name}` })),
+                ];
+                return (
+                  <ReactSelect<{ value: string; label: string }>
+                    inputId="cat-parent"
+                    options={addParentOptions}
+                    value={addParentOptions.find(o => o.value === parentId) ?? addParentOptions[0]}
+                    onChange={(opt) => setParentId(opt?.value ?? '')}
+                    isSearchable
+                    styles={makeRsStyles()}
+                    theme={rsTheme}
+                    menuPosition="fixed"
+                  />
+                );
+              })()}
             </div>
             {formError && <p className={styles.formError}>{formError}</p>}
             <div className={styles.dialogActions}>

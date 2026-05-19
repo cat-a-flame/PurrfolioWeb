@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import ReactSelect from 'react-select';
 import Button from '@/components/ui/Button';
 import Dialog from '@/components/ui/Dialog';
 import FormLabel from '@/components/ui/FormLabel';
@@ -8,6 +9,7 @@ import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
 import Toast from '@/components/ui/Toast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import { createClient } from '@/lib/supabase/client';
 import { formatNumber } from '@/lib/utils';
 import type { Wallet, Currency } from '@/lib/types';
@@ -225,9 +227,21 @@ export default function WalletsSettingsPage() {
             </div>
             <div className={styles.field}>
               <FormLabel htmlFor="w-currency">Currency</FormLabel>
-              <select id="w-currency" className={styles.select} value={currency} onChange={e => setCurrency(e.target.value as Currency)}>
-                {CURRENCIES.map(c => <option key={c} value={c}>{CURRENCY_LABELS[c]}</option>)}
-              </select>
+              {(() => {
+                const currencyOptions = CURRENCIES.map(c => ({ value: c, label: CURRENCY_LABELS[c] }));
+                return (
+                  <ReactSelect<{ value: string; label: string }>
+                    inputId="w-currency"
+                    options={currencyOptions}
+                    value={currencyOptions.find(o => o.value === currency) ?? currencyOptions[0]}
+                    onChange={(opt) => opt && setCurrency(opt.value as Currency)}
+                    isSearchable={false}
+                    styles={makeRsStyles()}
+                    theme={rsTheme}
+                    menuPosition="fixed"
+                  />
+                );
+              })()}
             </div>
             <div className={styles.field}>
               <FormLabel htmlFor="w-balance">Starting balance</FormLabel>
