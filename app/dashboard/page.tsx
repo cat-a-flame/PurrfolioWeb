@@ -142,12 +142,12 @@ export default function DashboardPage() {
   const periodTxs = useMemo(() => filterByRange(allTransactions, period.from, period.to), [allTransactions, period]);
   const prevTxs   = useMemo(() => filterByRange(allTransactions, prevRange.from, prevRange.to), [allTransactions, prevRange]);
 
-  const income  = periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0);
-  const expense = periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0);
+  const income  = periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0);
+  const expense = periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0);
   const balance = income - expense;
 
-  const prevBalance = prevTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0)
-                    - prevTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0);
+  const prevBalance = prevTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0)
+                    - prevTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {})  , 0);
 
   const vsPct = prevBalance === 0 ? null : Math.round(((balance - prevBalance) / Math.abs(prevBalance)) * 100);
 
