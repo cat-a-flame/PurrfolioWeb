@@ -9,6 +9,7 @@ import styles from './AppHeader.module.css';
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard' },
+  { label: 'Statistics', href: '/statistics' },
   { label: 'Wallets', href: '/wallets' },
   { label: 'Categories', href: '/categories' },
   { label: 'Labels', href: '/labels' },
