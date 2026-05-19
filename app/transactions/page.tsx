@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import Button from '@/components/ui/Button';
@@ -49,6 +49,10 @@ export default function TransactionsPage() {
   const [filterWalletId, setFilterWalletId] = useState('');
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
+
+  // Lazy load
+  const [displayCount, setDisplayCount] = useState(15);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Edit dialog
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
@@ -126,6 +130,8 @@ export default function TransactionsPage() {
     return true;
   });
 
+  useEffect(() => { setDisplayCount(15); }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterFrom, filterTo]);
+
   function resetFilters() {
     setFilterType('');
     setFilterCategoryId('');
@@ -135,9 +141,22 @@ export default function TransactionsPage() {
     setFilterTo('');
   }
 
+  const hasMore = filteredTransactions.length > displayCount;
+  const visibleTransactions = filteredTransactions.slice(0, displayCount);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore) return;
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setDisplayCount(c => c + 20);
+    }, { rootMargin: '200px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore]);
+
   const groupedDays = useMemo(() => {
     const map = new Map<string, Transaction[]>();
-    for (const t of filteredTransactions) {
+    for (const t of visibleTransactions) {
       const arr = map.get(t.date) ?? [];
       arr.push(t);
       map.set(t.date, arr);
@@ -150,7 +169,7 @@ export default function TransactionsPage() {
         net: txs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0)
            - txs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0),
       }));
-  }, [filteredTransactions]);
+  }, [visibleTransactions]);
 
   async function handleSave(data: TransactionFormData) {
     const supabase = createClient();
@@ -382,6 +401,7 @@ export default function TransactionsPage() {
               ))}
             </div>
           )}
+          {hasMore && <div ref={sentinelRef} className={styles.sentinel} />}
         </div>
       </main>
       <AppFooter />

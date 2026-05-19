@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
@@ -82,6 +82,11 @@ export default function DashboardPage() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
 
+  // Lazy load
+  const [displayCount, setDisplayCount] = useState(15);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { setDisplayCount(15); }, [period]);
+
   const fetchData = useCallback(async () => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -145,9 +150,22 @@ export default function DashboardPage() {
       return { wallet, balance: wallet.starting_balance + wi - we };
     });
 
+  const hasMore = periodTxs.length > displayCount;
+  const visiblePeriodTxs = periodTxs.slice(0, displayCount);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore) return;
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setDisplayCount(c => c + 20);
+    }, { rootMargin: '200px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore]);
+
   const groupedDays = useMemo(() => {
     const map = new Map<string, Transaction[]>();
-    for (const t of periodTxs) {
+    for (const t of visiblePeriodTxs) {
       const arr = map.get(t.date) ?? [];
       arr.push(t);
       map.set(t.date, arr);
@@ -160,7 +178,7 @@ export default function DashboardPage() {
         net: txs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0)
            - txs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0),
       }));
-  }, [periodTxs]);
+  }, [visiblePeriodTxs]);
 
   async function handleDelete() {
     if (!editingTransaction) return;
@@ -351,6 +369,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             )}
+            {hasMore && <div ref={sentinelRef} className={styles.sentinel} />}
           </section>
 
         </div>

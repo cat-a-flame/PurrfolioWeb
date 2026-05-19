@@ -223,6 +223,10 @@
   opacity: 1;
 }
 
+.sentinel {
+  height: 1px;
+}
+
 .emptyState {
   font-size: 0.9375rem;
   color: var(--color-text-muted);
