@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import Button from '@/components/ui/Button';
+import Dialog from '@/components/ui/Dialog';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
 import Toast from '@/components/ui/Toast';
@@ -15,6 +16,7 @@ import styles from './page.module.css';
 export default function LabelsPage() {
   const [labels, setLabels] = useState<Label[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddDialog, setShowAddDialog] = useState(false);
 
   // Add form
   const [name, setName] = useState('');
@@ -62,9 +64,16 @@ export default function LabelsPage() {
       setFormError(error.message);
     } else {
       setName(''); setColor('#6366f1');
+      setShowAddDialog(false);
       setToast({ message: 'Label added.', variant: 'success' });
       await fetchLabels();
     }
+  }
+
+  function handleCloseAddDialog() {
+    setShowAddDialog(false);
+    setName(''); setColor('#6366f1');
+    setFormError('');
   }
 
   function startEdit(label: Label) {
@@ -110,27 +119,10 @@ export default function LabelsPage() {
       <AppHeader />
       <main className={styles.main}>
         <div className={styles.container}>
-          <h1 className={styles.pageTitle}>Labels</h1>
-
-          <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>Add label</h2>
-            <form onSubmit={handleAdd} className={styles.form}>
-              <div className={styles.formRow}>
-                <div className={styles.field}>
-                  <FormLabel htmlFor="label-name" required>Name</FormLabel>
-                  <Input id="label-name" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Recurring" required />
-                </div>
-                <div className={styles.field}>
-                  <FormLabel htmlFor="label-color">Color</FormLabel>
-                  <input id="label-color" type="color" className={styles.colorPicker} value={color} onChange={e => setColor(e.target.value)} />
-                </div>
-                <div className={styles.submitCol}>
-                  <Button type="submit" variant="primary" size="md" loading={saving}>Add</Button>
-                </div>
-              </div>
-              {formError && <p className={styles.formError}>{formError}</p>}
-            </form>
-          </section>
+          <div className={styles.pageHeader}>
+            <h1 className={styles.pageTitle}>Labels</h1>
+            <Button variant="primary" size="md" onClick={() => setShowAddDialog(true)}>+ Add label</Button>
+          </div>
 
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Your labels</h2>
@@ -186,6 +178,35 @@ export default function LabelsPage() {
         </div>
       </main>
       <AppFooter />
+
+      {showAddDialog && (
+        <Dialog title="Add label" onClose={handleCloseAddDialog}>
+          <form onSubmit={handleAdd} className={styles.form}>
+            <div className={styles.field}>
+              <FormLabel htmlFor="label-name" required>Name</FormLabel>
+              <Input id="label-name" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Recurring" required autoFocus />
+            </div>
+            <div className={styles.twoCol}>
+              <div className={styles.field}>
+                <FormLabel htmlFor="label-color">Color</FormLabel>
+                <input id="label-color" type="color" className={styles.colorPicker} value={color} onChange={e => setColor(e.target.value)} />
+              </div>
+              <div className={styles.field}>
+                <FormLabel>Preview</FormLabel>
+                <span className={styles.labelChip}>
+                  <span className={styles.labelDot} style={{ backgroundColor: color }} />
+                  {name || 'Label'}
+                </span>
+              </div>
+            </div>
+            {formError && <p className={styles.formError}>{formError}</p>}
+            <div className={styles.dialogActions}>
+              <Button variant="secondary" size="md" type="button" onClick={handleCloseAddDialog}>Cancel</Button>
+              <Button type="submit" variant="primary" size="md" loading={saving}>Add label</Button>
+            </div>
+          </form>
+        </Dialog>
+      )}
 
       {deletingLabel && (
         <ConfirmDialog

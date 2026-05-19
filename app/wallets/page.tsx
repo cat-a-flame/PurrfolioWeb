@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import Button from '@/components/ui/Button';
+import Dialog from '@/components/ui/Dialog';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
@@ -31,6 +32,9 @@ interface EditFields {
 export default function WalletsPage() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Add dialog
+  const [showAddDialog, setShowAddDialog] = useState(false);
 
   // Add form
   const [name, setName] = useState('');
@@ -95,9 +99,16 @@ export default function WalletsPage() {
       setFormError(error.message);
     } else {
       setName(''); setIcon(''); setColor('#f26e4d'); setCurrency('HUF'); setStartingBalance('0');
+      setShowAddDialog(false);
       setToast({ message: 'Wallet added.', variant: 'success' });
       await fetchWallets();
     }
+  }
+
+  function handleCloseAddDialog() {
+    setShowAddDialog(false);
+    setName(''); setIcon(''); setColor('#f26e4d'); setCurrency('HUF'); setStartingBalance('0');
+    setFormError('');
   }
 
   function startEdit(wallet: Wallet) {
@@ -166,48 +177,17 @@ export default function WalletsPage() {
       <AppHeader />
       <main className={styles.main}>
         <div className={styles.container}>
-          <h1 className={styles.pageTitle}>Wallets</h1>
-
-          <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>Add wallet</h2>
-            <form onSubmit={handleAdd} className={styles.form}>
-              <div className={styles.formRow}>
-                <div className={styles.field}>
-                  <FormLabel htmlFor="w-name">Name</FormLabel>
-                  <Input id="w-name" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Savings" required />
-                </div>
-                <div className={styles.field}>
-                  <FormLabel htmlFor="w-currency">Currency</FormLabel>
-                  <select id="w-currency" className={styles.select} value={currency} onChange={e => setCurrency(e.target.value as Currency)}>
-                    {CURRENCIES.map(c => <option key={c} value={c}>{CURRENCY_LABELS[c]}</option>)}
-                  </select>
-                </div>
-                <div className={styles.field}>
-                  <FormLabel htmlFor="w-balance">Starting balance</FormLabel>
-                  <NumberInput id="w-balance" value={startingBalance} onChange={setStartingBalance} placeholder="0" />
-                </div>
-                <div className={styles.field}>
-                  <FormLabel htmlFor="w-icon">Icon (emoji)</FormLabel>
-                  <Input id="w-icon" type="text" value={icon} onChange={e => setIcon(e.target.value)} placeholder="💰" maxLength={4} />
-                </div>
-                <div className={styles.field}>
-                  <FormLabel htmlFor="w-color">Color</FormLabel>
-                  <input id="w-color" type="color" className={styles.colorPicker} value={color} onChange={e => setColor(e.target.value)} />
-                </div>
-                <div className={styles.submitCol}>
-                  <Button type="submit" variant="primary" size="md" loading={saving}>Add</Button>
-                </div>
-              </div>
-              {formError && <p className={styles.formError}>{formError}</p>}
-            </form>
-          </section>
+          <div className={styles.pageHeader}>
+            <h1 className={styles.pageTitle}>Wallets</h1>
+            <Button variant="primary" size="md" onClick={() => setShowAddDialog(true)}>+ Add wallet</Button>
+          </div>
 
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Your wallets</h2>
             {loading ? (
               <p className={styles.emptyState}>Loading…</p>
             ) : wallets.length === 0 ? (
-              <p className={styles.emptyState}>No wallets yet. Add one above.</p>
+              <p className={styles.emptyState}>No wallets yet. Click &quot;+ Add wallet&quot; to create one.</p>
             ) : (
               <div className={styles.list}>
                 {wallets.map(wallet => {
@@ -291,6 +271,42 @@ export default function WalletsPage() {
         </div>
       </main>
       <AppFooter />
+
+      {showAddDialog && (
+        <Dialog title="Add wallet" onClose={handleCloseAddDialog}>
+          <form onSubmit={handleAdd} className={styles.form}>
+            <div className={styles.field}>
+              <FormLabel htmlFor="w-name" required>Name</FormLabel>
+              <Input id="w-name" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Savings" required autoFocus />
+            </div>
+            <div className={styles.field}>
+              <FormLabel htmlFor="w-currency">Currency</FormLabel>
+              <select id="w-currency" className={styles.select} value={currency} onChange={e => setCurrency(e.target.value as Currency)}>
+                {CURRENCIES.map(c => <option key={c} value={c}>{CURRENCY_LABELS[c]}</option>)}
+              </select>
+            </div>
+            <div className={styles.field}>
+              <FormLabel htmlFor="w-balance">Starting balance</FormLabel>
+              <NumberInput id="w-balance" value={startingBalance} onChange={setStartingBalance} placeholder="0" />
+            </div>
+            <div className={styles.twoCol}>
+              <div className={styles.field}>
+                <FormLabel htmlFor="w-icon">Icon (emoji)</FormLabel>
+                <Input id="w-icon" type="text" value={icon} onChange={e => setIcon(e.target.value)} placeholder="💰" maxLength={4} />
+              </div>
+              <div className={styles.field}>
+                <FormLabel htmlFor="w-color">Color</FormLabel>
+                <input id="w-color" type="color" className={styles.colorPicker} value={color} onChange={e => setColor(e.target.value)} />
+              </div>
+            </div>
+            {formError && <p className={styles.formError}>{formError}</p>}
+            <div className={styles.dialogActions}>
+              <Button variant="secondary" size="md" type="button" onClick={handleCloseAddDialog}>Cancel</Button>
+              <Button type="submit" variant="primary" size="md" loading={saving}>Add wallet</Button>
+            </div>
+          </form>
+        </Dialog>
+      )}
 
       {deletingWallet && (
         <ConfirmDialog
