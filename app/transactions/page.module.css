@@ -50,6 +50,12 @@
   min-width: 140px;
 }
 
+/* Make SearchableSelect trigger match filter input height */
+.filterField :global([class*="trigger"]) {
+  height: 38px;
+  font-size: 0.875rem;
+}
+
 .filterSelect,
 .filterInput {
   height: 38px;
@@ -74,10 +80,151 @@
   align-self: flex-end;
 }
 
-.list {
+/* ── Grouped transaction list ── */
+.groupedList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.dayGroup {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+.dayHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+}
+
+.dayDate {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.dayNet {
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-family: var(--font-figtree);
+}
+
+.dayNetPos { color: var(--color-income); }
+.dayNetNeg { color: var(--color-expense); }
+
+.dayTxList {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* ── Transaction row ── */
+.txRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  transition: background var(--transition-fast);
+}
+
+.txRow + .txRow {
+  border-top: 1px solid var(--color-border);
+}
+
+.txRow:hover { background: var(--color-surface-2); }
+
+.txIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+  flex-shrink: 0;
+}
+
+.txMain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.txCategory {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.txWallet {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.txWalletDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.txNotes {
+  font-size: 0.8125rem;
+  color: var(--color-text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.txRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.txAmount {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-family: var(--font-figtree);
+}
+
+.txIncome { color: var(--color-income); }
+.txExpense { color: var(--color-expense); }
+.txTransfer { color: var(--color-accent); }
+
+.txEditBtn {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  font-family: var(--font-figtree);
+}
+
+.txRow:hover .txEditBtn {
+  opacity: 1;
+}
+
+.sentinel {
+  height: 1px;
 }
 
 .emptyState {

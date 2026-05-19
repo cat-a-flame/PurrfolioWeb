@@ -33,7 +33,13 @@
   color: var(--color-text);
 }
 
-/* ── Period picker ── */
+/* ── Period row (below Cash Flow) ── */
+.periodRow {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: calc(var(--space-8) * -0.5);
+}
+
 .periodPicker {
   display: flex;
   background: var(--color-surface);
@@ -400,9 +406,25 @@
 .txExpense { color: var(--color-expense); }
 .txTransfer { color: var(--color-accent); }
 
-.txTime {
+.txEditBtn {
   font-size: 0.75rem;
-  color: var(--color-text-faint);
+  font-weight: 600;
+  color: var(--color-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  font-family: var(--font-figtree);
+}
+
+.txRow:hover .txEditBtn {
+  opacity: 1;
+}
+
+.sentinel {
+  height: 1px;
 }
 
 /* ── Empty state ── */

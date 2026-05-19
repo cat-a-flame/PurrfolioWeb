@@ -24,6 +24,7 @@ interface EditFields {
   name: string;
   icon: string;
   color: string;
+  starting_balance: string;
 }
 
 export default function WalletsSettingsPage() {
@@ -40,7 +41,7 @@ export default function WalletsSettingsPage() {
   const [formError, setFormError] = useState('');
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editFields, setEditFields] = useState<EditFields>({ name: '', icon: '', color: '#f26e4d' });
+  const [editFields, setEditFields] = useState<EditFields>({ name: '', icon: '', color: '#f26e4d', starting_balance: '0' });
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
 
@@ -92,7 +93,7 @@ export default function WalletsSettingsPage() {
 
   function startEdit(wallet: Wallet) {
     setEditingId(wallet.id);
-    setEditFields({ name: wallet.name, icon: wallet.icon, color: wallet.color });
+    setEditFields({ name: wallet.name, icon: wallet.icon, color: wallet.color, starting_balance: String(wallet.starting_balance) });
     setEditError('');
   }
 
@@ -100,9 +101,11 @@ export default function WalletsSettingsPage() {
     setEditError('');
     if (!editFields.name.trim()) { setEditError('Name is required.'); return; }
     setEditSaving(true);
+    const parsedBalance = parseFloat(editFields.starting_balance);
     const supabase = createClient();
     const { error } = await supabase.from('wallets').update({
       name: editFields.name.trim(), icon: editFields.icon.trim() || '💰', color: editFields.color,
+      starting_balance: isNaN(parsedBalance) ? 0 : parsedBalance,
     }).eq('id', wallet.id);
     setEditSaving(false);
     if (error) { setEditError(error.message); } else {
@@ -163,6 +166,7 @@ export default function WalletsSettingsPage() {
                     <div className={styles.editRow}>
                       <div className={styles.editFields}>
                         <Input type="text" value={editFields.name} onChange={e => setEditFields(f => ({ ...f, name: e.target.value }))} placeholder="Name" />
+                        <NumberInput value={editFields.starting_balance} onChange={v => setEditFields(f => ({ ...f, starting_balance: v }))} placeholder="Starting balance" />
                         <Input type="text" value={editFields.icon} onChange={e => setEditFields(f => ({ ...f, icon: e.target.value }))} placeholder="💰" maxLength={4} style={{ width: 72 }} />
                         <input type="color" className={styles.colorPicker} value={editFields.color} onChange={e => setEditFields(f => ({ ...f, color: e.target.value }))} style={{ width: 52 }} />
                       </div>
