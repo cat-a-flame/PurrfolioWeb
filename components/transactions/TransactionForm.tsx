@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Button from '@/components/ui/Button';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
@@ -61,6 +62,38 @@ export default function TransactionForm({
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+
+  const dirty = transaction != null
+    || amount !== ''
+    || notes !== ''
+    || payer !== ''
+    || categoryId !== ''
+    || labelIds.length > 0
+    || (mode === 'transfer' && (toWalletId !== '' || toAmount !== ''));
+
+  function handleClose() {
+    if (dirty) {
+      setShowCloseConfirm(true);
+    } else {
+      onClose();
+    }
+  }
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (dirty) {
+          setShowCloseConfirm(true);
+        } else {
+          onClose();
+        }
+      }
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [dirty, onClose]);
 
   const selectedWallet = wallets.find(w => w.id === walletId);
   const toWallet = wallets.find(w => w.id === toWalletId);
@@ -163,11 +196,11 @@ export default function TransactionForm({
 
   if (wallets.length === 0) {
     return (
-      <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.overlay} onClick={handleClose}>
         <div className={styles.modal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
           <div className={styles.modalHeader}>
             <h2 className={styles.title}>Add record</h2>
-            <button className={styles.closeBtn} type="button" onClick={onClose} aria-label="Close">✕</button>
+            <button className={styles.closeBtn} type="button" onClick={handleClose} aria-label="Close">✕</button>
           </div>
           <p className={styles.noWalletMsg}>
             You need at least one wallet before adding records. Go to <strong>Wallets</strong> to create one.
@@ -178,7 +211,7 @@ export default function TransactionForm({
   }
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div className={styles.overlay} onClick={handleClose}>
       <div
         className={styles.modal}
         onClick={e => e.stopPropagation()}
@@ -190,7 +223,7 @@ export default function TransactionForm({
           <h2 id="form-title" className={styles.title}>
             {transaction ? 'Edit record' : 'Add record'}
           </h2>
-          <button className={styles.closeBtn} type="button" onClick={onClose} aria-label="Close">✕</button>
+          <button className={styles.closeBtn} type="button" onClick={handleClose} aria-label="Close">✕</button>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
@@ -347,6 +380,17 @@ export default function TransactionForm({
           </div>
         </form>
       </div>
+
+      {showCloseConfirm && (
+        <ConfirmDialog
+          title="Discard changes?"
+          message="You have unsaved data. If you close now, everything you entered will be lost."
+          confirmLabel="Discard"
+          cancelLabel="Keep editing"
+          onConfirm={onClose}
+          onCancel={() => setShowCloseConfirm(false)}
+        />
+      )}
     </div>
   );
 }
