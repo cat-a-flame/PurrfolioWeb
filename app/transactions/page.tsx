@@ -11,7 +11,8 @@ import FormLabel from '@/components/ui/FormLabel';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import { createClient } from '@/lib/supabase/client';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatHUF } from '@/lib/utils';
+import { getExchangeRates, toHUF } from '@/lib/exchangeRates';
 import type { Transaction, Category, Label, TransactionType, Wallet } from '@/lib/types';
 import styles from './page.module.css';
 
@@ -51,6 +52,24 @@ export default function TransactionsPage() {
   const [filterWalletId, setFilterWalletId] = useState('');
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
+
+  // Exchange rates: date → { EUR: number, USD: number, … } (HUF per 1 unit)
+  const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
+
+  useEffect(() => {
+    const dates = [...new Set(
+      transactions
+        .filter(t => t.wallet?.currency && t.wallet.currency !== 'HUF')
+        .map(t => t.date)
+    )];
+    if (!dates.length) return;
+    Promise.all(dates.map(async d => [d, await getExchangeRates(d)] as const))
+      .then(entries => setRatesByDate(prev => {
+        const next = { ...prev };
+        for (const [d, rates] of entries) next[d] = rates;
+        return next;
+      }));
+  }, [transactions]);
 
   // Lazy load
   const [displayCount, setDisplayCount] = useState(15);
@@ -165,13 +184,18 @@ export default function TransactionsPage() {
     }
     return Array.from(map.entries())
       .sort(([a], [b]) => b.localeCompare(a))
-      .map(([date, txs]) => ({
-        date,
-        transactions: [...txs].sort((a, b) => b.created_at.localeCompare(a.created_at)),
-        net: txs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0)
-           - txs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0),
-      }));
-  }, [visibleTransactions]);
+      .map(([date, txs]) => {
+        const rates = ratesByDate[date] ?? {};
+        return {
+          date,
+          transactions: [...txs].sort((a, b) => b.created_at.localeCompare(a.created_at)),
+          net: txs.filter(t => t.type === 'income'  && !t.transfer_group_id)
+                  .reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, rates), 0)
+             - txs.filter(t => t.type === 'expense' && !t.transfer_group_id)
+                  .reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, rates), 0),
+        };
+      });
+  }, [visibleTransactions, ratesByDate]);
 
   async function handleSave(data: TransactionFormData) {
     const supabase = createClient();
@@ -363,7 +387,7 @@ export default function TransactionsPage() {
                   <div className={styles.dayHeader}>
                     <span className={styles.dayDate}>{formatDayHeader(date)}</span>
                     <span className={[styles.dayNet, net >= 0 ? styles.dayNetPos : styles.dayNetNeg].join(' ')}>
-                      {net < 0 ? '−' : ''}{formatCurrency(Math.abs(net), dayTxs[0]?.wallet?.currency ?? 'HUF')}
+                      {net < 0 ? '−' : ''}{formatHUF(Math.abs(net))}
                     </span>
                   </div>
                   <div className={styles.dayTxList}>
