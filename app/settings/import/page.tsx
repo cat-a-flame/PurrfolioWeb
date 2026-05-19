@@ -113,6 +113,7 @@ interface ColumnMap {
 
 interface PreviewRow {
   index: number;
+  raw: string[];          // original CSV fields for this row
   date: string | null;
   type: TransactionType | null;
   amount: number | null;
@@ -145,6 +146,7 @@ export default function ImportPage() {
   });
 
   const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
+  const [filterView, setFilterView] = useState<'all' | 'valid' | 'invalid'>('all');
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ success: number; skipped: number } | null>(null);
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
@@ -327,14 +329,16 @@ export default function ImportPage() {
         }
       }
 
-      return { index: i, date: parsedDate, type: txType, amount, walletId, categoryId, notes, payer, labelIds, errors };
+      return { index: i, raw: row, date: parsedDate, type: txType, amount, walletId, categoryId, notes, payer, labelIds, errors };
     });
   }
 
   function goToPreview() {
     const err = validateStep2();
     if (err) { setToast({ message: err, variant: 'error' }); return; }
-    setPreviewRows(buildPreview());
+    const rows = buildPreview();
+    setPreviewRows(rows);
+    setFilterView(rows.some(r => r.errors.length > 0) ? 'invalid' : 'all');
     setStep(3);
   }
 
@@ -399,6 +403,7 @@ export default function ImportPage() {
     setFileName('');
     setImportResult(null);
     setPreviewRows([]);
+    setFilterView('all');
     setColMap(m => ({
       amount: '', date: '',
       typeSource: 'column', typeCol: '', typeMapping: {},
@@ -417,6 +422,11 @@ export default function ImportPage() {
 
   const validCount = previewRows.filter(r => r.errors.length === 0).length;
   const skippedCount = previewRows.length - validCount;
+  const displayedRows = filterView === 'valid'
+    ? previewRows.filter(r => r.errors.length === 0)
+    : filterView === 'invalid'
+    ? previewRows.filter(r => r.errors.length > 0)
+    : previewRows;
 
   return (
     <div className={styles.container}>
@@ -836,19 +846,37 @@ export default function ImportPage() {
 
           {!importResult ? (
             <>
-              <div className={styles.importStats}>
-                <div className={styles.stat}>
-                  <span className={styles.statNum}>{validCount}</span>
-                  <span className={styles.statLabel}>ready to import</span>
-                </div>
-                {skippedCount > 0 && (
-                  <div className={[styles.stat, styles.statWarn].join(' ')}>
-                    <span className={styles.statNum}>{skippedCount}</span>
-                    <span className={styles.statLabel}>will be skipped</span>
+              {/* Stats + filter tabs */}
+              <div className={styles.previewHeader}>
+                <div className={styles.importStats}>
+                  <div className={styles.stat}>
+                    <span className={styles.statNum}>{validCount}</span>
+                    <span className={styles.statLabel}>ready to import</span>
                   </div>
-                )}
+                  {skippedCount > 0 && (
+                    <div className={[styles.stat, styles.statError].join(' ')}>
+                      <span className={styles.statNum}>{skippedCount}</span>
+                      <span className={styles.statLabel}>cannot be imported</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.filterTabs}>
+                  {(['all', 'valid', 'invalid'] as const).map(v => (
+                    <button
+                      key={v}
+                      className={[styles.filterTab, filterView === v ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
+                      onClick={() => setFilterView(v)}
+                    >
+                      {v === 'all' && `All (${previewRows.length})`}
+                      {v === 'valid' && `✓ Valid (${validCount})`}
+                      {v === 'invalid' && `✕ Issues (${skippedCount})`}
+                    </button>
+                  ))}
+                </div>
               </div>
 
+              {/* Table */}
               <div className={styles.tableScroll}>
                 <table className={styles.table}>
                   <thead>
@@ -865,52 +893,74 @@ export default function ImportPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {previewRows.slice(0, 100).map(row => {
+                    {displayedRows.map(row => {
                       const wallet = wallets.find(w => w.id === row.walletId);
                       const category = categories.find(c => c.id === row.categoryId);
                       const bad = row.errors.length > 0;
                       return (
-                        <tr key={row.index} className={bad ? styles.rowError : ''}>
-                          <td className={styles.rowNum}>{row.index + 1}</td>
-                          <td>{row.date ?? <span className={styles.missing}>–</span>}</td>
-                          <td>
-                            {row.type ? (
-                              <span className={row.type === 'income' ? styles.tagIncome : styles.tagExpense}>
-                                {row.type}
-                              </span>
-                            ) : <span className={styles.missing}>–</span>}
-                          </td>
-                          <td className={row.type === 'expense' ? styles.amtExpense : styles.amtIncome}>
-                            {row.amount !== null
-                              ? (row.type === 'expense' ? '−' : '+') + row.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                              : <span className={styles.missing}>–</span>}
-                          </td>
-                          <td>{wallet ? `${wallet.icon} ${wallet.name}` : <span className={styles.missing}>–</span>}</td>
-                          <td>{category?.name ?? <span className={styles.muted}>none</span>}</td>
-                          <td className={styles.noteCol}>{row.notes ?? ''}</td>
-                          <td className={styles.labelCol}>
-                            {row.labelIds.map(id => {
-                              const lbl = labels.find(l => l.id === id);
-                              return lbl ? (
-                                <span key={id} className={styles.labelChip} style={{ background: lbl.color + '33', color: lbl.color }}>
-                                  {lbl.name}
+                        <>
+                          <tr key={row.index} className={bad ? styles.rowError : ''}>
+                            <td className={styles.rowNum}>{row.index + 1}</td>
+                            <td>{row.date ?? <span className={styles.missing}>–</span>}</td>
+                            <td>
+                              {row.type ? (
+                                <span className={row.type === 'income' ? styles.tagIncome : styles.tagExpense}>
+                                  {row.type}
                                 </span>
-                              ) : null;
-                            })}
-                          </td>
-                          <td>
-                            {bad
-                              ? <span className={styles.statusErr} title={row.errors.join(' · ')}>✕ {row.errors[0]}</span>
-                              : <span className={styles.statusOk}>✓</span>}
-                          </td>
-                        </tr>
+                              ) : <span className={styles.missing}>–</span>}
+                            </td>
+                            <td className={row.type === 'expense' ? styles.amtExpense : styles.amtIncome}>
+                              {row.amount !== null
+                                ? (row.type === 'expense' ? '−' : '+') + row.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                : <span className={styles.missing}>–</span>}
+                            </td>
+                            <td>{wallet ? `${wallet.icon} ${wallet.name}` : <span className={styles.missing}>–</span>}</td>
+                            <td>{category?.name ?? <span className={styles.muted}>none</span>}</td>
+                            <td className={styles.noteCol}>{row.notes ?? ''}</td>
+                            <td className={styles.labelCol}>
+                              {row.labelIds.map(id => {
+                                const lbl = labels.find(l => l.id === id);
+                                return lbl ? (
+                                  <span key={id} className={styles.labelChip} style={{ background: lbl.color + '33', color: lbl.color }}>
+                                    {lbl.name}
+                                  </span>
+                                ) : null;
+                              })}
+                            </td>
+                            <td>
+                              {bad ? (
+                                <ul className={styles.errorList}>
+                                  {row.errors.map((e, i) => (
+                                    <li key={i} className={styles.statusErr}>✕ {e}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <span className={styles.statusOk}>✓</span>
+                              )}
+                            </td>
+                          </tr>
+                          {bad && (
+                            <tr key={`${row.index}-raw`} className={styles.rawRow}>
+                              <td />
+                              <td colSpan={8} className={styles.rawCell}>
+                                <span className={styles.rawLabel}>Original: </span>
+                                {(csv?.headers ?? []).map((h, i) => (
+                                  <span key={i} className={styles.rawField}>
+                                    <span className={styles.rawKey}>{h}</span>
+                                    <span className={styles.rawVal}>{row.raw[i] ?? ''}</span>
+                                  </span>
+                                ))}
+                              </td>
+                            </tr>
+                          )}
+                        </>
                       );
                     })}
                   </tbody>
                 </table>
               </div>
-              {previewRows.length > 100 && (
-                <p className={styles.truncNote}>Showing first 100 of {previewRows.length} rows.</p>
+              {displayedRows.length === 0 && (
+                <p className={styles.truncNote}>No rows to show for this filter.</p>
               )}
 
               <div className={styles.actions}>
