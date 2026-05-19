@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import Button from '@/components/ui/Button';
 import Toast from '@/components/ui/Toast';
-import type { Wallet, Category, TransactionType } from '@/lib/types';
+import type { Wallet, Category, Label, TransactionType } from '@/lib/types';
 import styles from './page.module.css';
 
 // ─── CSV helpers ──────────────────────────────────────────────────────────────
@@ -106,6 +106,7 @@ interface ColumnMap {
   categoryCol: string;
   notesCol: string;
   payerCol: string;
+  labelsCol: string;
 }
 
 interface PreviewRow {
@@ -117,6 +118,7 @@ interface PreviewRow {
   categoryId: string | null;
   notes: string | null;
   payer: string | null;
+  labelIds: string[];
   errors: string[];
 }
 
@@ -131,12 +133,13 @@ export default function ImportPage() {
 
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [labels, setLabels] = useState<Label[]>([]);
 
   const [colMap, setColMap] = useState<ColumnMap>({
     amount: '', date: '',
     typeSource: 'column', typeCol: '', typeMapping: {},
     walletSource: 'fixed', walletCol: '', walletFixed: '', walletMapping: {},
-    categoryCol: '', notesCol: '', payerCol: '',
+    categoryCol: '', notesCol: '', payerCol: '', labelsCol: '',
   });
 
   const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
@@ -149,15 +152,17 @@ export default function ImportPage() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const [wRes, cRes] = await Promise.all([
+      const [wRes, cRes, lRes] = await Promise.all([
         supabase.from('wallets').select('*').eq('user_id', user.id).order('name'),
         supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
+        supabase.from('labels').select('*').eq('user_id', user.id).order('name'),
       ]);
       if (wRes.data) {
         setWallets(wRes.data);
         setColMap(m => m.walletFixed ? m : { ...m, walletFixed: wRes.data.find((w: Wallet) => w.is_default)?.id ?? wRes.data[0]?.id ?? '' });
       }
       if (cRes.data) setCategories(cRes.data);
+      if (lRes.data) setLabels(lRes.data);
     }
     load();
   }, []);
@@ -180,7 +185,7 @@ export default function ImportPage() {
       setCsv(parsed);
       setFileName(file.name);
       setImportResult(null);
-      setColMap(m => ({ ...m, amount: '', date: '', typeCol: '', typeMapping: {}, walletCol: '', walletMapping: {}, categoryCol: '', notesCol: '', payerCol: '' }));
+      setColMap(m => ({ ...m, amount: '', date: '', typeCol: '', typeMapping: {}, walletCol: '', walletMapping: {}, categoryCol: '', notesCol: '', payerCol: '', labelsCol: '' }));
     };
     reader.readAsText(file, 'utf-8');
   }
@@ -262,6 +267,7 @@ export default function ImportPage() {
     const catI = colMap.categoryCol ? colIdx(colMap.categoryCol) : -1;
     const notI = colMap.notesCol ? colIdx(colMap.notesCol) : -1;
     const payI = colMap.payerCol ? colIdx(colMap.payerCol) : -1;
+    const lblI = colMap.labelsCol ? colIdx(colMap.labelsCol) : -1;
 
     return rows.map((row, i) => {
       const errors: string[] = [];
@@ -307,7 +313,19 @@ export default function ImportPage() {
       const notes = notI >= 0 ? ((row[notI] ?? '').trim() || null) : null;
       const payer = payI >= 0 ? ((row[payI] ?? '').trim() || null) : null;
 
-      return { index: i, date: parsedDate, type: txType, amount, walletId, categoryId, notes, payer, errors };
+      const labelIds: string[] = [];
+      if (lblI >= 0) {
+        const raw = (row[lblI] ?? '').trim();
+        if (raw) {
+          const names = raw.split(/[,|]/).map(s => s.trim()).filter(Boolean);
+          for (const name of names) {
+            const match = labels.find(l => l.name.toLowerCase() === name.toLowerCase());
+            if (match) labelIds.push(match.id);
+          }
+        }
+      }
+
+      return { index: i, date: parsedDate, type: txType, amount, walletId, categoryId, notes, payer, labelIds, errors };
     });
   }
 
@@ -335,7 +353,8 @@ export default function ImportPage() {
     let failed = 0;
     const BATCH = 100;
     for (let i = 0; i < valid.length; i += BATCH) {
-      const batch = valid.slice(i, i + BATCH).map(r => ({
+      const slice = valid.slice(i, i + BATCH);
+      const batch = slice.map(r => ({
         user_id: user.id,
         type: r.type as TransactionType,
         amount: r.amount as number,
@@ -345,9 +364,18 @@ export default function ImportPage() {
         notes: r.notes,
         payer: r.payer,
       }));
-      const { error } = await supabase.from('transactions').insert(batch);
-      if (error) failed += batch.length;
-      else success += batch.length;
+      const { data: inserted, error } = await supabase.from('transactions').insert(batch).select('id');
+      if (error || !inserted) {
+        failed += batch.length;
+      } else {
+        success += inserted.length;
+        const labelLinks = inserted.flatMap((tx: { id: string }, idx: number) =>
+          slice[idx].labelIds.map(lid => ({ transaction_id: tx.id, label_id: lid }))
+        ).filter((link: { transaction_id: string; label_id: string }) => link.label_id);
+        if (labelLinks.length > 0) {
+          await supabase.from('transaction_labels').insert(labelLinks);
+        }
+      }
     }
 
     const skipped = previewRows.filter(r => r.errors.length > 0).length + failed;
@@ -373,7 +401,7 @@ export default function ImportPage() {
       amount: '', date: '',
       typeSource: 'column', typeCol: '', typeMapping: {},
       walletSource: 'fixed', walletCol: '', walletFixed: m.walletFixed, walletMapping: {},
-      categoryCol: '', notesCol: '', payerCol: '',
+      categoryCol: '', notesCol: '', payerCol: '', labelsCol: '',
     }));
   }
 
@@ -707,6 +735,29 @@ export default function ImportPage() {
                 )}
               </div>
             </div>
+
+            {/* Labels */}
+            <div className={styles.mapRow}>
+              <span className={styles.fieldName}>Labels</span>
+              <div className={styles.mapControls}>
+                <select
+                  className={styles.sel}
+                  value={colMap.labelsCol}
+                  onChange={e => setColMap(m => ({ ...m, labelsCol: e.target.value }))}
+                >
+                  <option value="">Skip</option>
+                  {colOptions}
+                </select>
+                {colMap.labelsCol && (
+                  <span className={styles.sample}>{sampleValue(colMap.labelsCol)}</span>
+                )}
+              </div>
+            </div>
+            {colMap.labelsCol && (
+              <p className={styles.fieldHint}>
+                Label names are matched to your existing labels. Multiple labels can be separated by commas. Unrecognised names are ignored.
+              </p>
+            )}
           </div>
 
           <div className={styles.actions}>
@@ -747,6 +798,7 @@ export default function ImportPage() {
                       <th>Wallet</th>
                       <th>Category</th>
                       <th>Notes</th>
+                      <th>Labels</th>
                       <th>Status</th>
                     </tr>
                   </thead>
@@ -774,6 +826,16 @@ export default function ImportPage() {
                           <td>{wallet ? `${wallet.icon} ${wallet.name}` : <span className={styles.missing}>–</span>}</td>
                           <td>{category?.name ?? <span className={styles.muted}>none</span>}</td>
                           <td className={styles.noteCol}>{row.notes ?? ''}</td>
+                          <td className={styles.labelCol}>
+                            {row.labelIds.map(id => {
+                              const lbl = labels.find(l => l.id === id);
+                              return lbl ? (
+                                <span key={id} className={styles.labelChip} style={{ background: lbl.color + '33', color: lbl.color }}>
+                                  {lbl.name}
+                                </span>
+                              ) : null;
+                            })}
+                          </td>
                           <td>
                             {bad
                               ? <span className={styles.statusErr} title={row.errors.join(' · ')}>✕ {row.errors[0]}</span>
