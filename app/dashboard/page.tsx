@@ -124,7 +124,13 @@ export default function DashboardPage() {
   const incomePct  = total > 0 ? (income  / total) * 100 : 0;
   const expensePct = total > 0 ? (expense / total) * 100 : 0;
 
-  const walletSummaries = wallets.map(wallet => {
+  const walletSummaries = wallets
+    .slice()
+    .sort((a, b) => {
+      if (a.is_default !== b.is_default) return a.is_default ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    })
+    .map(wallet => {
     const wTxs = periodTxs.filter(t => t.wallet_id === wallet.id);
     const wi = wTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
     const we = wTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
