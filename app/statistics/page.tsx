@@ -89,7 +89,7 @@ export default function StatisticsPage() {
     const [txRes, wRes] = await Promise.all([
       supabase.from('transactions')
         .select('*, wallet:wallets(*), category:categories(*), labels:transaction_labels(label:labels(*))')
-        .eq('user_id', user.id).order('date', { ascending: true }),
+        .eq('user_id', user.id).order('date', { ascending: false }),
       supabase.from('wallets').select('*').eq('user_id', user.id),
     ]);
     if (txRes.data) setAllTxs((txRes.data as RawTx[]).map(t => ({ ...t, labels: t.labels.map(l => l.label).filter(Boolean) as NonNullable<typeof t.labels[0]['label']>[] })));
