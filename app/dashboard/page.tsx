@@ -5,9 +5,11 @@ import Link from 'next/link';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
+import TransactionForm, { TransactionFormData } from '@/components/transactions/TransactionForm';
+import Toast from '@/components/ui/Toast';
 import { createClient } from '@/lib/supabase/client';
 import { formatHUF, formatCurrency } from '@/lib/utils';
-import type { Transaction, Wallet } from '@/lib/types';
+import type { Transaction, Wallet, Category, Label } from '@/lib/types';
 import styles from './page.module.css';
 
 type RawTransactionLabel = {
@@ -76,20 +78,27 @@ function formatDayHeader(dateStr: string): string {
 export default function DashboardPage() {
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [labels, setLabels] = useState<Label[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<PeriodValue>(defaultPeriod);
+
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
+  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
 
   const fetchData = useCallback(async () => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const [txRes, walletRes] = await Promise.all([
+    const [txRes, walletRes, catRes, lblRes] = await Promise.all([
       supabase
         .from('transactions')
         .select(`*, wallet:wallets(*), category:categories(*), labels:transaction_labels(label:labels(*))`)
         .eq('user_id', user.id)
         .order('date', { ascending: false }),
       supabase.from('wallets').select('*').eq('user_id', user.id).order('name'),
+      supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
+      supabase.from('labels').select('*').eq('user_id', user.id).order('name'),
     ]);
     if (txRes.data) {
       setAllTransactions((txRes.data as RawTransaction[]).map(t => ({
@@ -98,6 +107,8 @@ export default function DashboardPage() {
       })));
     }
     if (walletRes.data) setWallets(walletRes.data);
+    if (catRes.data) setCategories(catRes.data);
+    if (lblRes.data) setLabels(lblRes.data);
     setLoading(false);
   }, []);
 
@@ -124,6 +135,7 @@ export default function DashboardPage() {
   const incomePct  = total > 0 ? (income  / total) * 100 : 0;
   const expensePct = total > 0 ? (expense / total) * 100 : 0;
 
+  // Wallet totals computed from ALL transactions (not period-filtered)
   const walletSummaries = wallets
     .slice()
     .sort((a, b) => {
@@ -131,11 +143,11 @@ export default function DashboardPage() {
       return a.name.localeCompare(b.name);
     })
     .map(wallet => {
-    const wTxs = periodTxs.filter(t => t.wallet_id === wallet.id);
-    const wi = wTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const we = wTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-    return { wallet, income: wi, expense: we, balance: wi - we };
-  });
+      const wTxs = allTransactions.filter(t => t.wallet_id === wallet.id);
+      const wi = wTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+      const we = wTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+      return { wallet, balance: wallet.starting_balance + wi - we };
+    });
 
   const groupedDays = useMemo(() => {
     const map = new Map<string, Transaction[]>();
@@ -154,6 +166,42 @@ export default function DashboardPage() {
       }));
   }, [periodTxs]);
 
+  async function handleSave(data: TransactionFormData) {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    if (!editingTransaction) return;
+
+    const { error } = await supabase
+      .from('transactions')
+      .update({
+        type: data.type,
+        amount: data.amount,
+        wallet_id: data.wallet_id,
+        category_id: data.category_id,
+        date: data.date,
+        notes: data.notes || null,
+        payer: data.payer || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', editingTransaction.id);
+
+    if (error) throw error;
+
+    await supabase.from('transaction_labels').delete().eq('transaction_id', editingTransaction.id);
+    if (data.label_ids.length > 0) {
+      await supabase.from('transaction_labels').insert(
+        data.label_ids.map(lid => ({ transaction_id: editingTransaction.id, label_id: lid }))
+      );
+    }
+
+    setEditingTransaction(undefined);
+    setToast({ message: 'Transaction updated.', variant: 'success' });
+    window.dispatchEvent(new Event('transaction-added'));
+    await fetchData();
+  }
+
   return (
     <div className={styles.layout}>
       <AppHeader />
@@ -162,8 +210,26 @@ export default function DashboardPage() {
 
           <div className={styles.pageHeader}>
             <h1 className={styles.pageTitle}>Dashboard</h1>
-            <PeriodPicker value={period} onChange={setPeriod} />
           </div>
+
+          {/* Wallet totals — not affected by date filter */}
+          {walletSummaries.length > 0 && (
+            <section className={styles.section}>
+              <h2 className={styles.sectionTitle}>Wallets</h2>
+              <div className={styles.walletGrid}>
+                {walletSummaries.map(({ wallet, balance: wb }) => (
+                  <div key={wallet.id} className={styles.walletCard} style={{ borderLeftColor: wallet.color }}>
+                    <div className={styles.walletCardHeader}>
+                      <span className={styles.walletCardIcon}>{wallet.icon}</span>
+                      <span className={styles.walletCardName}>{wallet.name}</span>
+                      <span className={styles.walletCardCurrency}>{wallet.currency}</span>
+                    </div>
+                    <div className={styles.walletCardBalance}>{formatCurrency(wb, wallet.currency)}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Cash Flow card */}
           <div className={styles.cashFlowCard}>
@@ -204,28 +270,10 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* By wallet */}
-          {walletSummaries.length > 0 && (
-            <section className={styles.section}>
-              <h2 className={styles.sectionTitle}>By wallet</h2>
-              <div className={styles.walletGrid}>
-                {walletSummaries.map(({ wallet, income: wi, expense: we, balance: wb }) => (
-                  <div key={wallet.id} className={styles.walletCard} style={{ borderLeftColor: wallet.color }}>
-                    <div className={styles.walletCardHeader}>
-                      <span className={styles.walletCardIcon}>{wallet.icon}</span>
-                      <span className={styles.walletCardName}>{wallet.name}</span>
-                      <span className={styles.walletCardCurrency}>{wallet.currency}</span>
-                    </div>
-                    <div className={styles.walletCardBalance}>{formatCurrency(wb, wallet.currency)}</div>
-                    <div className={styles.walletCardDetails}>
-                      <span className={styles.walletCardIncome}>+{formatCurrency(wi, wallet.currency)}</span>
-                      <span className={styles.walletCardExpense}>−{formatCurrency(we, wallet.currency)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+          {/* Period picker — below Cash Flow */}
+          <div className={styles.periodRow}>
+            <PeriodPicker value={period} onChange={setPeriod} />
+          </div>
 
           {/* Transactions grouped by day */}
           <section className={styles.section}>
@@ -280,6 +328,15 @@ export default function DashboardPage() {
                                 }{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
                               </span>
                               <span className={styles.txTime}>{formatTime(t.created_at)}</span>
+                              {!isTransfer && (
+                                <button
+                                  className={styles.txEditBtn}
+                                  onClick={() => setEditingTransaction(t)}
+                                  aria-label="Edit transaction"
+                                >
+                                  Edit
+                                </button>
+                              )}
                             </div>
                           </div>
                         );
@@ -294,6 +351,20 @@ export default function DashboardPage() {
         </div>
       </main>
       <AppFooter />
+
+      {editingTransaction && (
+        <TransactionForm
+          wallets={wallets}
+          categories={categories}
+          labels={labels}
+          templates={[]}
+          transaction={editingTransaction}
+          onSave={handleSave}
+          onClose={() => setEditingTransaction(undefined)}
+        />
+      )}
+
+      {toast && <Toast message={toast.message} variant={toast.variant} onDismiss={() => setToast(null)} />}
     </div>
   );
 }
