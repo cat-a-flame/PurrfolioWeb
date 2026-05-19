@@ -8,19 +8,11 @@ import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import TransactionForm, { TransactionFormData } from '@/components/transactions/TransactionForm';
 import Toast from '@/components/ui/Toast';
 import { createClient } from '@/lib/supabase/client';
+import { fetchAllTransactions } from '@/lib/supabase/fetchAllTransactions';
 import { formatHUF, formatCurrency } from '@/lib/utils';
 import { getExchangeRates, toHUF } from '@/lib/exchangeRates';
 import type { Transaction, Wallet, Category, Label } from '@/lib/types';
 import styles from './page.module.css';
-
-type RawTransactionLabel = {
-  label: { id: string; user_id: string; name: string; color: string; created_at: string } | null;
-};
-type RawTransaction = Omit<Transaction, 'labels'> & {
-  wallet: Wallet | null;
-  category: Transaction['category'];
-  labels: RawTransactionLabel[];
-};
 
 function isoDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -110,22 +102,13 @@ export default function DashboardPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const [txRes, walletRes, catRes, lblRes] = await Promise.all([
-      supabase
-        .from('transactions')
-        .select(`*, wallet:wallets(*), category:categories(*), labels:transaction_labels(label:labels(*))`)
-        .eq('user_id', user.id)
-        .order('date', { ascending: false }),
+    const [transactions, walletRes, catRes, lblRes] = await Promise.all([
+      fetchAllTransactions(user.id),
       supabase.from('wallets').select('*').eq('user_id', user.id).order('name'),
       supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
       supabase.from('labels').select('*').eq('user_id', user.id).order('name'),
     ]);
-    if (txRes.data) {
-      setAllTransactions((txRes.data as RawTransaction[]).map(t => ({
-        ...t,
-        labels: t.labels.map(l => l.label).filter((l): l is NonNullable<typeof l> => l !== null),
-      })));
-    }
+    setAllTransactions(transactions);
     if (walletRes.data) setWallets(walletRes.data);
     if (catRes.data) setCategories(catRes.data);
     if (lblRes.data) setLabels(lblRes.data);
@@ -142,12 +125,12 @@ export default function DashboardPage() {
   const periodTxs = useMemo(() => filterByRange(allTransactions, period.from, period.to), [allTransactions, period]);
   const prevTxs   = useMemo(() => filterByRange(allTransactions, prevRange.from, prevRange.to), [allTransactions, prevRange]);
 
-  const income  = periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0);
-  const expense = periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0);
+  const income  = periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0);
+  const expense = periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0);
   const balance = income - expense;
 
-  const prevBalance = prevTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0)
-                    - prevTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0);
+  const prevBalance = prevTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0)
+                    - prevTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {})  , 0);
 
   const vsPct = prevBalance === 0 ? null : Math.round(((balance - prevBalance) / Math.abs(prevBalance)) * 100);
 

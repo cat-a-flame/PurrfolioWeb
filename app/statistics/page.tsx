@@ -10,6 +10,8 @@ import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import { createClient } from '@/lib/supabase/client';
+import { fetchAllTransactions } from '@/lib/supabase/fetchAllTransactions';
+import { getExchangeRates, toHUF } from '@/lib/exchangeRates';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import type { Transaction, Wallet, Currency } from '@/lib/types';
 import styles from './page.module.css';
@@ -20,10 +22,6 @@ const PALETTE = [
   '#14b8a6','#8b5cf6','#f97316','#06b6d4','#84cc16',
   '#a78bfa','#fb7185','#0ea5e9','#d946ef','#22c55e',
 ];
-
-// ─── helpers ────────────────────────────────────────────────────────────────
-type RawTxLabel = { label: { id: string; user_id: string; name: string; color: string; created_at: string } | null };
-type RawTx = Omit<Transaction, 'labels'> & { wallet: Wallet | null; category: Transaction['category']; labels: RawTxLabel[] };
 
 function isoDate(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -79,21 +77,25 @@ export default function StatisticsPage() {
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [period, setPeriod]   = useState<PeriodValue>(defaultPeriod);
+  const [todayRates, setTodayRates] = useState<Record<string, number>>({});
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    const today = isoDate(new Date());
+    getExchangeRates(today).then(setTodayRates);
+  }, []);
 
   const fetchData = useCallback(async () => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const [txRes, wRes] = await Promise.all([
-      supabase.from('transactions')
-        .select('*, wallet:wallets(*), category:categories(*), labels:transaction_labels(label:labels(*))')
-        .eq('user_id', user.id).order('date', { ascending: true }),
+    const [transactions, wRes] = await Promise.all([
+      fetchAllTransactions(user.id),
       supabase.from('wallets').select('*').eq('user_id', user.id),
     ]);
-    if (txRes.data) setAllTxs((txRes.data as RawTx[]).map(t => ({ ...t, labels: t.labels.map(l => l.label).filter(Boolean) as NonNullable<typeof t.labels[0]['label']>[] })));
-    if (wRes.data)  setWallets(wRes.data);
+    setAllTxs(transactions);
+    if (wRes.data) setWallets(wRes.data);
     setLoading(false);
   }, []);
 
@@ -117,8 +119,13 @@ export default function StatisticsPage() {
         - wTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
       map.set(w.currency, (map.get(w.currency) ?? 0) + bal);
     }
-    return Array.from(map.entries()).map(([currency, balance], i) => ({ currency, balance, fill: PALETTE[i % PALETTE.length] }));
-  }, [allTxs, wallets]);
+    return Array.from(map.entries()).map(([currency, balance], i) => ({
+      currency,
+      balance,
+      balanceHUF: toHUF(balance, currency, todayRates),
+      fill: PALETTE[i % PALETTE.length],
+    }));
+  }, [allTxs, wallets, todayRates]);
 
   // ── 2. Expenses structure (doughnut) ──────────────────────────────────
   const expenseSlices = useMemo(() => {
@@ -297,22 +304,25 @@ export default function StatisticsPage() {
                 <p className={styles.empty}>No wallets yet.</p>
               ) : (
                 <div className={styles.balanceList}>
-                  {currencyBalances.map(({ currency, balance, fill }) => (
-                    <div key={currency} className={styles.balanceRow}>
-                      <div className={styles.balanceMeta}>
-                        <span className={styles.balanceCurrency}>{currency}</span>
-                        <span className={[styles.balanceAmount, balance >= 0 ? styles.balancePos : styles.balanceNeg].join(' ')}>
-                          {formatCurrency(balance, currency as Currency)}
-                        </span>
+                  {(() => {
+                    const maxHUF = Math.max(...currencyBalances.map(c => Math.abs(c.balanceHUF)));
+                    return currencyBalances.map(({ currency, balance, balanceHUF, fill }) => (
+                      <div key={currency} className={styles.balanceRow}>
+                        <div className={styles.balanceMeta}>
+                          <span className={styles.balanceCurrency}>{currency}</span>
+                          <span className={[styles.balanceAmount, balance >= 0 ? styles.balancePos : styles.balanceNeg].join(' ')}>
+                            {formatCurrency(balance, currency as Currency)}
+                          </span>
+                        </div>
+                        <div className={styles.balanceBar}>
+                          <div
+                            className={styles.balanceBarFill}
+                            style={{ width: `${maxHUF > 0 ? Math.min(100, Math.abs(balanceHUF) / maxHUF * 100) : 100}%`, backgroundColor: fill }}
+                          />
+                        </div>
                       </div>
-                      <div className={styles.balanceBar}>
-                        <div
-                          className={styles.balanceBarFill}
-                          style={{ width: `${Math.min(100, Math.abs(balance) / Math.max(...currencyBalances.map(c => Math.abs(c.balance))) * 100)}%`, backgroundColor: fill }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    ));
+                  })()}
                 </div>
               )}
 
