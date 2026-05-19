@@ -303,7 +303,7 @@ export default function StatisticsPage() {
                       <div className={styles.balanceBar}>
                         <div
                           className={styles.balanceBarFill}
-                          style={{ width: `${Math.min(100, Math.abs(balance) / Math.max(...currencyBalances.map(c => Math.abs(c.balance))) * 100)}%`, backgroundColor: fill }}
+                          style={{ width: '100%', backgroundColor: fill }}
                         />
                       </div>
                     </div>
