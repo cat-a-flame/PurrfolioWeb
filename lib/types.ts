@@ -44,6 +44,7 @@ export type Transaction = {
   date: string;
   notes: string | null;
   payer: string | null;
+  transfer_group_id: string | null;
   created_at: string;
   updated_at: string;
   wallet?: Wallet | null;

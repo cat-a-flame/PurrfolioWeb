@@ -45,10 +45,11 @@ CREATE TABLE transactions (
   amount      NUMERIC(15, 2) NOT NULL CHECK (amount > 0),
   category_id UUID        REFERENCES categories(id) ON DELETE SET NULL,
   date        DATE        NOT NULL DEFAULT CURRENT_DATE,
-  notes       TEXT,
-  payer       TEXT,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  notes              TEXT,
+  payer              TEXT,
+  transfer_group_id  UUID,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE transaction_labels (
@@ -161,3 +162,4 @@ CREATE TRIGGER transactions_updated_at
 -- ALTER TABLE wallets ADD COLUMN IF NOT EXISTS starting_balance NUMERIC(15, 2) NOT NULL DEFAULT 0;
 -- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS payer TEXT;
 -- ALTER TABLE transactions ALTER COLUMN wallet_id SET NOT NULL;
+-- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS transfer_group_id UUID;

@@ -47,6 +47,24 @@ export default function AddRecordProvider({ children }: { children: React.ReactN
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
+    if (data.transfer) {
+      // Generate a shared UUID to link both legs
+      const transferGroupId = crypto.randomUUID();
+      const common = { user_id: user.id, date: data.date, notes: data.notes || null, transfer_group_id: transferGroupId };
+
+      const { error } = await supabase.from('transactions').insert([
+        { ...common, type: 'expense', amount: data.amount,              wallet_id: data.wallet_id },
+        { ...common, type: 'income',  amount: data.transfer.to_amount,  wallet_id: data.transfer.to_wallet_id },
+      ]);
+      if (error) throw error;
+
+      setOpen(false);
+      setToast({ message: 'Transfer recorded.', variant: 'success' });
+      window.dispatchEvent(new Event('transaction-added'));
+      router.refresh();
+      return;
+    }
+
     const { data: inserted, error } = await supabase
       .from('transactions')
       .insert({

@@ -127,6 +127,11 @@
   color: #fff;
 }
 
+.typeTabTransferActive {
+  background: var(--color-accent);
+  color: #fff;
+}
+
 /* Amount + currency row */
 .noWalletMsg {
   font-size: 0.9375rem;
@@ -229,6 +234,33 @@
 .textarea:focus {
   border-color: var(--color-border-focus);
   box-shadow: 0 0 0 3px var(--color-accent-light);
+}
+
+/* ── Transfer form ── */
+.transferGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 400px;
+}
+
+.transferArrowRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1) 0;
+}
+
+.transferArrow {
+  font-size: 1.25rem;
+  color: var(--color-accent);
+  line-height: 1;
+}
+
+.sameHint {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 0;
 }
 
 .errorMsg {
