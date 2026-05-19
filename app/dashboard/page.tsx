@@ -9,6 +9,7 @@ import TransactionForm, { TransactionFormData } from '@/components/transactions/
 import Toast from '@/components/ui/Toast';
 import { createClient } from '@/lib/supabase/client';
 import { formatHUF, formatCurrency } from '@/lib/utils';
+import { getExchangeRates, toHUF } from '@/lib/exchangeRates';
 import type { Transaction, Wallet, Category, Label } from '@/lib/types';
 import styles from './page.module.css';
 
@@ -81,6 +82,24 @@ export default function DashboardPage() {
 
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
+
+  // Exchange rates: date → { EUR: number, USD: number, … } (HUF per 1 unit)
+  const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
+
+  useEffect(() => {
+    const dates = [...new Set(
+      allTransactions
+        .filter(t => t.wallet?.currency && t.wallet.currency !== 'HUF')
+        .map(t => t.date)
+    )];
+    if (!dates.length) return;
+    Promise.all(dates.map(async d => [d, await getExchangeRates(d)] as const))
+      .then(entries => setRatesByDate(prev => {
+        const next = { ...prev };
+        for (const [d, rates] of entries) next[d] = rates;
+        return next;
+      }));
+  }, [allTransactions]);
 
   // Lazy load
   const [displayCount, setDisplayCount] = useState(15);
@@ -172,13 +191,18 @@ export default function DashboardPage() {
     }
     return Array.from(map.entries())
       .sort(([a], [b]) => b.localeCompare(a))
-      .map(([date, txs]) => ({
-        date,
-        transactions: [...txs].sort((a, b) => b.created_at.localeCompare(a.created_at)),
-        net: txs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0)
-           - txs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0),
-      }));
-  }, [visiblePeriodTxs]);
+      .map(([date, txs]) => {
+        const rates = ratesByDate[date] ?? {};
+        return {
+          date,
+          transactions: [...txs].sort((a, b) => b.created_at.localeCompare(a.created_at)),
+          net: txs.filter(t => t.type === 'income'  && !t.transfer_group_id)
+                  .reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, rates), 0)
+             - txs.filter(t => t.type === 'expense' && !t.transfer_group_id)
+                  .reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, rates), 0),
+        };
+      });
+  }, [visiblePeriodTxs, ratesByDate]);
 
   async function handleDelete() {
     if (!editingTransaction) return;
