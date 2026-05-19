@@ -10,6 +10,7 @@ import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import { createClient } from '@/lib/supabase/client';
+import { fetchAllTransactions } from '@/lib/supabase/fetchAllTransactions';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import type { Transaction, Wallet, Currency } from '@/lib/types';
 import styles from './page.module.css';
@@ -20,10 +21,6 @@ const PALETTE = [
   '#14b8a6','#8b5cf6','#f97316','#06b6d4','#84cc16',
   '#a78bfa','#fb7185','#0ea5e9','#d946ef','#22c55e',
 ];
-
-// ─── helpers ────────────────────────────────────────────────────────────────
-type RawTxLabel = { label: { id: string; user_id: string; name: string; color: string; created_at: string } | null };
-type RawTx = Omit<Transaction, 'labels'> & { wallet: Wallet | null; category: Transaction['category']; labels: RawTxLabel[] };
 
 function isoDate(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -86,14 +83,12 @@ export default function StatisticsPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const [txRes, wRes] = await Promise.all([
-      supabase.from('transactions')
-        .select('*, wallet:wallets(*), category:categories(*), labels:transaction_labels(label:labels(*))')
-        .eq('user_id', user.id).order('date', { ascending: false }),
+    const [transactions, wRes] = await Promise.all([
+      fetchAllTransactions(user.id),
       supabase.from('wallets').select('*').eq('user_id', user.id),
     ]);
-    if (txRes.data) setAllTxs((txRes.data as RawTx[]).map(t => ({ ...t, labels: t.labels.map(l => l.label).filter(Boolean) as NonNullable<typeof t.labels[0]['label']>[] })));
-    if (wRes.data)  setWallets(wRes.data);
+    setAllTxs(transactions);
+    if (wRes.data) setWallets(wRes.data);
     setLoading(false);
   }, []);
 

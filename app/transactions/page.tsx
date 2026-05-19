@@ -11,26 +11,11 @@ import FormLabel from '@/components/ui/FormLabel';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import { createClient } from '@/lib/supabase/client';
+import { fetchAllTransactions } from '@/lib/supabase/fetchAllTransactions';
 import { formatCurrency, formatHUF } from '@/lib/utils';
 import { getExchangeRates, toHUF } from '@/lib/exchangeRates';
 import type { Transaction, Category, Label, TransactionType, Wallet } from '@/lib/types';
 import styles from './page.module.css';
-
-type RawTransactionLabel = {
-  label: {
-    id: string;
-    user_id: string;
-    name: string;
-    color: string;
-    created_at: string;
-  } | null;
-};
-
-type RawTransaction = Omit<Transaction, 'labels'> & {
-  wallet: Wallet | null;
-  category: Transaction['category'];
-  labels: RawTransactionLabel[];
-};
 
 function formatDayHeader(dateStr: string): string {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
@@ -87,23 +72,14 @@ export default function TransactionsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const [txRes, catRes, lblRes, walletRes] = await Promise.all([
-      supabase
-        .from('transactions')
-        .select(`*, wallet:wallets(*), category:categories(*), labels:transaction_labels(label:labels(*))`)
-        .eq('user_id', user.id)
-        .order('date', { ascending: false }),
+    const [transactions, catRes, lblRes, walletRes] = await Promise.all([
+      fetchAllTransactions(user.id),
       supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
       supabase.from('labels').select('*').eq('user_id', user.id).order('name'),
       supabase.from('wallets').select('*').eq('user_id', user.id).order('name'),
     ]);
 
-    if (txRes.data) {
-      setTransactions((txRes.data as RawTransaction[]).map(t => ({
-        ...t,
-        labels: t.labels.map(l => l.label).filter((l): l is NonNullable<typeof l> => l !== null),
-      })));
-    }
+    setTransactions(transactions);
     if (catRes.data) setCategories(catRes.data);
     if (lblRes.data) setLabels(lblRes.data);
     if (walletRes.data) setWallets(walletRes.data);
