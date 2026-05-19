@@ -250,7 +250,7 @@ export default function TransactionForm({
               <div className={styles.field}>
                 <FormLabel htmlFor="from-amount" required>Amount sent</FormLabel>
                 <div className={styles.amountRow}>
-                  <NumberInput id="from-amount" value={amount} onChange={handleFromAmountChange} placeholder="0" required />
+                  <NumberInput id="from-amount" value={amount} onChange={handleFromAmountChange} placeholder="0" required autoFocus />
                   <span className={styles.currencyBadge}>{selectedWallet?.currency ?? '—'}</span>
                 </div>
               </div>
@@ -307,7 +307,7 @@ export default function TransactionForm({
                 <div className={styles.field}>
                   <FormLabel htmlFor="amount" required>Amount</FormLabel>
                   <div className={styles.amountRow}>
-                    <NumberInput id="amount" value={amount} onChange={setAmount} placeholder="0" required />
+                    <NumberInput id="amount" value={amount} onChange={setAmount} placeholder="0" required autoFocus />
                     <span className={styles.currencyBadge}>{selectedWallet?.currency ?? ''}</span>
                   </div>
                 </div>
