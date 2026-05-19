@@ -36,6 +36,7 @@ interface TransactionFormProps {
   labels: Label[];
   templates?: Template[];
   onSave: (data: TransactionFormData) => Promise<void>;
+  onDelete?: () => Promise<void>;
   onClose: () => void;
 }
 
@@ -46,6 +47,7 @@ export default function TransactionForm({
   labels,
   templates,
   onSave,
+  onDelete,
   onClose,
 }: TransactionFormProps) {
   const defaultWallet = wallets.find(w => w.is_default) ?? wallets[0];
@@ -65,8 +67,10 @@ export default function TransactionForm({
 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const dirty = transaction != null
     || amount !== ''
@@ -401,12 +405,42 @@ export default function TransactionForm({
           {error && <p className={styles.errorMsg}>{error}</p>}
 
           <div className={styles.actions}>
+            {transaction && onDelete && (
+              <Button
+                type="button"
+                variant="danger"
+                loading={deleting}
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                Delete
+              </Button>
+            )}
             <Button type="submit" variant="primary" loading={saving}>
               {mode === 'transfer' ? 'Transfer' : transaction ? 'Save changes' : 'Add record'}
             </Button>
           </div>
         </form>
       </div>
+
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          title="Delete transaction"
+          message="Are you sure you want to delete this transaction? This cannot be undone."
+          confirmLabel="Delete"
+          onConfirm={async () => {
+            setShowDeleteConfirm(false);
+            setDeleting(true);
+            try {
+              await onDelete!();
+              onClose();
+            } catch {
+              setDeleting(false);
+              setError('Failed to delete. Please try again.');
+            }
+          }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
 
       {showCloseConfirm && (
         <ConfirmDialog

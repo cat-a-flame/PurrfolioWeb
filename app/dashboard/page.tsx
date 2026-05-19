@@ -162,6 +162,16 @@ export default function DashboardPage() {
       }));
   }, [periodTxs]);
 
+  async function handleDelete() {
+    if (!editingTransaction) return;
+    const supabase = createClient();
+    const { error } = await supabase.from('transactions').delete().eq('id', editingTransaction.id);
+    if (error) throw error;
+    setEditingTransaction(undefined);
+    setToast({ message: 'Transaction deleted.', variant: 'success' });
+    await fetchData();
+  }
+
   async function handleSave(data: TransactionFormData) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -355,6 +365,7 @@ export default function DashboardPage() {
           templates={[]}
           transaction={editingTransaction}
           onSave={handleSave}
+          onDelete={handleDelete}
           onClose={() => setEditingTransaction(undefined)}
         />
       )}
