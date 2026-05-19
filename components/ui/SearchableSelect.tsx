@@ -101,8 +101,8 @@ export default function SearchableSelect({
             {filtered.length === 0 ? (
               <p className={styles.empty}>No results</p>
             ) : (
-              groups.map(({ group, items }) => (
-                <div key={group ?? '__nogroup'}>
+              groups.map(({ group, items }, idx) => (
+                <div key={idx}>
                   {group && <p className={styles.groupLabel}>{group}</p>}
                   {items.map(opt => (
                     <button
