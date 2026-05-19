@@ -202,8 +202,8 @@ export default function TransactionForm({
 
     if (!walletId) { setError('Please select a wallet.'); return; }
     const parsedAmount = Number(amount);
-    if (!amount || isNaN(parsedAmount) || parsedAmount < 1) {
-      setError('Please enter a valid amount (minimum 1).');
+    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
+      setError('Please enter a valid amount.');
       return;
     }
     setSaving(true);
