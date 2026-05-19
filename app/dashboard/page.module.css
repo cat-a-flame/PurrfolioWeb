@@ -406,11 +406,6 @@
 .txExpense { color: var(--color-expense); }
 .txTransfer { color: var(--color-accent); }
 
-.txTime {
-  font-size: 0.75rem;
-  color: var(--color-text-faint);
-}
-
 .txEditBtn {
   font-size: 0.75rem;
   font-weight: 600;

@@ -65,10 +65,6 @@ function filterByRange(txs: Transaction[], from: string, to: string) {
   return txs.filter(t => t.date >= from && t.date <= to);
 }
 
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-}
-
 function formatDayHeader(dateStr: string): string {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric',
@@ -327,7 +323,6 @@ export default function DashboardPage() {
                                   : (t.type === 'income' ? '' : '−')
                                 }{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
                               </span>
-                              <span className={styles.txTime}>{formatTime(t.created_at)}</span>
                               {!isTransfer && (
                                 <button
                                   className={styles.txEditBtn}
