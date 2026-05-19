@@ -19,6 +19,12 @@ const groups = [
       { href: '/settings/templates',  icon: '📋', label: 'Templates' },
     ],
   },
+  {
+    label: 'Data',
+    items: [
+      { href: '/settings/import', icon: '📥', label: 'Import' },
+    ],
+  },
 ];
 
 export default function SettingsSidebar() {
