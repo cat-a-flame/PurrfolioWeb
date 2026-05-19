@@ -151,3 +151,24 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.dropdownDivider {
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--space-1) 0;
+}
+
+@media (max-width: 768px) {
+  .inner {
+    padding: 0 var(--space-4);
+    gap: var(--space-4);
+  }
+
+  .nav {
+    display: none;
+  }
+
+  .addRecordBtn {
+    display: none;
+  }
+}

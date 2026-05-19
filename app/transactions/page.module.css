@@ -89,3 +89,23 @@
   border-radius: var(--radius-lg);
   border: 1px dashed var(--color-border);
 }
+
+@media (max-width: 768px) {
+  .main {
+    padding: var(--space-4);
+  }
+
+  .pageTitle {
+    font-size: 1.375rem;
+  }
+
+  .filterBar {
+    padding: var(--space-4);
+    gap: var(--space-3);
+  }
+
+  .filterField {
+    min-width: calc(50% - var(--space-2));
+    flex: 1;
+  }
+}

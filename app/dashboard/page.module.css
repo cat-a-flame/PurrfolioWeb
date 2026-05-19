@@ -415,3 +415,31 @@
   border-radius: var(--radius-lg);
   border: 1px dashed var(--color-border);
 }
+
+@media (max-width: 768px) {
+  .main {
+    padding: var(--space-4);
+  }
+
+  .pageTitle {
+    font-size: 1.375rem;
+  }
+
+  .cashFlowCard {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .cashFlowBalance {
+    font-size: 1.5rem;
+  }
+
+  .walletGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .walletGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -51,3 +51,21 @@ export type Transaction = {
   category?: Category | null;
   labels?: Label[];
 };
+
+export type Template = {
+  id: string;
+  user_id: string;
+  name: string;
+  type: TransactionType;
+  wallet_id: string | null;
+  amount: number;
+  category_id: string | null;
+  payer: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  wallet?: Wallet | null;
+  category?: Category | null;
+  labels?: Label[];
+};
+
