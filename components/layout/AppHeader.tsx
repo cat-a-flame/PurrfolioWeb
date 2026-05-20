@@ -9,8 +9,8 @@ import styles from './AppHeader.module.css';
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Statistics', href: '/statistics' },
   { label: 'Transactions', href: '/transactions' },
+  { label: 'Statistics', href: '/statistics' },
 ];
 
 export default function AppHeader() {

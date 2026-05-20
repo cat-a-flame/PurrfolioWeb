@@ -41,11 +41,6 @@
   align-items: start;
 }
 
-.leftCol {
-  position: sticky;
-  top: var(--space-6);
-}
-
 .rightCol {
   display: flex;
   flex-direction: column;

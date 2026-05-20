@@ -917,7 +917,7 @@ export default function ImportPage() {
                             <td>{wallet ? `${wallet.icon} ${wallet.name}` : <span className={styles.missing}>–</span>}</td>
                             <td>{category?.name ?? <span className={styles.muted}>none</span>}</td>
                             <td className={styles.noteCol}>{row.notes ?? ''}</td>
-                            <td className={styles.labelCol}>
+                            <td>
                               {row.labelIds.map(id => {
                                 const lbl = labels.find(l => l.id === id);
                                 return lbl ? (

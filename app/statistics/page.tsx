@@ -381,14 +381,14 @@ export default function StatisticsPage() {
                     <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} />
                     <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--color-surface-2)' }} />
                     <Bar dataKey="current" name={period.label} fill="#f26e4d" radius={[0, 4, 4, 0]} maxBarSize={18} />
-                    <Bar dataKey="prev" name={prevLabel} fill="var(--color-surface-3)" radius={[0, 4, 4, 0]} maxBarSize={18} />
+                    <Bar dataKey="prev" name={prevLabel} fill="#7e5ec4" radius={[0, 4, 4, 0]} maxBarSize={18} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
               {comparisonData.length > 0 && (
                 <div className={styles.compLegend}>
                   <span className={styles.compDot} style={{ backgroundColor: '#f26e4d' }} /><span>{period.label}</span>
-                  <span className={styles.compDot} style={{ backgroundColor: 'var(--color-surface-3)' }} /><span style={{ color: 'var(--color-text-muted)' }}>{prevLabel}</span>
+                  <span className={styles.compDot} style={{ backgroundColor: '#7e5ec4' }} /><span style={{ color: 'var(--color-text-muted)' }}>{prevLabel}</span>
                 </div>
               )}
             </div>

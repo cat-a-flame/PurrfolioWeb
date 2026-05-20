@@ -88,9 +88,9 @@ html[data-theme="dark"] {
   --color-danger-hover: #e11d48;
   --color-danger-light: #3d0a1a;
 
-  --color-income: #22c55e;
+  --color-income: #43eb81;
   --color-income-light: #0a2e1a;
-  --color-expense: #f43f5e;
+  --color-expense: #ff5b77;
   --color-expense-light: #3d0a1a;
 
   --shadow-sm: 0 1px 2px rgba(10, 0, 30, 0.5);

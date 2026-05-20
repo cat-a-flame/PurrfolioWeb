@@ -2,7 +2,7 @@
   max-width: 820px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-7);
+  gap: var(--space-6);
 }
 
 .pageHeader {
