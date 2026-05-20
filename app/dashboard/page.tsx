@@ -291,148 +291,157 @@ export default function DashboardPage() {
             <h1 className={styles.pageTitle}>Dashboard</h1>
           </div>
 
-          {/* Wallet totals — not affected by date filter */}
-          {walletSummaries.length > 0 && (
-            <section className={styles.section}>
-              <h2 className={styles.sectionTitle}>Wallets</h2>
-              <div className={styles.walletGrid}>
-                {walletSummaries.map(({ wallet, balance: wb }) => (
-                  <div key={wallet.id} className={styles.walletCard} style={{ borderLeftColor: wallet.color }}>
-                    <div className={styles.walletCardHeader}>
-                      <span className={styles.walletCardIcon}>{wallet.icon}</span>
-                      <span className={styles.walletCardName}>{wallet.name}</span>
-                      <span className={styles.walletCardCurrency}>{wallet.currency}</span>
-                    </div>
-                    <div className={styles.walletCardBalance}>{formatCurrency(wb, wallet.currency)}</div>
+          <div className={styles.twoCol}>
+            {/* Left column: Cash Flow + Transactions */}
+            <div className={styles.leftCol}>
+
+              {/* Cash Flow card */}
+              <div className={styles.cashFlowCard}>
+                <p className={styles.cashFlowTitle}>Cash Flow</p>
+                <div className={styles.cashFlowTop}>
+                  <div className={styles.cashFlowLeft}>
+                    <span className={styles.cashFlowPeriodLabel}>{period.label}</span>
+                    <div className={styles.cashFlowBalance}>{formatHUF(balance)}</div>
                   </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Cash Flow card */}
-          <div className={styles.cashFlowCard}>
-            <p className={styles.cashFlowTitle}>Cash Flow</p>
-            <div className={styles.cashFlowTop}>
-              <div className={styles.cashFlowLeft}>
-                <span className={styles.cashFlowPeriodLabel}>{period.label}</span>
-                <div className={styles.cashFlowBalance}>{formatHUF(balance)}</div>
-              </div>
-              {vsPct !== null && (
-                <div className={styles.cashFlowRight}>
-                  <span className={styles.vsLabel}>VS Previous Period</span>
-                  <span className={[styles.vsTag, vsPct >= 0 ? styles.vsTagPos : styles.vsTagNeg].join(' ')}>
-                    {vsPct >= 0 ? '↑' : '↓'} {Math.abs(vsPct)}%
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className={styles.cashFlowBars}>
-              <div className={styles.barRow}>
-                <div className={styles.barMeta}>
-                  <span className={styles.barLabel}>Income</span>
-                  <span className={styles.barAmount}>{formatHUF(income)}</span>
-                </div>
-                <div className={styles.barTrack}>
-                  <div className={[styles.barFill, styles.barFillIncome].join(' ')} style={{ width: `${incomePct}%` }} />
-                </div>
-              </div>
-              <div className={styles.barRow}>
-                <div className={styles.barMeta}>
-                  <span className={styles.barLabel}>Expense</span>
-                  <span className={styles.barAmount}>-{formatHUF(expense)}</span>
-                </div>
-                <div className={styles.barTrack}>
-                  <div className={[styles.barFill, styles.barFillExpense].join(' ')} style={{ width: `${expensePct}%` }} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Period picker — below Cash Flow */}
-          <div className={styles.periodRow}>
-            <PeriodPicker value={period} onChange={setPeriod} />
-          </div>
-
-          {/* Transactions grouped by day */}
-          <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>Transactions</h2>
-              <Link href="/transactions" className={styles.viewAll}>View all →</Link>
-            </div>
-            {loading ? (
-              <p className={styles.emptyState}>Loading…</p>
-            ) : groupedDays.length === 0 ? (
-              <p className={styles.emptyState}>No transactions in this period.</p>
-            ) : (
-              <div className={styles.groupedList}>
-                {groupedDays.map(({ date, transactions: dayTxs, net }) => (
-                  <div key={date} className={styles.dayGroup}>
-                    <div className={styles.dayHeader}>
-                      <span className={styles.dayDate}>{formatDayHeader(date)}</span>
-                      <span className={[styles.dayNet, net >= 0 ? styles.dayNetPos : styles.dayNetNeg].join(' ')}>
-                        {net < 0 ? '−' : ''}{formatHUF(Math.abs(net))}
+                  {vsPct !== null && (
+                    <div className={styles.cashFlowRight}>
+                      <span className={styles.vsLabel}>VS Previous Period</span>
+                      <span className={[styles.vsTag, vsPct >= 0 ? styles.vsTagPos : styles.vsTagNeg].join(' ')}>
+                        {vsPct >= 0 ? '↑' : '↓'} {Math.abs(vsPct)}%
                       </span>
                     </div>
-                    <div className={styles.dayTxList}>
-                      {dayTxs.map(t => {
-                        const isTransfer = !!t.transfer_group_id;
-                        return (
-                          <div key={t.id} className={styles.txRow}>
-                            <div
-                              className={styles.txIcon}
-                              style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
-                            >
-                              {isTransfer ? '↔' : (t.category?.icon ?? '?')}
-                            </div>
-                            <div className={styles.txMain}>
-                              <span className={styles.txCategory}>
-                                {isTransfer ? 'Transfer' : (t.category?.name ?? 'Uncategorised')}
-                              </span>
-                              {t.wallet && (
-                                <span className={styles.txWallet}>
-                                  <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
-                                  {t.wallet.name}
-                                </span>
-                              )}
-                              {t.labels && t.labels.length > 0 && (
-                                <span className={styles.txLabels}>
-                                  {t.labels.map(l => (
-                                    <span key={l.id} className={styles.txLabel} style={{ backgroundColor: l.color + '22', color: l.color }}>
-                                      {l.name}
-                                    </span>
-                                  ))}
-                                </span>
-                              )}
-                            </div>
-                            <div className={styles.txRight}>
-                              <span className={[
-                                styles.txAmount,
-                                isTransfer ? styles.txTransfer : t.type === 'income' ? styles.txIncome : styles.txExpense,
-                              ].join(' ')}>
-                                {isTransfer
-                                  ? (t.type === 'expense' ? '−' : '')
-                                  : (t.type === 'income' ? '' : '−')
-                                }{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
-                              </span>
-                              <button
-                                className={styles.txEditBtn}
-                                onClick={() => openEdit(t)}
-                                aria-label="Edit transaction"
-                              >
-                                Edit
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
+                  )}
+                </div>
+                <div className={styles.cashFlowBars}>
+                  <div className={styles.barRow}>
+                    <div className={styles.barMeta}>
+                      <span className={styles.barLabel}>Income</span>
+                      <span className={styles.barAmount}>{formatHUF(income)}</span>
+                    </div>
+                    <div className={styles.barTrack}>
+                      <div className={[styles.barFill, styles.barFillIncome].join(' ')} style={{ width: `${incomePct}%` }} />
                     </div>
                   </div>
-                ))}
+                  <div className={styles.barRow}>
+                    <div className={styles.barMeta}>
+                      <span className={styles.barLabel}>Expense</span>
+                      <span className={styles.barAmount}>-{formatHUF(expense)}</span>
+                    </div>
+                    <div className={styles.barTrack}>
+                      <div className={[styles.barFill, styles.barFillExpense].join(' ')} style={{ width: `${expensePct}%` }} />
+                    </div>
+                  </div>
+                </div>
               </div>
-            )}
-            {hasMore && <div ref={sentinelRef} className={styles.sentinel} />}
-          </section>
+
+              {/* Period picker — below Cash Flow */}
+              <div className={styles.periodRow}>
+                <PeriodPicker value={period} onChange={setPeriod} />
+              </div>
+
+              {/* Transactions grouped by day */}
+              <section className={styles.section}>
+                <div className={styles.sectionHeader}>
+                  <h2 className={styles.sectionTitle}>Transactions</h2>
+                  <Link href="/transactions" className={styles.viewAll}>View all →</Link>
+                </div>
+                {loading ? (
+                  <p className={styles.emptyState}>Loading…</p>
+                ) : groupedDays.length === 0 ? (
+                  <p className={styles.emptyState}>No transactions in this period.</p>
+                ) : (
+                  <div className={styles.groupedList}>
+                    {groupedDays.map(({ date, transactions: dayTxs, net }) => (
+                      <div key={date} className={styles.dayGroup}>
+                        <div className={styles.dayHeader}>
+                          <span className={styles.dayDate}>{formatDayHeader(date)}</span>
+                          <span className={[styles.dayNet, net >= 0 ? styles.dayNetPos : styles.dayNetNeg].join(' ')}>
+                            {net < 0 ? '−' : ''}{formatHUF(Math.abs(net))}
+                          </span>
+                        </div>
+                        <div className={styles.dayTxList}>
+                          {dayTxs.map(t => {
+                            const isTransfer = !!t.transfer_group_id;
+                            return (
+                              <div key={t.id} className={styles.txRow}>
+                                <div
+                                  className={styles.txIcon}
+                                  style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
+                                >
+                                  {isTransfer ? '↔' : (t.category?.icon ?? '?')}
+                                </div>
+                                <div className={styles.txMain}>
+                                  <span className={styles.txCategory}>
+                                    {isTransfer ? 'Transfer' : (t.category?.name ?? 'Uncategorised')}
+                                  </span>
+                                  {t.wallet && (
+                                    <span className={styles.txWallet}>
+                                      <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
+                                      {t.wallet.name}
+                                    </span>
+                                  )}
+                                  {t.labels && t.labels.length > 0 && (
+                                    <span className={styles.txLabels}>
+                                      {t.labels.map(l => (
+                                        <span key={l.id} className={styles.txLabel} style={{ backgroundColor: l.color + '22', color: l.color }}>
+                                          {l.name}
+                                        </span>
+                                      ))}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className={styles.txRight}>
+                                  <span className={[
+                                    styles.txAmount,
+                                    isTransfer ? styles.txTransfer : t.type === 'income' ? styles.txIncome : styles.txExpense,
+                                  ].join(' ')}>
+                                    {isTransfer
+                                      ? (t.type === 'expense' ? '−' : '')
+                                      : (t.type === 'income' ? '' : '−')
+                                    }{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
+                                  </span>
+                                  <button
+                                    className={styles.txEditBtn}
+                                    onClick={() => openEdit(t)}
+                                    aria-label="Edit transaction"
+                                  >
+                                    Edit
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {hasMore && <div ref={sentinelRef} className={styles.sentinel} />}
+              </section>
+
+            </div>
+
+            {/* Right column: Wallets (hidden on mobile) */}
+            <div className={styles.rightCol}>
+              {walletSummaries.length > 0 && (
+                <section className={styles.section}>
+                  <h2 className={styles.sectionTitle}>Wallets</h2>
+                  <div className={styles.walletList}>
+                    {walletSummaries.map(({ wallet, balance: wb }) => (
+                      <div key={wallet.id} className={styles.walletCard} style={{ borderLeftColor: wallet.color }}>
+                        <div className={styles.walletCardHeader}>
+                          <span className={styles.walletCardIcon}>{wallet.icon}</span>
+                          <span className={styles.walletCardName}>{wallet.name}</span>
+                          <span className={styles.walletCardCurrency}>{wallet.currency}</span>
+                        </div>
+                        <div className={styles.walletCardBalance}>{formatCurrency(wb, wallet.currency)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
+          </div>
 
         </div>
       </main>
