@@ -152,7 +152,7 @@
 
 .doughnutChart {
   flex-shrink: 0;
-  width: 240px;
+  width: 290px;
 }
 
 @media (max-width: 640px) {
