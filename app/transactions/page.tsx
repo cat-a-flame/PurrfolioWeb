@@ -418,6 +418,7 @@ export default function TransactionsPage() {
                 value={filterPeriod ?? { from: '', to: '', label: 'Any date', tab: 'months' }}
                 onChange={setFilterPeriod}
                 onClear={() => setFilterPeriod(null)}
+                hideNav
               />
             </div>
 
