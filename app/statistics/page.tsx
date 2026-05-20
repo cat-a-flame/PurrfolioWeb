@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useCountUp } from '@/lib/useCountUp';
+import AnimatedValue from '@/components/ui/AnimatedValue';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -23,6 +23,10 @@ const PALETTE = [
   '#14b8a6','#8b5cf6','#f97316','#06b6d4','#84cc16',
   '#a78bfa','#fb7185','#0ea5e9','#d946ef','#22c55e',
 ];
+
+function formatNet(n: number): string {
+  return `${n >= 0 ? '+' : ''}${formatHUF(n)}`;
+}
 
 function isoDate(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -127,10 +131,6 @@ export default function StatisticsPage() {
   const expense = useMemo(() => periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
 
   const txCount = periodTxs.filter(t => !t.transfer_group_id).length;
-  const animatedIncome  = useCountUp(income);
-  const animatedExpense = useCountUp(expense);
-  const animatedNet     = useCountUp(income - expense);
-  const animatedTxCount = useCountUp(txCount);
 
   // ── 1. Balance by currency ──────────────────────────────────────────────
   const currencyBalances = useMemo(() => {
@@ -264,21 +264,27 @@ export default function StatisticsPage() {
           <div className={styles.summaryRow}>
             <div className={styles.summaryCard}>
               <span className={styles.summaryLabel}>Income</span>
-              <span className={[styles.summaryAmount, styles.summaryIncome].join(' ')}>{formatHUF(animatedIncome)}</span>
+              <span className={[styles.summaryAmount, styles.summaryIncome].join(' ')}>
+                <AnimatedValue value={income} format={formatHUF} />
+              </span>
             </div>
             <div className={styles.summaryCard}>
               <span className={styles.summaryLabel}>Expenses</span>
-              <span className={[styles.summaryAmount, styles.summaryExpense].join(' ')}>{formatHUF(animatedExpense)}</span>
+              <span className={[styles.summaryAmount, styles.summaryExpense].join(' ')}>
+                <AnimatedValue value={expense} format={formatHUF} />
+              </span>
             </div>
             <div className={styles.summaryCard}>
               <span className={styles.summaryLabel}>Net</span>
               <span className={[styles.summaryAmount, income - expense >= 0 ? styles.summaryIncome : styles.summaryExpense].join(' ')}>
-                {income - expense >= 0 ? '+' : ''}{formatHUF(animatedNet)}
+                <AnimatedValue value={income - expense} format={formatNet} />
               </span>
             </div>
             <div className={styles.summaryCard}>
               <span className={styles.summaryLabel}>Transactions</span>
-              <span className={styles.summaryAmount}>{animatedTxCount}</span>
+              <span className={styles.summaryAmount}>
+                <AnimatedValue value={txCount} format={String} />
+              </span>
             </div>
           </div>
 

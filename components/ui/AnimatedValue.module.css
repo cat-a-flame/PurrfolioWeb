@@ -1,0 +1,38 @@
+/* Both items share the same grid cell so the wrapper is always as wide as
+   the larger of the two, preventing layout jumps during the transition. */
+.wrapper {
+  display: inline-grid;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+
+.item {
+  grid-row: 1;
+  grid-column: 1;
+  white-space: nowrap;
+}
+
+@keyframes exitUp {
+  from { transform: translateY(0%); }
+  to   { transform: translateY(-110%); }
+}
+
+@keyframes enterUp {
+  from { transform: translateY(110%); }
+  to   { transform: translateY(0%); }
+}
+
+@keyframes exitDown {
+  from { transform: translateY(0%); }
+  to   { transform: translateY(110%); }
+}
+
+@keyframes enterDown {
+  from { transform: translateY(-110%); }
+  to   { transform: translateY(0%); }
+}
+
+.exitUp    { animation: exitUp    0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.exitDown  { animation: exitDown  0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.enterUp   { animation: enterUp   0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.enterDown { animation: enterDown 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
