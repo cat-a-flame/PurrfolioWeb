@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useCountUp } from '@/lib/useCountUp';
 import Link from 'next/link';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
@@ -134,6 +135,8 @@ export default function DashboardPage() {
                     - prevTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {})  , 0);
 
   const vsPct = prevBalance === 0 ? null : Math.round(((balance - prevBalance) / Math.abs(prevBalance)) * 100);
+
+  const animatedBalance = useCountUp(balance);
 
   const total      = income + expense;
   const incomePct  = total > 0 ? (income  / total) * 100 : 0;
@@ -319,7 +322,7 @@ export default function DashboardPage() {
                 <div className={styles.cashFlowTop}>
                   <div className={styles.cashFlowLeft}>
                     <span className={styles.cashFlowPeriodLabel}>{period.label}</span>
-                    <div className={styles.cashFlowBalance}>{formatHUF(balance)}</div>
+                    <div className={styles.cashFlowBalance}>{formatHUF(animatedBalance)}</div>
                   </div>
                   {vsPct !== null && (
                     <div className={styles.cashFlowRight}>
