@@ -44,12 +44,9 @@ interface Props {
 }
 
 export default function AnimatedValue({ value, format }: Props) {
-  const prevStrRef = useRef<string | null>(null);
-  const [chars, setChars] = useState<CharInfo[]>(() => {
-    const s = format(value);
-    prevStrRef.current = s;
-    return buildChars(s, null);
-  });
+  // Start from "0" so the first effect run animates up to the real value
+  const prevStrRef = useRef<string>(format(0));
+  const [chars, setChars] = useState<CharInfo[]>(() => buildChars(format(0), null));
 
   useEffect(() => {
     const newStr = format(value);
