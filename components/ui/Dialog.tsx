@@ -7,9 +7,10 @@ interface DialogProps {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  maxWidth?: number;
 }
 
-export default function Dialog({ title, onClose, children }: DialogProps) {
+export default function Dialog({ title, onClose, children, maxWidth }: DialogProps) {
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') { e.preventDefault(); onClose(); }
@@ -22,6 +23,7 @@ export default function Dialog({ title, onClose, children }: DialogProps) {
     <div className={styles.overlay} onClick={onClose}>
       <div
         className={styles.panel}
+        style={maxWidth ? { maxWidth } : undefined}
         onClick={e => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

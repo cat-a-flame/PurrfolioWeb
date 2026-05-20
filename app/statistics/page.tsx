@@ -6,6 +6,7 @@ import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   AreaChart, Area,
+  type PieLabelRenderProps,
 } from 'recharts';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
@@ -23,6 +24,23 @@ const PALETTE = [
   '#14b8a6','#8b5cf6','#f97316','#06b6d4','#84cc16',
   '#a78bfa','#fb7185','#0ea5e9','#d946ef','#22c55e',
 ];
+
+function renderExpenseLabel({ cx, cy, midAngle, outerRadius, percent }: PieLabelRenderProps) {
+  if (!percent || cx == null || cy == null || midAngle == null || outerRadius == null) return null;
+  const pct = Math.round((percent as number) * 100);
+  if (pct === 0) return null;
+  const r = (outerRadius as number) + 22;
+  const x = (cx as number) + r * Math.cos(-((midAngle as number) * Math.PI) / 180);
+  const y = (cy as number) + r * Math.sin(-((midAngle as number) * Math.PI) / 180);
+  return (
+    <g>
+      <rect x={x - 18} y={y - 10} width={36} height={20} rx={10} fill="rgba(0,0,0,0.55)" />
+      <text x={x} y={y} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontSize={11} fontWeight={700}>
+        {pct}%
+      </text>
+    </g>
+  );
+}
 
 function isoDate(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -315,9 +333,21 @@ export default function StatisticsPage() {
                 <div className={styles.doughnutLayout}>
                   {mounted && (
                     <div className={styles.doughnutChart}>
-                      <ResponsiveContainer width="100%" height={240}>
+                      <ResponsiveContainer width="100%" height={290}>
                         <PieChart>
-                          <Pie data={expenseSlices} dataKey="amount" nameKey="name" innerRadius={65} outerRadius={110} paddingAngle={2} startAngle={90} endAngle={-270}>
+                          <Pie
+                            data={expenseSlices}
+                            dataKey="amount"
+                            nameKey="name"
+                            innerRadius={60}
+                            outerRadius={100}
+                            paddingAngle={7}
+                            startAngle={90}
+                            endAngle={-270}
+                            cornerRadius={14}
+                            label={renderExpenseLabel}
+                            labelLine={false}
+                          >
                             {expenseSlices.map((s, i) => <Cell key={i} fill={s.color} />)}
                           </Pie>
                           <Tooltip formatter={(v) => formatHUF(Number(v))} />
