@@ -292,8 +292,26 @@ export default function DashboardPage() {
           </div>
 
           <div className={styles.twoCol}>
-            {/* Left column: Cash Flow + Transactions */}
+            {/* Left column: Wallets (hidden on mobile) */}
             <div className={styles.leftCol}>
+              {walletSummaries.length > 0 && (
+                <div className={styles.walletList}>
+                  {walletSummaries.map(({ wallet, balance: wb }) => (
+                    <div key={wallet.id} className={styles.walletCard} style={{ borderLeftColor: wallet.color }}>
+                      <div className={styles.walletCardHeader}>
+                        <span className={styles.walletCardIcon}>{wallet.icon}</span>
+                        <span className={styles.walletCardName}>{wallet.name}</span>
+                        <span className={styles.walletCardCurrency}>{wallet.currency}</span>
+                      </div>
+                      <div className={styles.walletCardBalance}>{formatCurrency(wb, wallet.currency)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Right column: Cash Flow + Transactions */}
+            <div className={styles.rightCol}>
 
               {/* Cash Flow card */}
               <div className={styles.cashFlowCard}>
@@ -419,27 +437,6 @@ export default function DashboardPage() {
                 {hasMore && <div ref={sentinelRef} className={styles.sentinel} />}
               </section>
 
-            </div>
-
-            {/* Right column: Wallets (hidden on mobile) */}
-            <div className={styles.rightCol}>
-              {walletSummaries.length > 0 && (
-                <section className={styles.section}>
-                  <h2 className={styles.sectionTitle}>Wallets</h2>
-                  <div className={styles.walletList}>
-                    {walletSummaries.map(({ wallet, balance: wb }) => (
-                      <div key={wallet.id} className={styles.walletCard} style={{ borderLeftColor: wallet.color }}>
-                        <div className={styles.walletCardHeader}>
-                          <span className={styles.walletCardIcon}>{wallet.icon}</span>
-                          <span className={styles.walletCardName}>{wallet.name}</span>
-                          <span className={styles.walletCardCurrency}>{wallet.currency}</span>
-                        </div>
-                        <div className={styles.walletCardBalance}>{formatCurrency(wb, wallet.currency)}</div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
             </div>
           </div>
 
