@@ -46,6 +46,7 @@ interface Props {
 export default function AnimatedValue({ value, format }: Props) {
   // Start from "0" so the first effect run animates up to the real value
   const prevStrRef = useRef<string>(format(0));
+  const isFirstRef = useRef(true);
   const [chars, setChars] = useState<CharInfo[]>(() => buildChars(format(0), null));
 
   useEffect(() => {
@@ -53,9 +54,24 @@ export default function AnimatedValue({ value, format }: Props) {
     if (newStr === prevStrRef.current) return;
     const prevStr = prevStrRef.current;
     prevStrRef.current = newStr;
-    setChars(buildChars(newStr, prevStr));
-    const t = setTimeout(() => setChars(cs => cs.map(c => ({ ...c, prev: null }))), 380);
-    return () => clearTimeout(t);
+
+    // Delay the initial animation so the page is fully visible before it starts
+    const startDelay = isFirstRef.current ? 600 : 0;
+    isFirstRef.current = false;
+
+    let clearTimer: ReturnType<typeof setTimeout>;
+    const startTimer = setTimeout(() => {
+      setChars(buildChars(newStr, prevStr));
+      clearTimer = setTimeout(
+        () => setChars(cs => cs.map(c => ({ ...c, prev: null }))),
+        380,
+      );
+    }, startDelay);
+
+    return () => {
+      clearTimeout(startTimer);
+      clearTimeout(clearTimer);
+    };
   }, [value, format]);
 
   return (
