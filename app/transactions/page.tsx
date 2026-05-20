@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import Toast from '@/components/ui/Toast';
 import TransactionForm, { TransactionFormData } from '@/components/transactions/TransactionForm';
 import FormLabel from '@/components/ui/FormLabel';
+import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import { createClient } from '@/lib/supabase/client';
@@ -37,8 +38,7 @@ export default function TransactionsPage() {
   const [filterCategoryId, setFilterCategoryId] = useState('');
   const [filterLabelId, setFilterLabelId] = useState('');
   const [filterWalletId, setFilterWalletId] = useState('');
-  const [filterFrom, setFilterFrom] = useState('');
-  const [filterTo, setFilterTo] = useState('');
+  const [filterPeriod, setFilterPeriod] = useState<PeriodValue | null>(null);
   const [filterSearch, setFilterSearch] = useState('');
 
   // Brief loading indicator whenever a filter changes
@@ -49,7 +49,7 @@ export default function TransactionsPage() {
     const t = setTimeout(() => setIsFiltering(false), 200);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterFrom, filterTo, filterSearch]);
+  }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterPeriod, filterSearch]);
 
   // Exchange rates: date → { EUR: number, USD: number, … } (HUF per 1 unit)
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
@@ -140,8 +140,8 @@ export default function TransactionsPage() {
     } else if (filterCategoryId && t.category_id !== filterCategoryId) return false;
     if (filterLabelId && !t.labels?.some(l => l.id === filterLabelId)) return false;
     if (filterWalletId && t.wallet_id !== filterWalletId) return false;
-    if (filterFrom && t.date < filterFrom) return false;
-    if (filterTo && t.date > filterTo) return false;
+    if (filterPeriod?.from && t.date < filterPeriod.from) return false;
+    if (filterPeriod?.to && t.date > filterPeriod.to) return false;
     if (filterSearch) {
       const q = filterSearch.toLowerCase();
       if (!t.notes?.toLowerCase().includes(q)) return false;
@@ -149,17 +149,16 @@ export default function TransactionsPage() {
     return true;
   });
 
-  const hasActiveFilters = !!(filterType || filterCategoryId || filterLabelId || filterWalletId || filterFrom || filterTo || filterSearch);
+  const hasActiveFilters = !!(filterType || filterCategoryId || filterLabelId || filterWalletId || filterPeriod || filterSearch);
 
-  useEffect(() => { setDisplayCount(15); }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterFrom, filterTo, filterSearch]);
+  useEffect(() => { setDisplayCount(15); }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterPeriod, filterSearch]);
 
   function resetFilters() {
     setFilterType('');
     setFilterCategoryId('');
     setFilterLabelId('');
     setFilterWalletId('');
-    setFilterFrom('');
-    setFilterTo('');
+    setFilterPeriod(null);
     setFilterSearch('');
   }
 
@@ -412,26 +411,14 @@ export default function TransactionsPage() {
               })()}
             </div>
 
-            {/* Date range — single combined input */}
-            <div className={[styles.filterField, styles.filterFieldWide].join(' ')}>
-              <FormLabel>Date range</FormLabel>
-              <div className={styles.dateRange}>
-                <input
-                  type="date"
-                  aria-label="From date"
-                  className={styles.dateRangeInput}
-                  value={filterFrom}
-                  onChange={e => setFilterFrom(e.target.value)}
-                />
-                <span className={styles.dateRangeSep}>–</span>
-                <input
-                  type="date"
-                  aria-label="To date"
-                  className={styles.dateRangeInput}
-                  value={filterTo}
-                  onChange={e => setFilterTo(e.target.value)}
-                />
-              </div>
+            {/* Date — PeriodPicker */}
+            <div className={styles.filterField}>
+              <FormLabel>Date</FormLabel>
+              <PeriodPicker
+                value={filterPeriod ?? { from: '', to: '', label: 'Any date', tab: 'months' }}
+                onChange={setFilterPeriod}
+                onClear={() => setFilterPeriod(null)}
+              />
             </div>
 
             {/* Notes search */}

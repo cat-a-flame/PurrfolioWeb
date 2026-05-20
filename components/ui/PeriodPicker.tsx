@@ -19,6 +19,7 @@ export interface PeriodValue {
 interface Props {
   value: PeriodValue;
   onChange: (v: PeriodValue) => void;
+  onClear?: () => void;
 }
 
 function isoDate(d: Date): string {
@@ -56,7 +57,7 @@ function weeksForMonth(year: number, month: number) {
   return rows;
 }
 
-export default function PeriodPicker({ value, onChange }: Props) {
+export default function PeriodPicker({ value, onChange, onClear }: Props) {
   const now = new Date();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<PeriodTab>(value.tab);
@@ -108,7 +109,7 @@ export default function PeriodPicker({ value, onChange }: Props) {
   }
 
   function navigate(dir: -1 | 1) {
-    const f = new Date(value.from + 'T12:00:00');
+    const f = value.from ? new Date(value.from + 'T12:00:00') : new Date();
     if (tab === 'years') {
       const y = f.getFullYear() + dir;
       selectYear(y);
@@ -138,12 +139,16 @@ export default function PeriodPicker({ value, onChange }: Props) {
   return (
     <div className={styles.container} ref={ref}>
       <div className={styles.trigger}>
-        <button className={styles.navBtn} onClick={() => navigate(-1)} aria-label="Previous">‹</button>
+        <button className={styles.navBtn} onClick={() => navigate(-1)} aria-label="Previous" disabled={!value.from}>‹</button>
         <button className={styles.labelBtn} onClick={() => setOpen(o => !o)}>
           {value.label}
           <span className={styles.caret} aria-hidden>⌄</span>
         </button>
-        <button className={styles.navBtn} onClick={() => navigate(1)} aria-label="Next">›</button>
+        {onClear && value.from ? (
+          <button className={styles.clearBtn} onClick={onClear} aria-label="Clear date filter">×</button>
+        ) : (
+          <button className={styles.navBtn} onClick={() => navigate(1)} aria-label="Next" disabled={!value.from}>›</button>
+        )}
       </div>
 
       {open && (

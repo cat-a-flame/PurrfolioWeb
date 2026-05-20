@@ -58,6 +58,33 @@
   transform: translateY(1px);
 }
 
+.clearBtn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 1.125rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.clearBtn:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.navBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
+}
+
 /* ── Dropdown ── */
 .dropdown {
   position: absolute;
