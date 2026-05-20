@@ -77,6 +77,11 @@ export default function DashboardPage() {
   const [editingTransferPair, setEditingTransferPair] = useState<Transaction | undefined>();
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
 
+  const [highlightedTxId, setHighlightedTxId] = useState<string | null>(null);
+  const [deletingTxId, setDeletingTxId] = useState<string | null>(null);
+  const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
+  const prevTxIdsRef = useRef<Set<string> | null>(null);
+
   // Exchange rates: date → { EUR: number, USD: number, … } (HUF per 1 unit)
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
 
@@ -94,6 +99,22 @@ export default function DashboardPage() {
         return next;
       }));
   }, [allTransactions]);
+
+  // Detect newly added transactions and trigger slide-in animation
+  useEffect(() => {
+    if (loading) return;
+    if (prevTxIdsRef.current === null) {
+      prevTxIdsRef.current = new Set(allTransactions.map(t => t.id));
+      return;
+    }
+    const newTxs = allTransactions.filter(t => !prevTxIdsRef.current!.has(t.id));
+    if (newTxs.length > 0) {
+      const newest = [...newTxs].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+      setHighlightedTxId(newest.id);
+      setTimeout(() => setHighlightedTxId(null), 700);
+    }
+    prevTxIdsRef.current = new Set(allTransactions.map(t => t.id));
+  }, [allTransactions, loading]);
 
   // Lazy load
   const [displayCount, setDisplayCount] = useState(15);
@@ -193,6 +214,12 @@ export default function DashboardPage() {
 
   async function handleDelete() {
     if (!editingTransaction) return;
+    // Trigger exit animation before the network call
+    if (editingTransaction.transfer_group_id) {
+      setDeletingGroupId(editingTransaction.transfer_group_id);
+    } else {
+      setDeletingTxId(editingTransaction.id);
+    }
     const supabase = createClient();
     if (editingTransaction.transfer_group_id) {
       const { error } = await supabase.from('transactions').delete().eq('transfer_group_id', editingTransaction.transfer_group_id);
@@ -205,6 +232,8 @@ export default function DashboardPage() {
     setEditingTransferPair(undefined);
     setToast({ message: 'Transaction deleted.', variant: 'success' });
     await fetchData();
+    setDeletingTxId(null);
+    setDeletingGroupId(null);
   }
 
   async function handleSave(data: TransactionFormData) {
@@ -383,8 +412,10 @@ export default function DashboardPage() {
                         <div className={styles.dayTxList}>
                           {dayTxs.map(t => {
                             const isTransfer = !!t.transfer_group_id;
+                            const isHighlighted = t.id === highlightedTxId;
+                            const isDeleting = t.id === deletingTxId || (!!t.transfer_group_id && t.transfer_group_id === deletingGroupId);
                             return (
-                              <div key={t.id} className={styles.txRow}>
+                              <div key={t.id} className={[styles.txRow, isHighlighted && styles.txRowNew, isDeleting && styles.txRowDeleting].filter(Boolean).join(' ')}>
                                 <div
                                   className={styles.txIcon}
                                   style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
