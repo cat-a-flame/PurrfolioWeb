@@ -12,7 +12,7 @@ import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAllTransactions } from '@/lib/supabase/fetchAllTransactions';
 import { getExchangeRates, toHUF } from '@/lib/exchangeRates';
-import { formatCurrency, formatNumber } from '@/lib/utils';
+import { formatCurrency, formatHUF, formatNumber } from '@/lib/utils';
 import type { Transaction, Wallet, Currency } from '@/lib/types';
 import styles from './page.module.css';
 
@@ -63,7 +63,7 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
       {label && <p className={styles.tooltipLabel}>{label}</p>}
       {payload.map((p, i) => (
         <p key={i} className={styles.tooltipRow} style={{ color: p.color }}>
-          {p.name}: {formatNumber(p.value)}
+          {p.name}: {formatHUF(p.value)}
         </p>
       ))}
     </div>
@@ -78,6 +78,7 @@ export default function StatisticsPage() {
   const [mounted, setMounted] = useState(false);
   const [period, setPeriod]   = useState<PeriodValue>(defaultPeriod);
   const [todayRates, setTodayRates] = useState<Record<string, number>>({});
+  const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -85,6 +86,21 @@ export default function StatisticsPage() {
     const today = isoDate(new Date());
     getExchangeRates(today).then(setTodayRates);
   }, []);
+
+  useEffect(() => {
+    const dates = [...new Set(
+      allTxs
+        .filter(t => t.wallet?.currency && t.wallet.currency !== 'HUF')
+        .map(t => t.date)
+    )];
+    if (!dates.length) return;
+    Promise.all(dates.map(async d => [d, await getExchangeRates(d)] as const))
+      .then(entries => setRatesByDate(prev => {
+        const next = { ...prev };
+        for (const [d, rates] of entries) next[d] = rates;
+        return next;
+      }));
+  }, [allTxs]);
 
   const fetchData = useCallback(async () => {
     const supabase = createClient();
@@ -106,8 +122,8 @@ export default function StatisticsPage() {
   const prevTxs    = useMemo(() => filterRange(allTxs, prevRange.from, prevRange.to), [allTxs, prevRange]);
 
   // ── summary numbers ────────────────────────────────────────────────────
-  const income  = useMemo(() => periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0), [periodTxs]);
-  const expense = useMemo(() => periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + t.amount, 0), [periodTxs]);
+  const income  = useMemo(() => periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
+  const expense = useMemo(() => periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
 
   // ── 1. Balance by currency ──────────────────────────────────────────────
   const currencyBalances = useMemo(() => {
@@ -135,7 +151,7 @@ export default function StatisticsPage() {
       const name  = t.category?.name  ?? 'Uncategorised';
       const color = t.category?.color ?? '#94a3b8';
       const prev  = map.get(name) ?? { amount: 0, color };
-      map.set(name, { amount: prev.amount + t.amount, color });
+      map.set(name, { amount: prev.amount + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), color });
     }
     const total = Array.from(map.values()).reduce((s, v) => s + v.amount, 0);
     return Array.from(map.entries())
@@ -146,7 +162,7 @@ export default function StatisticsPage() {
         color: color !== '#94a3b8' ? color : PALETTE[i % PALETTE.length],
         pct: total > 0 ? Math.round((amount / total) * 100) : 0,
       }));
-  }, [periodTxs]);
+  }, [periodTxs, ratesByDate]);
 
   // ── 3. Period comparison ──────────────────────────────────────────────
   const comparisonData = useMemo(() => {
@@ -160,19 +176,19 @@ export default function StatisticsPage() {
     for (const t of periodTxs) {
       if (t.type !== 'expense' || t.transfer_group_id) continue;
       const name = t.category?.name ?? 'Uncategorised';
-      catMap.get(name)!.current += t.amount;
+      catMap.get(name)!.current += toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {});
     }
     for (const t of prevTxs) {
       if (t.type !== 'expense' || t.transfer_group_id) continue;
       const name = t.category?.name ?? 'Uncategorised';
-      catMap.get(name)!.prev += t.amount;
+      catMap.get(name)!.prev += toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {});
     }
     return Array.from(catMap.entries())
       .sort((a, b) => (b[1].current + b[1].prev) - (a[1].current + a[1].prev))
       .slice(0, 10)
       .map(([name, v]) => ({ name, current: Math.round(v.current), prev: Math.round(v.prev) }))
       .reverse(); // bottom-up for horizontal bar
-  }, [periodTxs, prevTxs]);
+  }, [periodTxs, prevTxs, ratesByDate]);
 
   // ── 4. Spending trend ─────────────────────────────────────────────────
   const trendData = useMemo(() => {
@@ -193,8 +209,8 @@ export default function StatisticsPage() {
         const key = t.date.slice(0, 7);
         const v   = map.get(key);
         if (!v) continue;
-        if (t.type === 'income')  v.income  += t.amount;
-        if (t.type === 'expense') v.expense += t.amount;
+        if (t.type === 'income')  v.income  += toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {});
+        if (t.type === 'expense') v.expense += toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {});
       }
       return Array.from(map.entries()).map(([k, v]) => ({ label: shortMonth(k), income: Math.round(v.income), expense: Math.round(v.expense) }));
     } else {
@@ -206,15 +222,15 @@ export default function StatisticsPage() {
         if (t.transfer_group_id) continue;
         const v = map.get(t.date);
         if (!v) continue;
-        if (t.type === 'income')  v.income  += t.amount;
-        if (t.type === 'expense') v.expense += t.amount;
+        if (t.type === 'income')  v.income  += toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {});
+        if (t.type === 'expense') v.expense += toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {});
       }
       return Array.from(map.entries()).map(([k, v]) => ({
         label: new Date(k + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         income: Math.round(v.income), expense: Math.round(v.expense),
       }));
     }
-  }, [periodTxs, period]);
+  }, [periodTxs, period, ratesByDate]);
 
   // ── 5. Top categories by spend ────────────────────────────────────────
   const topCategories = useMemo(() => expenseSlices.slice(0, 5), [expenseSlices]);
@@ -241,16 +257,16 @@ export default function StatisticsPage() {
           <div className={styles.summaryRow}>
             <div className={styles.summaryCard}>
               <span className={styles.summaryLabel}>Income</span>
-              <span className={[styles.summaryAmount, styles.summaryIncome].join(' ')}>{formatNumber(income)}</span>
+              <span className={[styles.summaryAmount, styles.summaryIncome].join(' ')}>{formatHUF(income)}</span>
             </div>
             <div className={styles.summaryCard}>
               <span className={styles.summaryLabel}>Expenses</span>
-              <span className={[styles.summaryAmount, styles.summaryExpense].join(' ')}>{formatNumber(expense)}</span>
+              <span className={[styles.summaryAmount, styles.summaryExpense].join(' ')}>{formatHUF(expense)}</span>
             </div>
             <div className={styles.summaryCard}>
               <span className={styles.summaryLabel}>Net</span>
               <span className={[styles.summaryAmount, income - expense >= 0 ? styles.summaryIncome : styles.summaryExpense].join(' ')}>
-                {income - expense >= 0 ? '+' : ''}{formatNumber(income - expense)}
+                {income - expense >= 0 ? '+' : ''}{formatHUF(income - expense)}
               </span>
             </div>
             <div className={styles.summaryCard}>
@@ -277,7 +293,7 @@ export default function StatisticsPage() {
                           <Pie data={expenseSlices} dataKey="amount" nameKey="name" innerRadius={65} outerRadius={110} paddingAngle={2} startAngle={90} endAngle={-270}>
                             {expenseSlices.map((s, i) => <Cell key={i} fill={s.color} />)}
                           </Pie>
-                          <Tooltip formatter={(v) => formatNumber(Number(v))} />
+                          <Tooltip formatter={(v) => formatHUF(Number(v))} />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
@@ -288,7 +304,7 @@ export default function StatisticsPage() {
                         <span className={styles.legendDot} style={{ backgroundColor: s.color }} />
                         <span className={styles.legendName}>{s.name}</span>
                         <span className={styles.legendPct}>{s.pct}%</span>
-                        <span className={styles.legendAmount}>{formatNumber(s.amount)}</span>
+                        <span className={styles.legendAmount}>{formatHUF(s.amount)}</span>
                       </div>
                     ))}
                   </div>
@@ -336,7 +352,7 @@ export default function StatisticsPage() {
                         <span className={styles.topRank}>{i + 1}</span>
                         <span className={styles.topDot} style={{ backgroundColor: s.color }} />
                         <span className={styles.topName}>{s.name}</span>
-                        <span className={styles.topAmount}>{formatNumber(s.amount)}</span>
+                        <span className={styles.topAmount}>{formatHUF(s.amount)}</span>
                       </div>
                     ))}
                   </div>
@@ -354,7 +370,7 @@ export default function StatisticsPage() {
                 <ResponsiveContainer width="100%" height={comparisonData.length * 52 + 40}>
                   <BarChart data={comparisonData} layout="vertical" margin={{ left: 16, right: 24, top: 8, bottom: 8 }} barCategoryGap="30%">
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" />
-                    <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-text-faint)' }} tickFormatter={v => formatNumber(v)} axisLine={false} tickLine={false} />
+                    <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-text-faint)' }} tickFormatter={v => formatHUF(v)} axisLine={false} tickLine={false} />
                     <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} />
                     <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--color-surface-2)' }} />
                     <Bar dataKey="current" name={period.label} fill="#f26e4d" radius={[0, 4, 4, 0]} maxBarSize={18} />
@@ -391,7 +407,7 @@ export default function StatisticsPage() {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
                     <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--color-text-faint)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-                    <YAxis tick={{ fontSize: 11, fill: 'var(--color-text-faint)' }} tickFormatter={v => formatNumber(v)} axisLine={false} tickLine={false} width={70} />
+                    <YAxis tick={{ fontSize: 11, fill: 'var(--color-text-faint)' }} tickFormatter={v => formatHUF(v)} axisLine={false} tickLine={false} width={70} />
                     <Tooltip content={<ChartTooltip />} />
                     <Area type="monotone" dataKey="income" name="Income" stroke="#16a34a" strokeWidth={2} fill="url(#gradIncome)" dot={false} />
                     <Area type="monotone" dataKey="expense" name="Expense" stroke="#dc2626" strokeWidth={2} fill="url(#gradExpense)" dot={false} />
