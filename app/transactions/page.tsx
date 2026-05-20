@@ -17,6 +17,8 @@ import { getExchangeRates, toHUF } from '@/lib/exchangeRates';
 import type { Transaction, Category, Label, TransactionType, Wallet } from '@/lib/types';
 import styles from './page.module.css';
 
+type FilterType = TransactionType | 'transfer' | '';
+
 function formatDayHeader(dateStr: string): string {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric',
@@ -31,12 +33,23 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true);
 
   // Filters
-  const [filterType, setFilterType] = useState<TransactionType | ''>('');
+  const [filterType, setFilterType] = useState<FilterType>('');
   const [filterCategoryId, setFilterCategoryId] = useState('');
   const [filterLabelId, setFilterLabelId] = useState('');
   const [filterWalletId, setFilterWalletId] = useState('');
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
+  const [filterSearch, setFilterSearch] = useState('');
+
+  // Brief loading indicator whenever a filter changes
+  const [isFiltering, setIsFiltering] = useState(false);
+  useEffect(() => {
+    if (loading) return;
+    setIsFiltering(true);
+    const t = setTimeout(() => setIsFiltering(false), 200);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterFrom, filterTo, filterSearch]);
 
   // Exchange rates: date → { EUR: number, USD: number, … } (HUF per 1 unit)
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
@@ -117,18 +130,28 @@ export default function TransactionsPage() {
   })();
 
   const filteredTransactions = transactions.filter(t => {
-    if (filterType && t.type !== filterType) return false;
+    if (filterType === 'transfer') {
+      if (!t.transfer_group_id) return false;
+    } else if (filterType) {
+      if (t.type !== filterType || t.transfer_group_id) return false;
+    }
     if (filterCategoryId === '__none__') {
-      if (t.category_id !== null) return false;
+      if (t.category_id !== null || t.transfer_group_id) return false;
     } else if (filterCategoryId && t.category_id !== filterCategoryId) return false;
     if (filterLabelId && !t.labels?.some(l => l.id === filterLabelId)) return false;
     if (filterWalletId && t.wallet_id !== filterWalletId) return false;
     if (filterFrom && t.date < filterFrom) return false;
     if (filterTo && t.date > filterTo) return false;
+    if (filterSearch) {
+      const q = filterSearch.toLowerCase();
+      if (!t.notes?.toLowerCase().includes(q)) return false;
+    }
     return true;
   });
 
-  useEffect(() => { setDisplayCount(15); }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterFrom, filterTo]);
+  const hasActiveFilters = !!(filterType || filterCategoryId || filterLabelId || filterWalletId || filterFrom || filterTo || filterSearch);
+
+  useEffect(() => { setDisplayCount(15); }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterFrom, filterTo, filterSearch]);
 
   function resetFilters() {
     setFilterType('');
@@ -137,6 +160,7 @@ export default function TransactionsPage() {
     setFilterWalletId('');
     setFilterFrom('');
     setFilterTo('');
+    setFilterSearch('');
   }
 
   const hasMore = filteredTransactions.length > displayCount;
@@ -297,6 +321,13 @@ export default function TransactionsPage() {
     }
   }
 
+  const typeOptions = [
+    { value: '', label: 'All types' },
+    { value: 'income', label: 'Income' },
+    { value: 'expense', label: 'Expense' },
+    { value: 'transfer', label: 'Transfer' },
+  ];
+
   return (
     <div className={styles.layout}>
       <AppHeader />
@@ -308,17 +339,14 @@ export default function TransactionsPage() {
 
           {/* Filter bar */}
           <div className={styles.filterBar}>
+            {/* Type */}
             <div className={styles.filterField}>
               <FormLabel htmlFor="filter-type">Type</FormLabel>
               <ReactSelect<{ value: string; label: string }>
                 inputId="filter-type"
-                options={[
-                  { value: '', label: 'All types' },
-                  { value: 'income', label: 'Income' },
-                  { value: 'expense', label: 'Expense' },
-                ]}
-                value={{ value: filterType, label: filterType === 'income' ? 'Income' : filterType === 'expense' ? 'Expense' : 'All types' }}
-                onChange={(opt) => setFilterType((opt?.value ?? '') as TransactionType | '')}
+                options={typeOptions}
+                value={typeOptions.find(o => o.value === filterType) ?? typeOptions[0]}
+                onChange={(opt) => setFilterType((opt?.value ?? '') as FilterType)}
                 isSearchable={false}
                 styles={makeRsStyles('sm')}
                 theme={rsTheme}
@@ -326,6 +354,7 @@ export default function TransactionsPage() {
               />
             </div>
 
+            {/* Category */}
             <div className={styles.filterField}>
               <FormLabel htmlFor="filter-cat">Category</FormLabel>
               <SearchableSelect
@@ -337,6 +366,7 @@ export default function TransactionsPage() {
               />
             </div>
 
+            {/* Label */}
             <div className={styles.filterField}>
               <FormLabel htmlFor="filter-label">Label</FormLabel>
               {(() => {
@@ -359,6 +389,7 @@ export default function TransactionsPage() {
               })()}
             </div>
 
+            {/* Wallet */}
             <div className={styles.filterField}>
               <FormLabel htmlFor="filter-wallet">Wallet</FormLabel>
               {(() => {
@@ -381,26 +412,42 @@ export default function TransactionsPage() {
               })()}
             </div>
 
-            <div className={styles.filterField}>
-              <FormLabel htmlFor="filter-from">From</FormLabel>
-              <input
-                id="filter-from"
-                type="date"
-                className={styles.filterInput}
-                value={filterFrom}
-                onChange={e => setFilterFrom(e.target.value)}
-              />
+            {/* Date range — single combined input */}
+            <div className={[styles.filterField, styles.filterFieldWide].join(' ')}>
+              <FormLabel>Date range</FormLabel>
+              <div className={styles.dateRange}>
+                <input
+                  type="date"
+                  aria-label="From date"
+                  className={styles.dateRangeInput}
+                  value={filterFrom}
+                  onChange={e => setFilterFrom(e.target.value)}
+                />
+                <span className={styles.dateRangeSep}>–</span>
+                <input
+                  type="date"
+                  aria-label="To date"
+                  className={styles.dateRangeInput}
+                  value={filterTo}
+                  onChange={e => setFilterTo(e.target.value)}
+                />
+              </div>
             </div>
 
-            <div className={styles.filterField}>
-              <FormLabel htmlFor="filter-to">To</FormLabel>
-              <input
-                id="filter-to"
-                type="date"
-                className={styles.filterInput}
-                value={filterTo}
-                onChange={e => setFilterTo(e.target.value)}
-              />
+            {/* Notes search */}
+            <div className={[styles.filterField, styles.filterFieldWide].join(' ')}>
+              <FormLabel htmlFor="filter-search">Search notes</FormLabel>
+              <div className={styles.searchWrapper}>
+                <span className={styles.searchIcon}>🔍</span>
+                <input
+                  id="filter-search"
+                  type="search"
+                  className={styles.searchInput}
+                  placeholder="Search in notes…"
+                  value={filterSearch}
+                  onChange={e => setFilterSearch(e.target.value)}
+                />
+              </div>
             </div>
 
             <Button variant="secondary" size="sm" onClick={resetFilters} className={styles.resetBtn}>
@@ -408,13 +455,31 @@ export default function TransactionsPage() {
             </Button>
           </div>
 
-          {/* Grouped list */}
+          {/* Results */}
           {loading ? (
-            <p className={styles.emptyState}>Loading…</p>
+            <div className={styles.skeletonList}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className={styles.skeletonRow} />
+              ))}
+            </div>
           ) : groupedDays.length === 0 ? (
-            <p className={styles.emptyState}>No transactions found.</p>
+            <div className={styles.emptyStateCard}>
+              <span className={styles.emptyIcon}>🔍</span>
+              <p className={styles.emptyTitle}>No transactions found</p>
+              <p className={styles.emptyHint}>
+                {hasActiveFilters
+                  ? 'No records match your current filters.'
+                  : 'Add your first transaction to get started.'}
+              </p>
+              {hasActiveFilters && (
+                <Button variant="secondary" size="sm" onClick={resetFilters}>
+                  Clear filters
+                </Button>
+              )}
+            </div>
           ) : (
-            <div className={styles.groupedList}>
+            <div className={[styles.groupedList, isFiltering ? styles.listFiltering : ''].filter(Boolean).join(' ')}>
+              {isFiltering && <div className={styles.filteringBar}><span className={styles.spinner} />Filtering…</div>}
               {groupedDays.map(({ date, transactions: dayTxs, net }) => (
                 <div key={date} className={styles.dayGroup}>
                   <div className={styles.dayHeader}>
