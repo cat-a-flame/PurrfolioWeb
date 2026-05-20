@@ -1,38 +1,46 @@
-/* Both items share the same grid cell so the wrapper is always as wide as
-   the larger of the two, preventing layout jumps during the transition. */
+/* Inline-flex so all character spans sit on the same baseline */
 .wrapper {
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Each animating digit is an inline-grid: both the outgoing and incoming
+   character share the same grid cell, keeping the slot exactly one
+   character wide regardless of which digit is showing. overflow:hidden
+   clips the translateY slide to just the character's bounding box. */
+.slot {
   display: inline-grid;
   overflow: hidden;
-  vertical-align: bottom;
 }
 
 .item {
   grid-row: 1;
   grid-column: 1;
-  white-space: nowrap;
 }
 
 @keyframes exitUp {
   from { transform: translateY(0%); }
-  to   { transform: translateY(-110%); }
+  to   { transform: translateY(-115%); }
 }
 
 @keyframes enterUp {
-  from { transform: translateY(110%); }
+  from { transform: translateY(115%); }
   to   { transform: translateY(0%); }
 }
 
 @keyframes exitDown {
   from { transform: translateY(0%); }
-  to   { transform: translateY(110%); }
+  to   { transform: translateY(115%); }
 }
 
 @keyframes enterDown {
-  from { transform: translateY(-110%); }
+  from { transform: translateY(-115%); }
   to   { transform: translateY(0%); }
 }
 
-.exitUp    { animation: exitUp    0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-.exitDown  { animation: exitDown  0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-.enterUp   { animation: enterUp   0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-.enterDown { animation: enterDown 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.exitUp    { animation: exitUp    0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.exitDown  { animation: exitDown  0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.enterUp   { animation: enterUp   0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.enterDown { animation: enterDown 0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
