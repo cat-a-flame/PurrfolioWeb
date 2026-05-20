@@ -5,6 +5,7 @@ import ReactSelect from 'react-select';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import Button from '@/components/ui/Button';
+import Dialog from '@/components/ui/Dialog';
 import Toast from '@/components/ui/Toast';
 import TransactionForm, { TransactionFormData } from '@/components/transactions/TransactionForm';
 import FormLabel from '@/components/ui/FormLabel';
@@ -72,6 +73,7 @@ export default function TransactionsPage() {
   // Lazy load
   const [displayCount, setDisplayCount] = useState(15);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const selectAllRef = useRef<HTMLInputElement>(null);
 
   // Edit dialog
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
@@ -80,6 +82,16 @@ export default function TransactionsPage() {
   // Toast
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
   const dismissToast = useCallback(() => setToast(null), []);
+
+  // Multi-select & bulk edit
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<'date' | 'category' | 'label' | 'note' | 'payee' | 'delete' | null>(null);
+  const [bulkDate, setBulkDate] = useState('');
+  const [bulkCategoryId, setBulkCategoryId] = useState('');
+  const [bulkLabelIds, setBulkLabelIds] = useState<string[]>([]);
+  const [bulkNote, setBulkNote] = useState('');
+  const [bulkPayee, setBulkPayee] = useState('');
+  const [isBulkSaving, setIsBulkSaving] = useState(false);
 
   const fetchAll = useCallback(async () => {
     const supabase = createClient();
@@ -151,7 +163,10 @@ export default function TransactionsPage() {
 
   const hasActiveFilters = !!(filterType || filterCategoryId || filterLabelId || filterWalletId || filterPeriod || filterSearch);
 
-  useEffect(() => { setDisplayCount(15); }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterPeriod, filterSearch]);
+  useEffect(() => {
+    setDisplayCount(15);
+    setSelectedIds(new Set());
+  }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterPeriod, filterSearch]);
 
   function resetFilters() {
     setFilterType('');
@@ -196,6 +211,81 @@ export default function TransactionsPage() {
         };
       });
   }, [visibleTransactions, ratesByDate]);
+
+  const allVisibleIds = visibleTransactions.map(t => t.id);
+  const allSelected = allVisibleIds.length > 0 && allVisibleIds.every(id => selectedIds.has(id));
+  const someSelected = !allSelected && allVisibleIds.some(id => selectedIds.has(id));
+
+  useEffect(() => {
+    if (selectAllRef.current) selectAllRef.current.indeterminate = someSelected;
+  }, [someSelected]);
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds(allSelected || someSelected ? new Set() : new Set(allVisibleIds));
+  }
+
+  function openBulkAction(action: NonNullable<typeof bulkAction>) {
+    setBulkDate('');
+    setBulkCategoryId('');
+    setBulkLabelIds([]);
+    setBulkNote('');
+    setBulkPayee('');
+    setBulkAction(action);
+  }
+
+  async function executeBulkAction() {
+    if (!bulkAction) return;
+    const supabase = createClient();
+    const ids = [...selectedIds];
+    setIsBulkSaving(true);
+    try {
+      if (bulkAction === 'delete') {
+        const selectedTxs = visibleTransactions.filter(t => selectedIds.has(t.id));
+        const transferGroupIds = [...new Set(
+          selectedTxs.filter(t => t.transfer_group_id).map(t => t.transfer_group_id!)
+        )];
+        const regularIds = selectedTxs.filter(t => !t.transfer_group_id).map(t => t.id);
+        if (regularIds.length > 0) await supabase.from('transactions').delete().in('id', regularIds);
+        for (const gid of transferGroupIds) await supabase.from('transactions').delete().eq('transfer_group_id', gid);
+        setToast({ message: `${ids.length} transaction${ids.length !== 1 ? 's' : ''} deleted.`, variant: 'success' });
+      } else if (bulkAction === 'date') {
+        await supabase.from('transactions').update({ date: bulkDate }).in('id', ids);
+        setToast({ message: 'Date updated.', variant: 'success' });
+      } else if (bulkAction === 'category') {
+        await supabase.from('transactions').update({ category_id: bulkCategoryId || null }).in('id', ids);
+        setToast({ message: 'Category updated.', variant: 'success' });
+      } else if (bulkAction === 'label') {
+        await supabase.from('transaction_labels').delete().in('transaction_id', ids);
+        if (bulkLabelIds.length > 0) {
+          await supabase.from('transaction_labels').insert(
+            ids.flatMap(tid => bulkLabelIds.map(lid => ({ transaction_id: tid, label_id: lid })))
+          );
+        }
+        setToast({ message: 'Labels updated.', variant: 'success' });
+      } else if (bulkAction === 'note') {
+        await supabase.from('transactions').update({ notes: bulkNote || null }).in('id', ids);
+        setToast({ message: 'Notes updated.', variant: 'success' });
+      } else if (bulkAction === 'payee') {
+        await supabase.from('transactions').update({ payer: bulkPayee || null }).in('id', ids);
+        setToast({ message: 'Payee updated.', variant: 'success' });
+      }
+      setSelectedIds(new Set());
+      setBulkAction(null);
+      await fetchAll();
+    } catch {
+      setToast({ message: 'Something went wrong.', variant: 'error' });
+    } finally {
+      setIsBulkSaving(false);
+    }
+  }
 
   async function handleSave(data: TransactionFormData) {
     const supabase = createClient();
@@ -448,6 +538,32 @@ export default function TransactionsPage() {
 
             {/* ── Content ── */}
             <div className={styles.contentArea}>
+              {/* ── Selection bar ── */}
+              {selectedIds.size > 0 && (
+                <div className={styles.selectionBar}>
+                  <label className={styles.selectionLabel}>
+                    <input
+                      ref={selectAllRef}
+                      type="checkbox"
+                      className={styles.selectionCheckbox}
+                      checked={allSelected}
+                      onChange={toggleSelectAll}
+                      aria-label="Select all loaded transactions"
+                    />
+                    <span>{selectedIds.size} selected</span>
+                  </label>
+                  <div className={styles.bulkActions}>
+                    <Button size="sm" variant="secondary" onClick={() => openBulkAction('date')}>Date</Button>
+                    <Button size="sm" variant="secondary" onClick={() => openBulkAction('category')}>Category</Button>
+                    <Button size="sm" variant="secondary" onClick={() => openBulkAction('label')}>Labels</Button>
+                    <Button size="sm" variant="secondary" onClick={() => openBulkAction('note')}>Note</Button>
+                    <Button size="sm" variant="secondary" onClick={() => openBulkAction('payee')}>Payee</Button>
+                    <Button size="sm" variant="danger" onClick={() => openBulkAction('delete')}>Delete</Button>
+                  </div>
+                  <button className={styles.selectionClear} onClick={() => setSelectedIds(new Set())} aria-label="Clear selection">✕</button>
+                </div>
+              )}
+
               {loading ? (
                 <div className={styles.skeletonList}>
                   {Array.from({ length: 5 }).map((_, i) => (
@@ -484,7 +600,15 @@ export default function TransactionsPage() {
                         {dayTxs.map(t => {
                           const isTransfer = !!t.transfer_group_id;
                           return (
-                            <div key={t.id} className={styles.txRow}>
+                            <div key={t.id} className={[styles.txRow, selectedIds.has(t.id) ? styles.txRowSelected : ''].filter(Boolean).join(' ')}>
+                              <input
+                                type="checkbox"
+                                className={styles.txCheckbox}
+                                checked={selectedIds.has(t.id)}
+                                onChange={() => toggleSelect(t.id)}
+                                aria-label="Select transaction"
+                                onClick={e => e.stopPropagation()}
+                              />
                               <div
                                 className={styles.txIcon}
                                 style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
@@ -558,6 +682,115 @@ export default function TransactionsPage() {
           onDelete={handleDelete}
           onClose={() => { setEditingTransaction(undefined); setEditingTransferPair(undefined); }}
         />
+      )}
+
+      {/* ── Bulk edit dialog ── */}
+      {bulkAction && (
+        <Dialog
+          title={
+            bulkAction === 'delete'
+              ? `Delete ${selectedIds.size} transaction${selectedIds.size !== 1 ? 's' : ''}?`
+              : `Edit ${bulkAction} — ${selectedIds.size} transaction${selectedIds.size !== 1 ? 's' : ''}`
+          }
+          onClose={() => setBulkAction(null)}
+        >
+          <div className={styles.bulkDialog}>
+            {bulkAction === 'date' && (
+              <div className={styles.bulkField}>
+                <FormLabel htmlFor="bulk-date">New date</FormLabel>
+                <input
+                  id="bulk-date"
+                  type="date"
+                  className={styles.bulkInput}
+                  value={bulkDate}
+                  onChange={e => setBulkDate(e.target.value)}
+                />
+              </div>
+            )}
+            {bulkAction === 'category' && (
+              <div className={styles.bulkField}>
+                <FormLabel htmlFor="bulk-category">New category</FormLabel>
+                <SearchableSelect
+                  id="bulk-category"
+                  options={[
+                    { value: '', label: '— Remove category' },
+                    ...categoryFilterOptions.filter(o => o.value !== '' && o.value !== '__none__'),
+                  ]}
+                  value={bulkCategoryId}
+                  onChange={setBulkCategoryId}
+                  placeholder="Select category"
+                />
+              </div>
+            )}
+            {bulkAction === 'label' && (
+              <div className={styles.bulkField}>
+                <FormLabel>Replace labels with</FormLabel>
+                <ReactSelect<{ value: string; label: string }, true>
+                  isMulti
+                  options={labels.map(l => ({ value: l.id, label: l.name }))}
+                  value={bulkLabelIds
+                    .map(id => labels.find(l => l.id === id))
+                    .filter((l): l is Label => !!l)
+                    .map(l => ({ value: l.id, label: l.name }))}
+                  onChange={opts => setBulkLabelIds(opts.map(o => o.value))}
+                  styles={makeRsStyles('sm')}
+                  theme={rsTheme}
+                  menuPosition="fixed"
+                  placeholder="Select labels (empty to clear all)"
+                />
+                <p className={styles.bulkHint}>Replaces all existing labels on the selected transactions.</p>
+              </div>
+            )}
+            {bulkAction === 'note' && (
+              <div className={styles.bulkField}>
+                <FormLabel htmlFor="bulk-note">New note</FormLabel>
+                <input
+                  id="bulk-note"
+                  type="text"
+                  className={styles.bulkInput}
+                  placeholder="Leave empty to clear"
+                  value={bulkNote}
+                  onChange={e => setBulkNote(e.target.value)}
+                />
+              </div>
+            )}
+            {bulkAction === 'payee' && (
+              <div className={styles.bulkField}>
+                <FormLabel htmlFor="bulk-payee">New payee</FormLabel>
+                <input
+                  id="bulk-payee"
+                  type="text"
+                  className={styles.bulkInput}
+                  placeholder="Leave empty to clear"
+                  value={bulkPayee}
+                  onChange={e => setBulkPayee(e.target.value)}
+                />
+              </div>
+            )}
+            {bulkAction === 'delete' && (
+              <p className={styles.bulkDeleteWarning}>
+                This will permanently delete {selectedIds.size} transaction{selectedIds.size !== 1 ? 's' : ''}. Transfer pairs will be deleted in full.
+              </p>
+            )}
+            <div className={styles.bulkDialogActions}>
+              <Button variant="secondary" onClick={() => setBulkAction(null)}>Cancel</Button>
+              {bulkAction === 'delete' ? (
+                <Button variant="danger" loading={isBulkSaving} onClick={executeBulkAction}>
+                  Delete
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  loading={isBulkSaving}
+                  disabled={bulkAction === 'date' && !bulkDate}
+                  onClick={executeBulkAction}
+                >
+                  Apply to {selectedIds.size}
+                </Button>
+              )}
+            </div>
+          </div>
+        </Dialog>
       )}
 
       {toast && <Toast message={toast.message} variant={toast.variant} onDismiss={dismissToast} />}
