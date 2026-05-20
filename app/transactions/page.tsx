@@ -6,6 +6,8 @@ import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import Button from '@/components/ui/Button';
 import Dialog from '@/components/ui/Dialog';
+import Input from '@/components/ui/Input';
+import LabelSelect from '@/components/ui/LabelSelect';
 import Toast from '@/components/ui/Toast';
 import TransactionForm, { TransactionFormData } from '@/components/transactions/TransactionForm';
 import FormLabel from '@/components/ui/FormLabel';
@@ -87,15 +89,10 @@ export default function TransactionsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<'edit' | 'delete' | null>(null);
   const [bulkDate, setBulkDate] = useState('');
-  const [bulkEnableDate, setBulkEnableDate] = useState(false);
   const [bulkCategoryId, setBulkCategoryId] = useState('');
-  const [bulkEnableCategory, setBulkEnableCategory] = useState(false);
   const [bulkLabelIds, setBulkLabelIds] = useState<string[]>([]);
-  const [bulkEnableLabels, setBulkEnableLabels] = useState(false);
   const [bulkNote, setBulkNote] = useState('');
-  const [bulkEnableNote, setBulkEnableNote] = useState(false);
   const [bulkPayee, setBulkPayee] = useState('');
-  const [bulkEnablePayee, setBulkEnablePayee] = useState(false);
   const [isBulkSaving, setIsBulkSaving] = useState(false);
 
   const fetchAll = useCallback(async () => {
@@ -238,11 +235,11 @@ export default function TransactionsPage() {
   }
 
   function openBulkEdit() {
-    setBulkDate(''); setBulkEnableDate(false);
-    setBulkCategoryId(''); setBulkEnableCategory(false);
-    setBulkLabelIds([]); setBulkEnableLabels(false);
-    setBulkNote(''); setBulkEnableNote(false);
-    setBulkPayee(''); setBulkEnablePayee(false);
+    setBulkDate('');
+    setBulkCategoryId('');
+    setBulkLabelIds([]);
+    setBulkNote('');
+    setBulkPayee('');
     setBulkAction('edit');
   }
 
@@ -262,21 +259,18 @@ export default function TransactionsPage() {
         for (const gid of transferGroupIds) await supabase.from('transactions').delete().eq('transfer_group_id', gid);
         setToast({ message: `${ids.length} transaction${ids.length !== 1 ? 's' : ''} deleted.`, variant: 'success' });
       } else if (bulkAction === 'edit') {
-        const patch: Record<string, unknown> = {};
-        if (bulkEnableDate) patch.date = bulkDate;
-        if (bulkEnableCategory) patch.category_id = bulkCategoryId || null;
-        if (bulkEnableNote) patch.notes = bulkNote || null;
-        if (bulkEnablePayee) patch.payer = bulkPayee || null;
-        if (Object.keys(patch).length > 0) {
-          await supabase.from('transactions').update(patch).in('id', ids);
-        }
-        if (bulkEnableLabels) {
-          await supabase.from('transaction_labels').delete().in('transaction_id', ids);
-          if (bulkLabelIds.length > 0) {
-            await supabase.from('transaction_labels').insert(
-              ids.flatMap(tid => bulkLabelIds.map(lid => ({ transaction_id: tid, label_id: lid })))
-            );
-          }
+        const patch: Record<string, unknown> = {
+          category_id: bulkCategoryId || null,
+          notes: bulkNote || null,
+          payer: bulkPayee || null,
+        };
+        if (bulkDate) patch.date = bulkDate;
+        await supabase.from('transactions').update(patch).in('id', ids);
+        await supabase.from('transaction_labels').delete().in('transaction_id', ids);
+        if (bulkLabelIds.length > 0) {
+          await supabase.from('transaction_labels').insert(
+            ids.flatMap(tid => bulkLabelIds.map(lid => ({ transaction_id: tid, label_id: lid })))
+          );
         }
         setToast({ message: `${ids.length} transaction${ids.length !== 1 ? 's' : ''} updated.`, variant: 'success' });
       }
@@ -698,81 +692,53 @@ export default function TransactionsPage() {
         <Dialog
           title={`Edit ${selectedIds.size} transaction${selectedIds.size !== 1 ? 's' : ''}`}
           onClose={() => setBulkAction(null)}
+          maxWidth={700}
         >
-          <div className={styles.bulkDialog}>
-            <div className={styles.bulkField}>
-              <label className={styles.bulkToggleRow}>
-                <input type="checkbox" checked={bulkEnableDate} onChange={e => setBulkEnableDate(e.target.checked)} />
-                <span>Date</span>
-              </label>
-              {bulkEnableDate && (
-                <input id="bulk-date" type="date" className={styles.bulkInput} value={bulkDate} onChange={e => setBulkDate(e.target.value)} />
-              )}
-            </div>
-            <div className={styles.bulkField}>
-              <label className={styles.bulkToggleRow}>
-                <input type="checkbox" checked={bulkEnableCategory} onChange={e => setBulkEnableCategory(e.target.checked)} />
-                <span>Category</span>
-              </label>
-              {bulkEnableCategory && (
+          <div className={styles.bulkColumns}>
+            <div className={styles.bulkCol}>
+              <div className={styles.bulkField}>
+                <FormLabel htmlFor="bulk-date">Date</FormLabel>
+                <Input id="bulk-date" type="date" value={bulkDate} onChange={e => setBulkDate(e.target.value)} />
+              </div>
+              <div className={styles.bulkField}>
+                <FormLabel htmlFor="bulk-category">Category</FormLabel>
                 <SearchableSelect
                   id="bulk-category"
                   options={[{ value: '', label: '— Remove category' }, ...categoryFilterOptions.filter(o => o.value !== '' && o.value !== '__none__')]}
                   value={bulkCategoryId}
                   onChange={setBulkCategoryId}
-                  placeholder="Select category"
+                  placeholder="Choose category"
                 />
-              )}
+              </div>
+              <div className={styles.bulkField}>
+                <FormLabel>Labels</FormLabel>
+                <LabelSelect labels={labels} selectedIds={bulkLabelIds} onChange={setBulkLabelIds} />
+              </div>
             </div>
-            <div className={styles.bulkField}>
-              <label className={styles.bulkToggleRow}>
-                <input type="checkbox" checked={bulkEnableLabels} onChange={e => setBulkEnableLabels(e.target.checked)} />
-                <span>Labels</span>
-              </label>
-              {bulkEnableLabels && (
-                <>
-                  <ReactSelect<{ value: string; label: string }, true>
-                    isMulti
-                    options={labels.map(l => ({ value: l.id, label: l.name }))}
-                    value={bulkLabelIds.map(id => labels.find(l => l.id === id)).filter((l): l is Label => !!l).map(l => ({ value: l.id, label: l.name }))}
-                    onChange={opts => setBulkLabelIds(opts.map(o => o.value))}
-                    styles={makeRsStyles('sm')}
-                    theme={rsTheme}
-                    menuPosition="fixed"
-                    placeholder="Select labels (empty = clear all)"
-                  />
-                </>
-              )}
+            <div className={styles.bulkCol}>
+              <p className={styles.bulkColTitle}>Other details</p>
+              <div className={styles.bulkField}>
+                <FormLabel htmlFor="bulk-note">Note</FormLabel>
+                <textarea
+                  id="bulk-note"
+                  className={styles.bulkTextarea}
+                  rows={4}
+                  placeholder="Leave empty to clear"
+                  value={bulkNote}
+                  onChange={e => setBulkNote(e.target.value)}
+                />
+              </div>
+              <div className={styles.bulkField}>
+                <FormLabel htmlFor="bulk-payee">Payee</FormLabel>
+                <Input id="bulk-payee" type="text" value={bulkPayee} onChange={e => setBulkPayee(e.target.value)} placeholder="Leave empty to clear" />
+              </div>
             </div>
-            <div className={styles.bulkField}>
-              <label className={styles.bulkToggleRow}>
-                <input type="checkbox" checked={bulkEnableNote} onChange={e => setBulkEnableNote(e.target.checked)} />
-                <span>Note</span>
-              </label>
-              {bulkEnableNote && (
-                <input id="bulk-note" type="text" className={styles.bulkInput} placeholder="Leave empty to clear" value={bulkNote} onChange={e => setBulkNote(e.target.value)} />
-              )}
-            </div>
-            <div className={styles.bulkField}>
-              <label className={styles.bulkToggleRow}>
-                <input type="checkbox" checked={bulkEnablePayee} onChange={e => setBulkEnablePayee(e.target.checked)} />
-                <span>Payee</span>
-              </label>
-              {bulkEnablePayee && (
-                <input id="bulk-payee" type="text" className={styles.bulkInput} placeholder="Leave empty to clear" value={bulkPayee} onChange={e => setBulkPayee(e.target.value)} />
-              )}
-            </div>
-            <div className={styles.bulkDialogActions}>
-              <Button variant="secondary" onClick={() => setBulkAction(null)}>Cancel</Button>
-              <Button
-                variant="primary"
-                loading={isBulkSaving}
-                disabled={!bulkEnableDate && !bulkEnableCategory && !bulkEnableLabels && !bulkEnableNote && !bulkEnablePayee}
-                onClick={executeBulkAction}
-              >
-                Apply to {selectedIds.size}
-              </Button>
-            </div>
+          </div>
+          <div className={styles.bulkDialogActions}>
+            <Button variant="secondary" onClick={() => setBulkAction(null)}>Cancel</Button>
+            <Button variant="primary" loading={isBulkSaving} onClick={executeBulkAction}>
+              Apply to {selectedIds.size}
+            </Button>
           </div>
         </Dialog>
       )}
@@ -783,14 +749,12 @@ export default function TransactionsPage() {
           title={`Delete ${selectedIds.size} transaction${selectedIds.size !== 1 ? 's' : ''}?`}
           onClose={() => setBulkAction(null)}
         >
-          <div className={styles.bulkDialog}>
-            <p className={styles.bulkDeleteWarning}>
-              This will permanently delete {selectedIds.size} transaction{selectedIds.size !== 1 ? 's' : ''}. Transfer pairs will be deleted in full.
-            </p>
-            <div className={styles.bulkDialogActions}>
-              <Button variant="secondary" onClick={() => setBulkAction(null)}>Cancel</Button>
-              <Button variant="danger" loading={isBulkSaving} onClick={executeBulkAction}>Delete</Button>
-            </div>
+          <p className={styles.bulkDeleteWarning}>
+            This will permanently delete {selectedIds.size} transaction{selectedIds.size !== 1 ? 's' : ''}. Transfer pairs will be deleted in full.
+          </p>
+          <div className={styles.bulkDialogActions}>
+            <Button variant="secondary" onClick={() => setBulkAction(null)}>Cancel</Button>
+            <Button variant="danger" loading={isBulkSaving} onClick={executeBulkAction}>Delete</Button>
           </div>
         </Dialog>
       )}

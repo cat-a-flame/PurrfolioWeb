@@ -191,10 +191,28 @@
 }
 
 /* ── Bulk edit dialog ── */
-.bulkDialog {
+.bulkColumns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-8);
+  margin-bottom: var(--space-6);
+}
+
+@media (max-width: 560px) {
+  .bulkColumns { grid-template-columns: 1fr; }
+}
+
+.bulkCol {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+}
+
+.bulkColTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
 }
 
 .bulkField {
@@ -203,59 +221,40 @@
   gap: var(--space-2);
 }
 
-.bulkToggleRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-text);
-  cursor: pointer;
-  user-select: none;
-}
-
-.bulkToggleRow input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
-  accent-color: var(--color-accent);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.bulkInput {
-  height: 40px;
-  padding: 0 var(--space-3);
+.bulkTextarea {
+  width: 100%;
+  padding: var(--space-3);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-family: var(--font-figtree);
   font-size: 0.9375rem;
   color: var(--color-text);
+  resize: vertical;
   outline: none;
-  transition: border-color var(--transition-fast);
-  width: 100%;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  line-height: 1.6;
 }
 
-.bulkInput:focus {
+.bulkTextarea::placeholder { color: var(--color-text-faint); }
+
+.bulkTextarea:focus {
   border-color: var(--color-border-focus);
-}
-
-.bulkHint {
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
+  box-shadow: 0 0 0 3px var(--color-accent-light);
 }
 
 .bulkDeleteWarning {
   font-size: 0.9375rem;
   color: var(--color-text);
   line-height: 1.5;
+  margin-bottom: var(--space-4);
 }
 
 .bulkDialogActions {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-3);
-  padding-top: var(--space-2);
+  padding-top: var(--space-4);
   border-top: 1px solid var(--color-border);
 }
 
