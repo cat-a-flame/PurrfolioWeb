@@ -12,7 +12,7 @@ import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAllTransactions } from '@/lib/supabase/fetchAllTransactions';
 import { getExchangeRates, toHUF } from '@/lib/exchangeRates';
-import { formatCurrency, formatNumber } from '@/lib/utils';
+import { formatCurrency, formatHUF, formatNumber } from '@/lib/utils';
 import type { Transaction, Wallet, Currency } from '@/lib/types';
 import styles from './page.module.css';
 
@@ -63,7 +63,7 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
       {label && <p className={styles.tooltipLabel}>{label}</p>}
       {payload.map((p, i) => (
         <p key={i} className={styles.tooltipRow} style={{ color: p.color }}>
-          {p.name}: {formatNumber(p.value)}
+          {p.name}: {formatHUF(p.value)}
         </p>
       ))}
     </div>
@@ -257,16 +257,16 @@ export default function StatisticsPage() {
           <div className={styles.summaryRow}>
             <div className={styles.summaryCard}>
               <span className={styles.summaryLabel}>Income</span>
-              <span className={[styles.summaryAmount, styles.summaryIncome].join(' ')}>{formatNumber(income)}</span>
+              <span className={[styles.summaryAmount, styles.summaryIncome].join(' ')}>{formatHUF(income)}</span>
             </div>
             <div className={styles.summaryCard}>
               <span className={styles.summaryLabel}>Expenses</span>
-              <span className={[styles.summaryAmount, styles.summaryExpense].join(' ')}>{formatNumber(expense)}</span>
+              <span className={[styles.summaryAmount, styles.summaryExpense].join(' ')}>{formatHUF(expense)}</span>
             </div>
             <div className={styles.summaryCard}>
               <span className={styles.summaryLabel}>Net</span>
               <span className={[styles.summaryAmount, income - expense >= 0 ? styles.summaryIncome : styles.summaryExpense].join(' ')}>
-                {income - expense >= 0 ? '+' : ''}{formatNumber(income - expense)}
+                {income - expense >= 0 ? '+' : ''}{formatHUF(income - expense)}
               </span>
             </div>
             <div className={styles.summaryCard}>
@@ -293,7 +293,7 @@ export default function StatisticsPage() {
                           <Pie data={expenseSlices} dataKey="amount" nameKey="name" innerRadius={65} outerRadius={110} paddingAngle={2} startAngle={90} endAngle={-270}>
                             {expenseSlices.map((s, i) => <Cell key={i} fill={s.color} />)}
                           </Pie>
-                          <Tooltip formatter={(v) => formatNumber(Number(v))} />
+                          <Tooltip formatter={(v) => formatHUF(Number(v))} />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
@@ -304,7 +304,7 @@ export default function StatisticsPage() {
                         <span className={styles.legendDot} style={{ backgroundColor: s.color }} />
                         <span className={styles.legendName}>{s.name}</span>
                         <span className={styles.legendPct}>{s.pct}%</span>
-                        <span className={styles.legendAmount}>{formatNumber(s.amount)}</span>
+                        <span className={styles.legendAmount}>{formatHUF(s.amount)}</span>
                       </div>
                     ))}
                   </div>
@@ -352,7 +352,7 @@ export default function StatisticsPage() {
                         <span className={styles.topRank}>{i + 1}</span>
                         <span className={styles.topDot} style={{ backgroundColor: s.color }} />
                         <span className={styles.topName}>{s.name}</span>
-                        <span className={styles.topAmount}>{formatNumber(s.amount)}</span>
+                        <span className={styles.topAmount}>{formatHUF(s.amount)}</span>
                       </div>
                     ))}
                   </div>
@@ -370,7 +370,7 @@ export default function StatisticsPage() {
                 <ResponsiveContainer width="100%" height={comparisonData.length * 52 + 40}>
                   <BarChart data={comparisonData} layout="vertical" margin={{ left: 16, right: 24, top: 8, bottom: 8 }} barCategoryGap="30%">
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" />
-                    <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-text-faint)' }} tickFormatter={v => formatNumber(v)} axisLine={false} tickLine={false} />
+                    <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-text-faint)' }} tickFormatter={v => formatHUF(v)} axisLine={false} tickLine={false} />
                     <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} />
                     <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--color-surface-2)' }} />
                     <Bar dataKey="current" name={period.label} fill="#f26e4d" radius={[0, 4, 4, 0]} maxBarSize={18} />
@@ -407,7 +407,7 @@ export default function StatisticsPage() {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
                     <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--color-text-faint)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-                    <YAxis tick={{ fontSize: 11, fill: 'var(--color-text-faint)' }} tickFormatter={v => formatNumber(v)} axisLine={false} tickLine={false} width={70} />
+                    <YAxis tick={{ fontSize: 11, fill: 'var(--color-text-faint)' }} tickFormatter={v => formatHUF(v)} axisLine={false} tickLine={false} width={70} />
                     <Tooltip content={<ChartTooltip />} />
                     <Area type="monotone" dataKey="income" name="Income" stroke="#16a34a" strokeWidth={2} fill="url(#gradIncome)" dot={false} />
                     <Area type="monotone" dataKey="expense" name="Expense" stroke="#dc2626" strokeWidth={2} fill="url(#gradExpense)" dot={false} />
