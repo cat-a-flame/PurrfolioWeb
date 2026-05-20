@@ -161,14 +161,27 @@ export default function StatisticsPage() {
       map.set(name, { amount: prev.amount + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), color });
     }
     const total = Array.from(map.values()).reduce((s, v) => s + v.amount, 0);
-    return Array.from(map.entries())
-      .sort((a, b) => b[1].amount - a[1].amount)
+    const sorted = Array.from(map.entries()).sort((a, b) => b[1].amount - a[1].amount);
+    const slices = sorted
+      .filter(([, { amount }]) => amount >= 10_000)
       .map(([name, { amount, color }], i) => ({
         name,
         amount,
         color: color !== '#94a3b8' ? color : PALETTE[i % PALETTE.length],
         pct: total > 0 ? Math.round((amount / total) * 100) : 0,
       }));
+    const otherAmount = sorted
+      .filter(([, { amount }]) => amount < 10_000)
+      .reduce((s, [, { amount }]) => s + amount, 0);
+    if (otherAmount > 0) {
+      slices.push({
+        name: 'Other',
+        amount: otherAmount,
+        color: '#94a3b8',
+        pct: total > 0 ? Math.round((otherAmount / total) * 100) : 0,
+      });
+    }
+    return slices;
   }, [periodTxs, ratesByDate]);
 
   // ── 3. Period comparison ──────────────────────────────────────────────
