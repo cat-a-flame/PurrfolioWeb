@@ -6,6 +6,7 @@ import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   AreaChart, Area,
+  type PieLabelRenderProps,
 } from 'recharts';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
@@ -24,14 +25,13 @@ const PALETTE = [
   '#a78bfa','#fb7185','#0ea5e9','#d946ef','#22c55e',
 ];
 
-function renderExpenseLabel(props: {
-  cx: number; cy: number; midAngle: number; outerRadius: number; pct: number;
-}) {
-  const { cx, cy, midAngle, outerRadius, pct } = props;
+function renderExpenseLabel({ cx, cy, midAngle, outerRadius, percent }: PieLabelRenderProps) {
+  if (!percent || cx == null || cy == null || midAngle == null || outerRadius == null) return null;
+  const pct = Math.round((percent as number) * 100);
   if (pct === 0) return null;
-  const r = outerRadius + 22;
-  const x = cx + r * Math.cos(-(midAngle * Math.PI) / 180);
-  const y = cy + r * Math.sin(-(midAngle * Math.PI) / 180);
+  const r = (outerRadius as number) + 22;
+  const x = (cx as number) + r * Math.cos(-((midAngle as number) * Math.PI) / 180);
+  const y = (cy as number) + r * Math.sin(-((midAngle as number) * Math.PI) / 180);
   return (
     <g>
       <rect x={x - 18} y={y - 10} width={36} height={20} rx={10} fill="rgba(0,0,0,0.55)" />
