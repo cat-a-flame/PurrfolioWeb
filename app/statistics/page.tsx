@@ -151,7 +151,9 @@ export default function StatisticsPage() {
   }, [allTxs, wallets, todayRates]);
 
   // ── 2. Expenses structure (doughnut) ──────────────────────────────────
-  const expenseSlices = useMemo(() => {
+  const [otherExpanded, setOtherExpanded] = useState(false);
+
+  const { expenseSlices, otherItems } = useMemo(() => {
     const map = new Map<string, { amount: number; color: string }>();
     for (const t of periodTxs) {
       if (t.type !== 'expense' || t.transfer_group_id) continue;
@@ -161,14 +163,32 @@ export default function StatisticsPage() {
       map.set(name, { amount: prev.amount + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), color });
     }
     const total = Array.from(map.values()).reduce((s, v) => s + v.amount, 0);
-    return Array.from(map.entries())
-      .sort((a, b) => b[1].amount - a[1].amount)
+    const sorted = Array.from(map.entries()).sort((a, b) => b[1].amount - a[1].amount);
+    const slices = sorted
+      .filter(([, { amount }]) => amount >= 10_000)
       .map(([name, { amount, color }], i) => ({
         name,
         amount,
         color: color !== '#94a3b8' ? color : PALETTE[i % PALETTE.length],
         pct: total > 0 ? Math.round((amount / total) * 100) : 0,
       }));
+    const smallEntries = sorted.filter(([, { amount }]) => amount < 10_000);
+    const otherAmount = smallEntries.reduce((s, [, { amount }]) => s + amount, 0);
+    const otherItems = smallEntries.map(([name, { amount, color }]) => ({
+      name,
+      amount,
+      color,
+      pct: total > 0 ? Math.round((amount / total) * 100) : 0,
+    }));
+    if (otherAmount > 0) {
+      slices.push({
+        name: 'Other',
+        amount: otherAmount,
+        color: '#94a3b8',
+        pct: total > 0 ? Math.round((otherAmount / total) * 100) : 0,
+      });
+    }
+    return { expenseSlices: slices, otherItems };
   }, [periodTxs, ratesByDate]);
 
   // ── 3. Period comparison ──────────────────────────────────────────────
@@ -306,14 +326,41 @@ export default function StatisticsPage() {
                     </div>
                   )}
                   <div className={styles.doughnutLegend}>
-                    {expenseSlices.map((s, i) => (
-                      <div key={i} className={styles.legendRow}>
-                        <span className={styles.legendDot} style={{ backgroundColor: s.color }} />
-                        <span className={styles.legendName}>{s.name}</span>
-                        <span className={styles.legendPct}>{s.pct}%</span>
-                        <span className={styles.legendAmount}>{formatHUF(s.amount)}</span>
-                      </div>
-                    ))}
+                    {expenseSlices.map((s, i) => {
+                      const isOther = s.name === 'Other' && otherItems.length > 0;
+                      return (
+                        <div key={i}>
+                          <div
+                            className={[styles.legendRow, isOther ? styles.legendRowOther : ''].filter(Boolean).join(' ')}
+                            onClick={isOther ? () => setOtherExpanded(e => !e) : undefined}
+                            role={isOther ? 'button' : undefined}
+                            tabIndex={isOther ? 0 : undefined}
+                            onKeyDown={isOther ? (e) => { if (e.key === 'Enter' || e.key === ' ') setOtherExpanded(v => !v); } : undefined}
+                            aria-expanded={isOther ? otherExpanded : undefined}
+                          >
+                            <span className={styles.legendDot} style={{ backgroundColor: s.color }} />
+                            <span className={styles.legendName}>
+                              {s.name}
+                              {isOther && (
+                                <svg className={[styles.chevron, otherExpanded ? styles.chevronOpen : ''].filter(Boolean).join(' ')} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                                  <polyline points="6 9 12 15 18 9" />
+                                </svg>
+                              )}
+                            </span>
+                            <span className={styles.legendPct}>{s.pct}%</span>
+                            <span className={styles.legendAmount}>{formatHUF(s.amount)}</span>
+                          </div>
+                          {isOther && otherExpanded && otherItems.map((item, j) => (
+                            <div key={j} className={[styles.legendRow, styles.legendSubRow].join(' ')}>
+                              <span className={styles.legendDot} style={{ backgroundColor: item.color }} />
+                              <span className={styles.legendName}>{item.name}</span>
+                              <span className={styles.legendPct}>{item.pct}%</span>
+                              <span className={styles.legendAmount}>{formatHUF(item.amount)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
