@@ -32,25 +32,53 @@
   color: var(--color-text);
 }
 
-/* ── Filter bar ── */
-.filterBar {
+/* ── Two-column body layout ── */
+.bodyLayout {
+  display: flex;
+  gap: var(--space-6);
+  align-items: flex-start;
+}
+
+/* ── Filter sidebar ── */
+.filterSidebar {
+  width: 220px;
+  flex-shrink: 0;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: var(--space-5);
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--space-4);
-  align-items: flex-end;
+  position: sticky;
+  top: calc(60px + var(--space-4));
+  max-height: calc(100vh - 60px - var(--space-8));
+  overflow-y: auto;
 }
 
+.filterSidebarTitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-muted);
+}
+
+/* ── Content area ── */
+.contentArea {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* ── Filter fields ── */
 .filterField {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  min-width: 140px;
 }
-
 
 /* Make SearchableSelect trigger match filter input height */
 .filterField :global([class*="trigger"]) {
@@ -79,7 +107,8 @@
 }
 
 .resetBtn {
-  align-self: flex-end;
+  align-self: flex-start;
+  margin-top: var(--space-1);
 }
 
 
@@ -390,13 +419,30 @@
     font-size: 1.375rem;
   }
 
-  .filterBar {
-    padding: var(--space-4);
-    gap: var(--space-3);
+  .bodyLayout {
+    flex-direction: column;
   }
 
-  .filterField {
-    min-width: calc(50% - var(--space-2));
-    flex: 1;
+  .filterSidebar {
+    width: 100%;
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+    padding: var(--space-4);
+    gap: var(--space-3);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .filterSidebarTitle {
+    grid-column: 1 / -1;
+  }
+
+  .resetBtn {
+    grid-column: 1 / -1;
+  }
+
+  .contentArea {
+    gap: var(--space-4);
   }
 }

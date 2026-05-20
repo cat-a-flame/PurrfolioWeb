@@ -336,207 +336,213 @@ export default function TransactionsPage() {
             <h1 className={styles.pageTitle}>Transactions</h1>
           </div>
 
-          {/* Filter bar */}
-          <div className={styles.filterBar}>
-            {/* Type */}
-            <div className={styles.filterField}>
-              <FormLabel htmlFor="filter-type">Type</FormLabel>
-              <ReactSelect<{ value: string; label: string }>
-                inputId="filter-type"
-                options={typeOptions}
-                value={typeOptions.find(o => o.value === filterType) ?? typeOptions[0]}
-                onChange={(opt) => setFilterType((opt?.value ?? '') as FilterType)}
-                isSearchable={false}
-                styles={makeRsStyles('sm')}
-                theme={rsTheme}
-                menuPosition="fixed"
-              />
-            </div>
+          <div className={styles.bodyLayout}>
+            {/* ── Filter sidebar ── */}
+            <aside className={styles.filterSidebar}>
+              <p className={styles.filterSidebarTitle}>Filters</p>
 
-            {/* Category */}
-            <div className={styles.filterField}>
-              <FormLabel htmlFor="filter-cat">Category</FormLabel>
-              <SearchableSelect
-                id="filter-cat"
-                options={categoryFilterOptions}
-                value={filterCategoryId}
-                onChange={setFilterCategoryId}
-                placeholder="All categories"
-              />
-            </div>
-
-            {/* Label */}
-            <div className={styles.filterField}>
-              <FormLabel htmlFor="filter-label">Label</FormLabel>
-              {(() => {
-                const labelOptions = [
-                  { value: '', label: 'All labels' },
-                  ...labels.map(l => ({ value: l.id, label: l.name })),
-                ];
-                return (
-                  <ReactSelect<{ value: string; label: string }>
-                    inputId="filter-label"
-                    options={labelOptions}
-                    value={labelOptions.find(o => o.value === filterLabelId) ?? labelOptions[0]}
-                    onChange={(opt) => setFilterLabelId(opt?.value ?? '')}
-                    isSearchable
-                    styles={makeRsStyles('sm')}
-                    theme={rsTheme}
-                    menuPosition="fixed"
-                  />
-                );
-              })()}
-            </div>
-
-            {/* Wallet */}
-            <div className={styles.filterField}>
-              <FormLabel htmlFor="filter-wallet">Wallet</FormLabel>
-              {(() => {
-                const walletOptions = [
-                  { value: '', label: 'All wallets' },
-                  ...wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` })),
-                ];
-                return (
-                  <ReactSelect<{ value: string; label: string }>
-                    inputId="filter-wallet"
-                    options={walletOptions}
-                    value={walletOptions.find(o => o.value === filterWalletId) ?? walletOptions[0]}
-                    onChange={(opt) => setFilterWalletId(opt?.value ?? '')}
-                    isSearchable
-                    styles={makeRsStyles('sm')}
-                    theme={rsTheme}
-                    menuPosition="fixed"
-                  />
-                );
-              })()}
-            </div>
-
-            {/* Date — PeriodPicker */}
-            <div className={styles.filterField}>
-              <FormLabel>Date</FormLabel>
-              <PeriodPicker
-                value={filterPeriod ?? { from: '', to: '', label: 'Any date', tab: 'months' }}
-                onChange={setFilterPeriod}
-                onClear={() => setFilterPeriod(null)}
-                hideNav
-              />
-            </div>
-
-            {/* Notes search */}
-            <div className={[styles.filterField, styles.filterFieldWide].join(' ')}>
-              <FormLabel htmlFor="filter-search">Search notes</FormLabel>
-              <div className={styles.searchWrapper}>
-                <span className={styles.searchIcon}>🔍</span>
-                <input
-                  id="filter-search"
-                  type="search"
-                  className={styles.searchInput}
-                  placeholder="Search in notes…"
-                  value={filterSearch}
-                  onChange={e => setFilterSearch(e.target.value)}
+              {/* Type */}
+              <div className={styles.filterField}>
+                <FormLabel htmlFor="filter-type">Type</FormLabel>
+                <ReactSelect<{ value: string; label: string }>
+                  inputId="filter-type"
+                  options={typeOptions}
+                  value={typeOptions.find(o => o.value === filterType) ?? typeOptions[0]}
+                  onChange={(opt) => setFilterType((opt?.value ?? '') as FilterType)}
+                  isSearchable={false}
+                  styles={makeRsStyles('sm')}
+                  theme={rsTheme}
+                  menuPosition="fixed"
                 />
               </div>
-            </div>
 
-            <Button variant="secondary" size="sm" onClick={resetFilters} className={styles.resetBtn}>
-              Reset
-            </Button>
-          </div>
+              {/* Category */}
+              <div className={styles.filterField}>
+                <FormLabel htmlFor="filter-cat">Category</FormLabel>
+                <SearchableSelect
+                  id="filter-cat"
+                  options={categoryFilterOptions}
+                  value={filterCategoryId}
+                  onChange={setFilterCategoryId}
+                  placeholder="All categories"
+                />
+              </div>
 
-          {/* Results */}
-          {loading ? (
-            <div className={styles.skeletonList}>
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className={styles.skeletonRow} />
-              ))}
-            </div>
-          ) : groupedDays.length === 0 ? (
-            <div className={styles.emptyStateCard}>
-              <span className={styles.emptyIcon}>🔍</span>
-              <p className={styles.emptyTitle}>No transactions found</p>
-              <p className={styles.emptyHint}>
-                {hasActiveFilters
-                  ? 'No records match your current filters.'
-                  : 'Add your first transaction to get started.'}
-              </p>
-              {hasActiveFilters && (
-                <Button variant="secondary" size="sm" onClick={resetFilters}>
-                  Clear filters
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className={[styles.groupedList, isFiltering ? styles.listFiltering : ''].filter(Boolean).join(' ')}>
-              {isFiltering && <div className={styles.filteringBar}><span className={styles.spinner} />Filtering…</div>}
-              {groupedDays.map(({ date, transactions: dayTxs, net }) => (
-                <div key={date} className={styles.dayGroup}>
-                  <div className={styles.dayHeader}>
-                    <span className={styles.dayDate}>{formatDayHeader(date)}</span>
-                    <span className={[styles.dayNet, net >= 0 ? styles.dayNetPos : styles.dayNetNeg].join(' ')}>
-                      {net < 0 ? '−' : ''}{formatHUF(Math.abs(net))}
-                    </span>
-                  </div>
-                  <div className={styles.dayTxList}>
-                    {dayTxs.map(t => {
-                      const isTransfer = !!t.transfer_group_id;
-                      return (
-                        <div key={t.id} className={styles.txRow}>
-                          <div
-                            className={styles.txIcon}
-                            style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
-                          >
-                            {isTransfer ? '↔' : (t.category?.icon ?? '?')}
-                          </div>
-                          <div className={styles.txMain}>
-                            <span className={styles.txCategory}>
-                              {isTransfer ? 'Transfer' : (t.category?.name ?? 'Uncategorised')}
-                            </span>
-                            {t.wallet && (
-                              <span className={styles.txWallet}>
-                                <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
-                                {t.wallet.name}
-                              </span>
-                            )}
-                            {t.notes && (
-                              <span className={styles.txNotes}>{t.notes}</span>
-                            )}
-                            {t.labels && t.labels.length > 0 && (
-                              <span className={styles.txLabels}>
-                                {t.labels.map(l => (
-                                  <span key={l.id} className={styles.txLabel} style={{ backgroundColor: l.color + '22', color: l.color }}>
-                                    {l.name}
-                                  </span>
-                                ))}
-                              </span>
-                            )}
-                          </div>
-                          <div className={styles.txRight}>
-                            <span className={[
-                              styles.txAmount,
-                              isTransfer ? styles.txTransfer : t.type === 'income' ? styles.txIncome : styles.txExpense,
-                            ].join(' ')}>
-                              {isTransfer
-                                ? (t.type === 'expense' ? '−' : '')
-                                : (t.type === 'income' ? '' : '−')
-                              }{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
-                            </span>
-                            <button
-                              className={styles.txEditBtn}
-                              onClick={() => openEdit(t)}
-                              aria-label="Edit transaction"
-                            >
-                              Edit
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+              {/* Label */}
+              <div className={styles.filterField}>
+                <FormLabel htmlFor="filter-label">Label</FormLabel>
+                {(() => {
+                  const labelOptions = [
+                    { value: '', label: 'All labels' },
+                    ...labels.map(l => ({ value: l.id, label: l.name })),
+                  ];
+                  return (
+                    <ReactSelect<{ value: string; label: string }>
+                      inputId="filter-label"
+                      options={labelOptions}
+                      value={labelOptions.find(o => o.value === filterLabelId) ?? labelOptions[0]}
+                      onChange={(opt) => setFilterLabelId(opt?.value ?? '')}
+                      isSearchable
+                      styles={makeRsStyles('sm')}
+                      theme={rsTheme}
+                      menuPosition="fixed"
+                    />
+                  );
+                })()}
+              </div>
+
+              {/* Wallet */}
+              <div className={styles.filterField}>
+                <FormLabel htmlFor="filter-wallet">Wallet</FormLabel>
+                {(() => {
+                  const walletOptions = [
+                    { value: '', label: 'All wallets' },
+                    ...wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` })),
+                  ];
+                  return (
+                    <ReactSelect<{ value: string; label: string }>
+                      inputId="filter-wallet"
+                      options={walletOptions}
+                      value={walletOptions.find(o => o.value === filterWalletId) ?? walletOptions[0]}
+                      onChange={(opt) => setFilterWalletId(opt?.value ?? '')}
+                      isSearchable
+                      styles={makeRsStyles('sm')}
+                      theme={rsTheme}
+                      menuPosition="fixed"
+                    />
+                  );
+                })()}
+              </div>
+
+              {/* Date */}
+              <div className={styles.filterField}>
+                <FormLabel>Date</FormLabel>
+                <PeriodPicker
+                  value={filterPeriod ?? { from: '', to: '', label: 'Any date', tab: 'months' }}
+                  onChange={setFilterPeriod}
+                  onClear={() => setFilterPeriod(null)}
+                  hideNav
+                />
+              </div>
+
+              {/* Notes search */}
+              <div className={styles.filterField}>
+                <FormLabel htmlFor="filter-search">Search notes</FormLabel>
+                <div className={styles.searchWrapper}>
+                  <span className={styles.searchIcon}>🔍</span>
+                  <input
+                    id="filter-search"
+                    type="search"
+                    className={styles.searchInput}
+                    placeholder="Search in notes…"
+                    value={filterSearch}
+                    onChange={e => setFilterSearch(e.target.value)}
+                  />
                 </div>
-              ))}
+              </div>
+
+              <Button variant="secondary" size="sm" onClick={resetFilters} className={styles.resetBtn}>
+                Reset
+              </Button>
+            </aside>
+
+            {/* ── Content ── */}
+            <div className={styles.contentArea}>
+              {loading ? (
+                <div className={styles.skeletonList}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className={styles.skeletonRow} />
+                  ))}
+                </div>
+              ) : groupedDays.length === 0 ? (
+                <div className={styles.emptyStateCard}>
+                  <span className={styles.emptyIcon}>🔍</span>
+                  <p className={styles.emptyTitle}>No transactions found</p>
+                  <p className={styles.emptyHint}>
+                    {hasActiveFilters
+                      ? 'No records match your current filters.'
+                      : 'Add your first transaction to get started.'}
+                  </p>
+                  {hasActiveFilters && (
+                    <Button variant="secondary" size="sm" onClick={resetFilters}>
+                      Clear filters
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className={[styles.groupedList, isFiltering ? styles.listFiltering : ''].filter(Boolean).join(' ')}>
+                  {isFiltering && <div className={styles.filteringBar}><span className={styles.spinner} />Filtering…</div>}
+                  {groupedDays.map(({ date, transactions: dayTxs, net }) => (
+                    <div key={date} className={styles.dayGroup}>
+                      <div className={styles.dayHeader}>
+                        <span className={styles.dayDate}>{formatDayHeader(date)}</span>
+                        <span className={[styles.dayNet, net >= 0 ? styles.dayNetPos : styles.dayNetNeg].join(' ')}>
+                          {net < 0 ? '−' : ''}{formatHUF(Math.abs(net))}
+                        </span>
+                      </div>
+                      <div className={styles.dayTxList}>
+                        {dayTxs.map(t => {
+                          const isTransfer = !!t.transfer_group_id;
+                          return (
+                            <div key={t.id} className={styles.txRow}>
+                              <div
+                                className={styles.txIcon}
+                                style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
+                              >
+                                {isTransfer ? '↔' : (t.category?.icon ?? '?')}
+                              </div>
+                              <div className={styles.txMain}>
+                                <span className={styles.txCategory}>
+                                  {isTransfer ? 'Transfer' : (t.category?.name ?? 'Uncategorised')}
+                                </span>
+                                {t.wallet && (
+                                  <span className={styles.txWallet}>
+                                    <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
+                                    {t.wallet.name}
+                                  </span>
+                                )}
+                                {t.notes && (
+                                  <span className={styles.txNotes}>{t.notes}</span>
+                                )}
+                                {t.labels && t.labels.length > 0 && (
+                                  <span className={styles.txLabels}>
+                                    {t.labels.map(l => (
+                                      <span key={l.id} className={styles.txLabel} style={{ backgroundColor: l.color + '22', color: l.color }}>
+                                        {l.name}
+                                      </span>
+                                    ))}
+                                  </span>
+                                )}
+                              </div>
+                              <div className={styles.txRight}>
+                                <span className={[
+                                  styles.txAmount,
+                                  isTransfer ? styles.txTransfer : t.type === 'income' ? styles.txIncome : styles.txExpense,
+                                ].join(' ')}>
+                                  {isTransfer
+                                    ? (t.type === 'expense' ? '−' : '')
+                                    : (t.type === 'income' ? '' : '−')
+                                  }{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
+                                </span>
+                                <button
+                                  className={styles.txEditBtn}
+                                  onClick={() => openEdit(t)}
+                                  aria-label="Edit transaction"
+                                >
+                                  Edit
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {hasMore && <div ref={sentinelRef} className={styles.sentinel} />}
             </div>
-          )}
-          {hasMore && <div ref={sentinelRef} className={styles.sentinel} />}
+          </div>
         </div>
       </main>
       <AppFooter />
