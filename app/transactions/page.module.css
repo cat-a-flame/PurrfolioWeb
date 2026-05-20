@@ -147,14 +147,6 @@
   flex-shrink: 0;
 }
 
-.bulkActions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-  flex: 1;
-}
-
 .selectionClear {
   margin-left: auto;
   background: none;
@@ -188,56 +180,6 @@
 
 .txRowSelected {
   background: var(--color-accent-light) !important;
-}
-
-/* ── Bulk edit dialog ── */
-.bulkDialog {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
-
-.bulkField {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.bulkInput {
-  height: 40px;
-  padding: 0 var(--space-3);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-family: var(--font-figtree);
-  font-size: 0.9375rem;
-  color: var(--color-text);
-  outline: none;
-  transition: border-color var(--transition-fast);
-  width: 100%;
-}
-
-.bulkInput:focus {
-  border-color: var(--color-border-focus);
-}
-
-.bulkHint {
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-}
-
-.bulkDeleteWarning {
-  font-size: 0.9375rem;
-  color: var(--color-text);
-  line-height: 1.5;
-}
-
-.bulkDialogActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-3);
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--color-border);
 }
 
 /* ── Notes search ── */
