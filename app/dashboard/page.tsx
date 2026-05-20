@@ -395,6 +395,15 @@ export default function DashboardPage() {
                                   {t.wallet.name}
                                 </span>
                               )}
+                              {t.labels && t.labels.length > 0 && (
+                                <span className={styles.txLabels}>
+                                  {t.labels.map(l => (
+                                    <span key={l.id} className={styles.txLabel} style={{ backgroundColor: l.color + '22', color: l.color }}>
+                                      {l.name}
+                                    </span>
+                                  ))}
+                                </span>
+                              )}
                             </div>
                             <div className={styles.txRight}>
                               <span className={[
