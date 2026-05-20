@@ -33,6 +33,7 @@ export interface TransactionFormData {
 
 interface TransactionFormProps {
   transaction?: Transaction;
+  transferPair?: Transaction;
   wallets: Wallet[];
   categories: Category[];
   labels: Label[];
@@ -44,6 +45,7 @@ interface TransactionFormProps {
 
 export default function TransactionForm({
   transaction,
+  transferPair,
   wallets,
   categories,
   labels,
@@ -63,9 +65,9 @@ export default function TransactionForm({
   const [payer, setPayer] = useState<string>(transaction?.payer ?? '');
   const [labelIds, setLabelIds] = useState<string[]>(transaction?.labels?.map(l => l.id) ?? []);
 
-  // Transfer-specific state
-  const [toWalletId, setToWalletId] = useState<string>('');
-  const [toAmount, setToAmount] = useState<string>('');
+  // Transfer-specific state (pre-populated from the paired leg when editing)
+  const [toWalletId, setToWalletId] = useState<string>(transferPair?.wallet_id ?? '');
+  const [toAmount, setToAmount] = useState<string>(transferPair ? String(transferPair.amount) : '');
 
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [saving, setSaving] = useState(false);
