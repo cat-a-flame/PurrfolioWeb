@@ -561,7 +561,9 @@ export default function TransactionsPage() {
                         <Button size="sm" variant="danger" onClick={() => setBulkAction('delete')}>Delete</Button>
                       </>
                     )}
-                    <Button size="sm" variant="secondary" onClick={() => setSelectedIds(new Set(allVisibleIds))}>Select all</Button>
+                    <Button size="sm" variant="secondary" onClick={() => setSelectedIds(allSelected ? new Set() : new Set(allVisibleIds))}>
+                      {allSelected ? 'Deselect all' : 'Select all'}
+                    </Button>
                   </div>
                   <button className={styles.selectionClear} onClick={() => setSelectedIds(new Set())} aria-label="Clear selection">✕</button>
                 </div>
