@@ -214,7 +214,7 @@ export default function TransactionsPage() {
 
   const allVisibleIds = visibleTransactions.map(t => t.id);
   const allSelected = allVisibleIds.length > 0 && allVisibleIds.every(id => selectedIds.has(id));
-  const someSelected = !allSelected && allVisibleIds.some(id => selectedIds.has(id));
+  const someSelected = !allSelected && allVisibleIds.length > 0 && allVisibleIds.some(id => selectedIds.has(id));
 
   useEffect(() => {
     if (selectAllRef.current) selectAllRef.current.indeterminate = someSelected;
