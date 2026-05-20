@@ -220,7 +220,7 @@
   font-weight: 500;
   background-color: var(--color-coral-light);
   color: var(--color-coral-dark);
-  border: 1px solid rgba(242, 110, 77, 0.2);
+  border: 1px solid var(--color-accent-border);
 }
 
 .walletActions {
