@@ -500,6 +500,15 @@ export default function TransactionsPage() {
                             {t.notes && (
                               <span className={styles.txNotes}>{t.notes}</span>
                             )}
+                            {t.labels && t.labels.length > 0 && (
+                              <span className={styles.txLabels}>
+                                {t.labels.map(l => (
+                                  <span key={l.id} className={styles.txLabel} style={{ backgroundColor: l.color + '22', color: l.color }}>
+                                    {l.name}
+                                  </span>
+                                ))}
+                              </span>
+                            )}
                           </div>
                           <div className={styles.txRight}>
                             <span className={[
