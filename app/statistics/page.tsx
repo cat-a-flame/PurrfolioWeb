@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useCountUp } from '@/lib/useCountUp';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -124,6 +125,12 @@ export default function StatisticsPage() {
   // ── summary numbers ────────────────────────────────────────────────────
   const income  = useMemo(() => periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
   const expense = useMemo(() => periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
+
+  const txCount = periodTxs.filter(t => !t.transfer_group_id).length;
+  const animatedIncome  = useCountUp(income);
+  const animatedExpense = useCountUp(expense);
+  const animatedNet     = useCountUp(income - expense);
+  const animatedTxCount = useCountUp(txCount);
 
   // ── 1. Balance by currency ──────────────────────────────────────────────
   const currencyBalances = useMemo(() => {
@@ -257,21 +264,21 @@ export default function StatisticsPage() {
           <div className={styles.summaryRow}>
             <div className={styles.summaryCard}>
               <span className={styles.summaryLabel}>Income</span>
-              <span className={[styles.summaryAmount, styles.summaryIncome].join(' ')}>{formatHUF(income)}</span>
+              <span className={[styles.summaryAmount, styles.summaryIncome].join(' ')}>{formatHUF(animatedIncome)}</span>
             </div>
             <div className={styles.summaryCard}>
               <span className={styles.summaryLabel}>Expenses</span>
-              <span className={[styles.summaryAmount, styles.summaryExpense].join(' ')}>{formatHUF(expense)}</span>
+              <span className={[styles.summaryAmount, styles.summaryExpense].join(' ')}>{formatHUF(animatedExpense)}</span>
             </div>
             <div className={styles.summaryCard}>
               <span className={styles.summaryLabel}>Net</span>
               <span className={[styles.summaryAmount, income - expense >= 0 ? styles.summaryIncome : styles.summaryExpense].join(' ')}>
-                {income - expense >= 0 ? '+' : ''}{formatHUF(income - expense)}
+                {income - expense >= 0 ? '+' : ''}{formatHUF(animatedNet)}
               </span>
             </div>
             <div className={styles.summaryCard}>
               <span className={styles.summaryLabel}>Transactions</span>
-              <span className={styles.summaryAmount}>{periodTxs.filter(t => !t.transfer_group_id).length}</span>
+              <span className={styles.summaryAmount}>{animatedTxCount}</span>
             </div>
           </div>
 
