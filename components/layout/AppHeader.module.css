@@ -95,6 +95,12 @@
   transition: opacity var(--transition-fast);
 }
 
+html[data-theme="dark"] {
+  .avatar {
+    background: #321c52;
+  }
+}
+
 .avatar:hover {
   opacity: 0.85;
 }

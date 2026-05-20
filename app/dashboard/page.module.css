@@ -51,8 +51,7 @@
 /* ── Period row (below Cash Flow) ── */
 .periodRow {
   display: flex;
-  justify-content: flex-start;
-  margin-top: calc(var(--space-8) * -0.5);
+  justify-content: center;
 }
 
 .periodPicker {
@@ -503,4 +502,25 @@
   .leftCol {
     display: none;
   }
+}
+
+/* Overrides */
+
+.periodRow [class*="labelBtn"] {
+  border-radius: var(--radius-md);
+  border-color: #321c52;
+}
+
+
+.periodRow [class*="caret"] {
+  content: "";
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' xml:space='preserve' width='512' height='298' fill-rule='evenodd' clip-rule='evenodd' image-rendering='optimizeQuality' shape-rendering='geometricPrecision' text-rendering='geometricPrecision' viewBox='0 0 512 298.04'%3E%3Cpath fill='%23fff' fill-rule='nonzero' d='M12.08 70.78c-16.17-16.24-16.09-42.54.15-58.7 16.25-16.17 42.54-16.09 58.71.15L256 197.76 441.06 12.23c16.17-16.24 42.46-16.32 58.71-.15 16.24 16.16 16.32 42.46.15 58.7L285.27 285.96c-16.24 16.17-42.54 16.09-58.7-.15z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat no-repeat;
+  background-position: center center;
+  background-size: contain;
+  display: block;
+  height: 8px;
+  width: 12px;
+  font-size: 0;
+  margin-left: 2px;
 }

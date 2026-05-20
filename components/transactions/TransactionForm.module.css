@@ -190,13 +190,12 @@
   flex: 1;
 }
 
+.currencyInput input {
+  text-align: end;
+}
+
 .currencyBadge {
-  height: 42px;
-  min-width: 52px;
-  padding: 0 var(--space-3);
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  margin-left: 8px;
   font-size: 0.875rem;
   font-weight: 700;
   color: var(--color-text-muted);
@@ -325,7 +324,7 @@
 
 .actions {
   display: flex;
-  justify-content: space-between;
+  justify-content: end;
   gap: var(--space-3);
 }
 
