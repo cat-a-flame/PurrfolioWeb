@@ -358,27 +358,6 @@
   overflow: hidden;
 }
 
-/* ── Transaction row animations ── */
-@keyframes txSlideIn {
-  from { opacity: 0; transform: translateX(-8px); background-color: var(--color-accent-light); }
-  55%  { background-color: var(--color-accent-light); }
-  to   { opacity: 1; transform: translateX(0);   background-color: var(--color-surface); }
-}
-
-@keyframes txSlideOut {
-  from { opacity: 1; transform: translateX(0); }
-  to   { opacity: 0; transform: translateX(14px); }
-}
-
-.txRowNew {
-  animation: txSlideIn 0.55s ease-out;
-}
-
-.txRowDeleting {
-  animation: txSlideOut 0.25s ease-in forwards;
-  pointer-events: none;
-}
-
 /* ── Transaction row ── */
 .txRow {
   display: flex;

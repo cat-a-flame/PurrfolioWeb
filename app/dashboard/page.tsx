@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import AnimatedValue from '@/components/ui/AnimatedValue';
+import { useCountUp } from '@/lib/useCountUp';
 import Link from 'next/link';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
@@ -77,11 +77,6 @@ export default function DashboardPage() {
   const [editingTransferPair, setEditingTransferPair] = useState<Transaction | undefined>();
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
 
-  const [highlightedTxId, setHighlightedTxId] = useState<string | null>(null);
-  const [deletingTxId, setDeletingTxId] = useState<string | null>(null);
-  const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
-  const prevTxIdsRef = useRef<Set<string> | null>(null);
-
   // Exchange rates: date → { EUR: number, USD: number, … } (HUF per 1 unit)
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
 
@@ -99,22 +94,6 @@ export default function DashboardPage() {
         return next;
       }));
   }, [allTransactions]);
-
-  // Detect newly added transactions and trigger slide-in animation
-  useEffect(() => {
-    if (loading) return;
-    if (prevTxIdsRef.current === null) {
-      prevTxIdsRef.current = new Set(allTransactions.map(t => t.id));
-      return;
-    }
-    const newTxs = allTransactions.filter(t => !prevTxIdsRef.current!.has(t.id));
-    if (newTxs.length > 0) {
-      const newest = [...newTxs].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
-      setHighlightedTxId(newest.id);
-      setTimeout(() => setHighlightedTxId(null), 700);
-    }
-    prevTxIdsRef.current = new Set(allTransactions.map(t => t.id));
-  }, [allTransactions, loading]);
 
   // Lazy load
   const [displayCount, setDisplayCount] = useState(15);
@@ -156,6 +135,8 @@ export default function DashboardPage() {
                     - prevTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {})  , 0);
 
   const vsPct = prevBalance === 0 ? null : Math.round(((balance - prevBalance) / Math.abs(prevBalance)) * 100);
+
+  const animatedBalance = useCountUp(balance);
 
   const total      = income + expense;
   const incomePct  = total > 0 ? (income  / total) * 100 : 0;
@@ -212,12 +193,6 @@ export default function DashboardPage() {
 
   async function handleDelete() {
     if (!editingTransaction) return;
-    // Trigger exit animation before the network call
-    if (editingTransaction.transfer_group_id) {
-      setDeletingGroupId(editingTransaction.transfer_group_id);
-    } else {
-      setDeletingTxId(editingTransaction.id);
-    }
     const supabase = createClient();
     if (editingTransaction.transfer_group_id) {
       const { error } = await supabase.from('transactions').delete().eq('transfer_group_id', editingTransaction.transfer_group_id);
@@ -230,8 +205,6 @@ export default function DashboardPage() {
     setEditingTransferPair(undefined);
     setToast({ message: 'Transaction deleted.', variant: 'success' });
     await fetchData();
-    setDeletingTxId(null);
-    setDeletingGroupId(null);
   }
 
   async function handleSave(data: TransactionFormData) {
@@ -349,7 +322,7 @@ export default function DashboardPage() {
                 <div className={styles.cashFlowTop}>
                   <div className={styles.cashFlowLeft}>
                     <span className={styles.cashFlowPeriodLabel}>{period.label}</span>
-                    <div className={styles.cashFlowBalance}><AnimatedValue value={balance} format={formatHUF} /></div>
+                    <div className={styles.cashFlowBalance}>{formatHUF(animatedBalance)}</div>
                   </div>
                   {vsPct !== null && (
                     <div className={styles.cashFlowRight}>
@@ -410,10 +383,8 @@ export default function DashboardPage() {
                         <div className={styles.dayTxList}>
                           {dayTxs.map(t => {
                             const isTransfer = !!t.transfer_group_id;
-                            const isHighlighted = t.id === highlightedTxId;
-                            const isDeleting = t.id === deletingTxId || (!!t.transfer_group_id && t.transfer_group_id === deletingGroupId);
                             return (
-                              <div key={t.id} className={[styles.txRow, isHighlighted && styles.txRowNew, isDeleting && styles.txRowDeleting].filter(Boolean).join(' ')}>
+                              <div key={t.id} className={styles.txRow}>
                                 <div
                                   className={styles.txIcon}
                                   style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
