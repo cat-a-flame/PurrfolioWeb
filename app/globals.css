@@ -81,6 +81,7 @@ html[data-theme="dark"] {
   --color-border: #3a2060;
   --color-border-focus: #d946a8;
   --color-accent-glow: rgba(217, 70, 168, 0.45);
+  --color-accent-glow2: 217, 70, 168;
   --color-accent-border: rgba(217, 70, 168, 0.25);
   --color-overlay: rgba(5, 0, 15, 0.7);
 

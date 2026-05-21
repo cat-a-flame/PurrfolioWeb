@@ -51,7 +51,7 @@ export default function TransactionsPage() {
     setIsFiltering(true);
     const t = setTimeout(() => setIsFiltering(false), 200);
     return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterPeriod, filterSearch]);
 
   // Exchange rates: date → { EUR: number, USD: number, … } (HUF per 1 unit)
@@ -206,10 +206,10 @@ export default function TransactionsPage() {
         return {
           date,
           transactions: [...txs].sort((a, b) => b.created_at.localeCompare(a.created_at)),
-          net: txs.filter(t => t.type === 'income'  && !t.transfer_group_id)
-                  .reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, rates), 0)
-             - txs.filter(t => t.type === 'expense' && !t.transfer_group_id)
-                  .reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, rates), 0),
+          net: txs.filter(t => t.type === 'income' && !t.transfer_group_id)
+            .reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, rates), 0)
+            - txs.filter(t => t.type === 'expense' && !t.transfer_group_id)
+              .reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, rates), 0),
         };
       });
   }, [visibleTransactions, ratesByDate]);
@@ -606,44 +606,55 @@ export default function TransactionsPage() {
                           const isTransfer = !!t.transfer_group_id;
                           return (
                             <div key={t.id} className={[styles.txRow, selectedIds.has(t.id) ? styles.txRowSelected : ''].filter(Boolean).join(' ')}>
-                              <input
-                                type="checkbox"
-                                className={styles.txCheckbox}
-                                checked={selectedIds.has(t.id)}
-                                onChange={() => toggleSelect(t.id)}
-                                aria-label="Select transaction"
-                                onClick={e => e.stopPropagation()}
-                              />
-                              <div
-                                className={styles.txIcon}
-                                style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
-                              >
-                                {isTransfer ? '↔' : (t.category?.icon ?? '?')}
-                              </div>
-                              <div className={styles.txMain}>
-                                <span className={styles.txCategory}>
-                                  {isTransfer ? 'Transfer' : (t.category?.name ?? 'Uncategorised')}
-                                </span>
-                                {t.wallet && (
-                                  <span className={styles.txWallet}>
-                                    <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
-                                    {t.wallet.name}
+                              <div className={styles.txLeft}>
+                                <input
+                                  type="checkbox"
+                                  className={styles.txCheckbox}
+                                  checked={selectedIds.has(t.id)}
+                                  onChange={() => toggleSelect(t.id)}
+                                  aria-label="Select transaction"
+                                  onClick={e => e.stopPropagation()}
+                                />
+                                <div
+                                  className={styles.txIcon}
+                                  style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
+                                >
+                                  {isTransfer ? '↔' : (t.category?.icon ?? '?')}
+                                </div>
+                                <div className={styles.txMain}>
+                                  <span className={styles.txCategory}>
+                                    {isTransfer ? 'Transfer' : (t.category?.name ?? 'Uncategorised')}
                                   </span>
-                                )}
-                                {t.notes && (
-                                  <span className={styles.txNotes}>{t.notes}</span>
-                                )}
+                                  {t.wallet && (
+                                    <span className={styles.txWallet}>
+                                      <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
+                                      {t.wallet.name}
+                                    </span>
+                                  )}
+                                  {t.notes && (
+                                    <span className={styles.txNotes}>{t.notes}</span>
+                                  )}
+                                </div>
                                 {t.labels && t.labels.length > 0 && (
-                                  <span className={styles.txLabels}>
+                                  <div className={styles.txLabels}>
                                     {t.labels.map(l => (
-                                      <span key={l.id} className={styles.txLabel} style={{ backgroundColor: l.color + '22', color: l.color }}>
+                                      <span key={l.id} className={styles.txLabel}>
+                                        <span className={styles.txWalletDot} style={{ backgroundColor: l.color }} />
                                         {l.name}
                                       </span>
                                     ))}
-                                  </span>
+                                  </div>
                                 )}
                               </div>
+
                               <div className={styles.txRight}>
+                                <button
+                                  className={styles.txEditBtn}
+                                  onClick={() => openEdit(t)}
+                                  aria-label="Edit transaction"
+                                >
+                                  Edit
+                                </button>
                                 <span className={[
                                   styles.txAmount,
                                   isTransfer ? styles.txTransfer : t.type === 'income' ? styles.txIncome : styles.txExpense,
@@ -653,13 +664,6 @@ export default function TransactionsPage() {
                                     : (t.type === 'income' ? '' : '−')
                                   }{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
                                 </span>
-                                <button
-                                  className={styles.txEditBtn}
-                                  onClick={() => openEdit(t)}
-                                  aria-label="Edit transaction"
-                                >
-                                  Edit
-                                </button>
                               </div>
                             </div>
                           );

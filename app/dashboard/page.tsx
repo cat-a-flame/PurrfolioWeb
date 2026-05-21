@@ -125,21 +125,21 @@ export default function DashboardPage() {
 
   const prevRange = useMemo(() => getPrevRange(period), [period]);
   const periodTxs = useMemo(() => filterByRange(allTransactions, period.from, period.to), [allTransactions, period]);
-  const prevTxs   = useMemo(() => filterByRange(allTransactions, prevRange.from, prevRange.to), [allTransactions, prevRange]);
+  const prevTxs = useMemo(() => filterByRange(allTransactions, prevRange.from, prevRange.to), [allTransactions, prevRange]);
 
-  const income  = periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0);
+  const income = periodTxs.filter(t => t.type === 'income' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0);
   const expense = periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0);
   const balance = income - expense;
 
-  const prevBalance = prevTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0)
-                    - prevTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {})  , 0);
+  const prevBalance = prevTxs.filter(t => t.type === 'income' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0)
+    - prevTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0);
 
   const vsPct = prevBalance === 0 ? null : Math.round(((balance - prevBalance) / Math.abs(prevBalance)) * 100);
 
   const animatedBalance = useCountUp(balance);
 
-  const total      = income + expense;
-  const incomePct  = total > 0 ? (income  / total) * 100 : 0;
+  const total = income + expense;
+  const incomePct = total > 0 ? (income / total) * 100 : 0;
   const expensePct = total > 0 ? (expense / total) * 100 : 0;
 
   // Wallet totals computed from ALL transactions (not period-filtered)
@@ -183,10 +183,10 @@ export default function DashboardPage() {
         return {
           date,
           transactions: [...txs].sort((a, b) => b.created_at.localeCompare(a.created_at)),
-          net: txs.filter(t => t.type === 'income'  && !t.transfer_group_id)
-                  .reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, rates), 0)
-             - txs.filter(t => t.type === 'expense' && !t.transfer_group_id)
-                  .reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, rates), 0),
+          net: txs.filter(t => t.type === 'income' && !t.transfer_group_id)
+            .reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, rates), 0)
+            - txs.filter(t => t.type === 'expense' && !t.transfer_group_id)
+              .reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, rates), 0),
         };
       });
   }, [visiblePeriodTxs, ratesByDate]);
@@ -385,33 +385,45 @@ export default function DashboardPage() {
                             const isTransfer = !!t.transfer_group_id;
                             return (
                               <div key={t.id} className={styles.txRow}>
-                                <div
-                                  className={styles.txIcon}
-                                  style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
-                                >
-                                  {isTransfer ? '↔' : (t.category?.icon ?? '?')}
-                                </div>
-                                <div className={styles.txMain}>
-                                  <span className={styles.txCategory}>
-                                    {isTransfer ? 'Transfer' : (t.category?.name ?? 'Uncategorised')}
-                                  </span>
-                                  {t.wallet && (
-                                    <span className={styles.txWallet}>
-                                      <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
-                                      {t.wallet.name}
+                                <div className={styles.txLeft}>
+                                  <div
+                                    className={styles.txIcon}
+                                    style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
+                                  >
+                                    {isTransfer ? '↔' : (t.category?.icon ?? '?')}
+                                  </div>
+                                  <div className={styles.txMain}>
+                                    <span className={styles.txCategory}>
+                                      {isTransfer ? 'Transfer' : (t.category?.name ?? 'Uncategorised')}
                                     </span>
-                                  )}
+                                    {t.wallet && (
+                                      <span className={styles.txWallet}>
+                                        <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
+                                        {t.wallet.name}
+                                      </span>
+                                    )}
+                                  </div>
                                   {t.labels && t.labels.length > 0 && (
-                                    <span className={styles.txLabels}>
+                                    <div className={styles.txLabels}>
                                       {t.labels.map(l => (
-                                        <span key={l.id} className={styles.txLabel} style={{ backgroundColor: l.color + '22', color: l.color }}>
+                                        <span key={l.id} className={styles.txLabel}>
+                                          <span className={styles.txWalletDot} style={{ backgroundColor: l.color }} />
                                           {l.name}
                                         </span>
                                       ))}
-                                    </span>
+                                    </div>
                                   )}
                                 </div>
+
                                 <div className={styles.txRight}>
+                                  <button
+                                    className={styles.txEditBtn}
+                                    onClick={() => openEdit(t)}
+                                    aria-label="Edit transaction"
+                                  >
+                                    Edit
+                                  </button>
+
                                   <span className={[
                                     styles.txAmount,
                                     isTransfer ? styles.txTransfer : t.type === 'income' ? styles.txIncome : styles.txExpense,
@@ -421,13 +433,7 @@ export default function DashboardPage() {
                                       : (t.type === 'income' ? '' : '−')
                                     }{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
                                   </span>
-                                  <button
-                                    className={styles.txEditBtn}
-                                    onClick={() => openEdit(t)}
-                                    aria-label="Edit transaction"
-                                  >
-                                    Edit
-                                  </button>
+
                                 </div>
                               </div>
                             );

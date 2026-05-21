@@ -31,6 +31,7 @@ export default function AppHeader() {
     <header className={styles.header}>
       <div className={styles.inner}>
         <Link href="/dashboard" className={styles.brand}>
+          <img src="/logo.png" alt="PennyPuff logo" className={styles.logo} />
           PennyPuff
         </Link>
 

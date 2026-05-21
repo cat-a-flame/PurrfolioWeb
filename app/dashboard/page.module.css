@@ -130,6 +130,29 @@
   flex-direction: column;
   gap: var(--space-5);
   box-shadow: var(--shadow-sm);
+  position: relative;
+  background: rgba(98, 44, 143, 0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(98, 44, 143, 0.3);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(98, 44, 143, 0.5),
+    inset 0 -1px 0 rgba(98, 44, 143, 0.1),
+    inset 0 0 10px 5px rgba(98, 44, 143, 0.3);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent);
+  }
 }
 
 .cashFlowTitle {
@@ -244,8 +267,13 @@
   transition: width 0.4s ease;
 }
 
-.barFillIncome { background: var(--color-income); }
-.barFillExpense { background: var(--color-expense); }
+.barFillIncome {
+  background: var(--color-income);
+}
+
+.barFillExpense {
+  background: var(--color-expense);
+}
 
 /* ── Sections ── */
 .section {
@@ -273,7 +301,9 @@
   text-decoration: none;
 }
 
-.viewAll:hover { text-decoration: underline; }
+.viewAll:hover {
+  text-decoration: underline;
+}
 
 /* ── Wallet grid ── */
 .walletGrid {
@@ -300,14 +330,52 @@
   gap: var(--space-2);
 }
 
-.walletCardHeader { display: flex; align-items: center; gap: var(--space-2); }
-.walletCardIcon { font-size: 1.125rem; line-height: 1; }
-.walletCardName { font-size: 0.9375rem; font-weight: 600; color: var(--color-text); flex: 1; }
-.walletCardCurrency { font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); letter-spacing: 0.04em; }
-.walletCardBalance { font-size: 1.25rem; font-weight: 700; font-family: var(--font-figtree); color: var(--color-text); }
-.walletCardDetails { display: flex; gap: var(--space-3); font-size: 0.8125rem; font-weight: 500; }
-.walletCardIncome { color: var(--color-income); }
-.walletCardExpense { color: var(--color-expense); }
+.walletCardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.walletCardIcon {
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.walletCardName {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text);
+  flex: 1;
+}
+
+.walletCardCurrency {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.walletCardBalance {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-family: var(--font-figtree);
+  color: var(--color-text);
+}
+
+.walletCardDetails {
+  display: flex;
+  gap: var(--space-3);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.walletCardIncome {
+  color: var(--color-income);
+}
+
+.walletCardExpense {
+  color: var(--color-expense);
+}
 
 /* ── Grouped transaction list ── */
 .groupedList {
@@ -341,8 +409,13 @@
   font-family: var(--font-figtree);
 }
 
-.dayNetPos { color: var(--color-income); }
-.dayNetNeg { color: var(--color-expense); }
+.dayNetPos {
+  color: var(--color-income);
+}
+
+.dayNetNeg {
+  color: var(--color-expense);
+}
 
 .dayTxList {
   display: flex;
@@ -350,6 +423,29 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  background: rgba(98, 44, 143, 0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(98, 44, 143, 0.3);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(98, 44, 143, 0.5),
+    inset 0 -1px 0 rgba(98, 44, 143, 0.1),
+    inset 0 0 10px 5px rgba(98, 44, 143, 0.3);
+  position: relative;
+}
+
+.txRow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.4),
+      transparent);
 }
 
 /* ── Transaction row ── */
@@ -358,15 +454,17 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  background: var(--color-surface);
   transition: background var(--transition-fast);
+  position: relative;
 }
 
-.txRow + .txRow {
+.txRow+.txRow {
   border-top: 1px solid var(--color-border);
 }
 
-.txRow:hover { background: var(--color-surface-2); }
+.txRow:hover {
+  background: rgba(98, 44, 143, 0.15);
+}
 
 .txIcon {
   width: 38px;
@@ -377,14 +475,6 @@
   justify-content: center;
   font-size: 1.125rem;
   flex-shrink: 0;
-}
-
-.txMain {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
 }
 
 .txCategory {
@@ -409,11 +499,17 @@
   flex-shrink: 0;
 }
 
+.txLeft {
+  display: flex;
+  gap: var(--space-3);
+  flex-grow: 1;
+  flex-shrink: 0;
+  align-items: center;
+}
+
 .txRight {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
+  gap: var(--space-3);
   flex-shrink: 0;
 }
 
@@ -423,26 +519,34 @@
   font-family: var(--font-figtree);
 }
 
-.txIncome { color: var(--color-income); }
-.txExpense { color: var(--color-expense); }
-.txTransfer { color: var(--color-text-muted); }
+.txIncome {
+  color: var(--color-income);
+}
+
+.txExpense {
+  color: var(--color-expense);
+}
+
+.txTransfer {
+  color: var(--color-text-muted);
+}
 
 .txLabels {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
-  margin-top: 2px;
+  gap: var(--space-2);
+  margin-left: var(--space-3);
 }
 
 .txLabel {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  height: 18px;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-full);
-  font-size: 0.6875rem;
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  gap: .3rem;
   white-space: nowrap;
 }
 

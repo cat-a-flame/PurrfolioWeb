@@ -41,7 +41,7 @@
 
 /* ── Filter sidebar ── */
 .filterSidebar {
-  width: 220px;
+  width: 300px;
   flex-shrink: 0;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -431,6 +431,16 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  background: rgba(98, 44, 143, 0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(98, 44, 143, 0.3);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(98, 44, 143, 0.5),
+    inset 0 -1px 0 rgba(98, 44, 143, 0.1),
+    inset 0 0 10px 5px rgba(98, 44, 143, 0.3);
+  position: relative;
 }
 
 /* ── Transaction row ── */
@@ -439,15 +449,30 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  background: var(--color-surface);
   transition: background var(--transition-fast);
+  position: relative;
+}
+
+.txRow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.4),
+      transparent);
 }
 
 .txRow + .txRow {
   border-top: 1px solid var(--color-border);
 }
 
-.txRow:hover { background: var(--color-surface-2); }
+.txRow:hover {
+  background: rgba(98, 44, 143, 0.15);
+}
 
 .txIcon {
   width: 38px;
@@ -458,14 +483,6 @@
   justify-content: center;
   font-size: 1.125rem;
   flex-shrink: 0;
-}
-
-.txMain {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
 }
 
 .txCategory {
@@ -498,11 +515,18 @@
   text-overflow: ellipsis;
 }
 
+.txLeft {
+  display: flex;
+  gap: var(--space-3);
+  flex-grow: 1;
+  flex-shrink: 0;
+  align-items: center;
+}
+
 .txRight {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
+  align-items: center;
+  gap: var(--space-3);
   flex-shrink: 0;
 }
 
@@ -519,19 +543,19 @@
 .txLabels {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
-  margin-top: 2px;
+  gap: var(--space-2);
+  margin-left: var(--space-3);
 }
 
 .txLabel {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  height: 18px;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-full);
-  font-size: 0.6875rem;
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  gap: .3rem;
   white-space: nowrap;
 }
 
