@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import Button from '@/components/ui/Button';
-import Dialog from '@/components/ui/Dialog';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
@@ -351,75 +350,108 @@ export default function RecurringPage() {
     return date.toLocaleDateString('default', { month: 'short', day: 'numeric' });
   }
 
-  function paymentFormBody(form: FormFields, set: (f: FormFields) => void) {
+  function PaymentModal({ form, set, title, error, saving, onSave, onClose }: {
+    form: FormFields;
+    set: (f: FormFields) => void;
+    title: string;
+    error: string;
+    saving: boolean;
+    onSave: () => void;
+    onClose: () => void;
+  }) {
     return (
-      <div className={styles.formGrid}>
-        <div className={styles.formFullRow}>
-          <FormLabel>Name</FormLabel>
-          <Input value={form.name} onChange={e => set({ ...form, name: e.target.value })} placeholder="Mortgage, Phone bill…" />
-        </div>
-
-        <div>
-          <FormLabel>Type</FormLabel>
-          <div className={styles.typeToggle}>
-            {(['expense', 'income'] as TransactionType[]).map(t => (
-              <button key={t} className={[styles.typeBtn, form.type === t ? styles.typeBtnActive : ''].join(' ')}
-                onClick={() => set({ ...form, type: t })}>
-                {t === 'expense' ? 'Expense' : 'Income'}
-              </button>
-            ))}
+      <div className={styles.overlay} onClick={onClose}>
+        <div className={styles.modal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+          <div className={styles.modalHeader}>
+            <h2 className={styles.modalTitle}>{title}</h2>
+            <button type="button" className={styles.modalClose} onClick={onClose} aria-label="Close">✕</button>
           </div>
-        </div>
 
-        <div>
-          <FormLabel>Frequency</FormLabel>
-          <select className={styles.select} value={form.frequency}
-            onChange={e => set({ ...form, frequency: e.target.value as RecurrenceFrequency })}>
-            {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-          </select>
-        </div>
+          <div className={styles.modalForm}>
+            {/* Type tabs */}
+            <div className={styles.typeTabs}>
+              <button type="button"
+                className={[styles.typeTab, form.type === 'expense' ? styles.typeTabExpense : ''].join(' ')}
+                onClick={() => set({ ...form, type: 'expense' })}>Expense</button>
+              <button type="button"
+                className={[styles.typeTab, form.type === 'income' ? styles.typeTabIncome : ''].join(' ')}
+                onClick={() => set({ ...form, type: 'income' })}>Income</button>
+            </div>
 
-        <div>
-          <FormLabel>Amount</FormLabel>
-          <NumberInput value={form.amount} onChange={v => set({ ...form, amount: v })} placeholder="0" />
-        </div>
+            {/* Name */}
+            <div className={styles.field}>
+              <FormLabel required>Name</FormLabel>
+              <Input value={form.name} onChange={e => set({ ...form, name: e.target.value })} placeholder="Mortgage, Phone bill…" />
+            </div>
 
-        <div>
-          <FormLabel>Wallet</FormLabel>
-          <select className={styles.select} value={form.walletId}
-            onChange={e => set({ ...form, walletId: e.target.value })}>
-            <option value="">— select wallet —</option>
-            {wallets.map(w => <option key={w.id} value={w.id}>{w.icon} {w.name}</option>)}
-          </select>
-        </div>
+            {/* Amount + Frequency */}
+            <div className={styles.twoCol}>
+              <div className={styles.field}>
+                <FormLabel required>Amount</FormLabel>
+                <NumberInput value={form.amount} onChange={v => set({ ...form, amount: v })} placeholder="0" />
+              </div>
+              <div className={styles.field}>
+                <FormLabel required>Frequency</FormLabel>
+                <select className={styles.select} value={form.frequency}
+                  onChange={e => set({ ...form, frequency: e.target.value as RecurrenceFrequency })}>
+                  {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                </select>
+              </div>
+            </div>
 
-        <div>
-          <FormLabel>Category</FormLabel>
-          <select className={styles.select} value={form.categoryId}
-            onChange={e => set({ ...form, categoryId: e.target.value })}>
-            <option value="">— none —</option>
-            {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-          </select>
-        </div>
+            {/* Wallet + Category */}
+            <div className={styles.twoCol}>
+              <div className={styles.field}>
+                <FormLabel required>Wallet</FormLabel>
+                <select className={styles.select} value={form.walletId}
+                  onChange={e => set({ ...form, walletId: e.target.value })}>
+                  <option value="">— select —</option>
+                  {wallets.map(w => <option key={w.id} value={w.id}>{w.icon} {w.name}</option>)}
+                </select>
+              </div>
+              <div className={styles.field}>
+                <FormLabel>Category</FormLabel>
+                <select className={styles.select} value={form.categoryId}
+                  onChange={e => set({ ...form, categoryId: e.target.value })}>
+                  <option value="">— none —</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+                </select>
+              </div>
+            </div>
 
-        <div>
-          <FormLabel>Start date</FormLabel>
-          <Input type="date" value={form.startDate} onChange={e => set({ ...form, startDate: e.target.value })} />
-        </div>
+            {/* Start + End date */}
+            <div className={styles.twoCol}>
+              <div className={styles.field}>
+                <FormLabel required>Start date</FormLabel>
+                <Input type="date" value={form.startDate} onChange={e => set({ ...form, startDate: e.target.value })} />
+              </div>
+              <div className={styles.field}>
+                <FormLabel>End date <span className={styles.optional}>(optional)</span></FormLabel>
+                <Input type="date" value={form.endDate} onChange={e => set({ ...form, endDate: e.target.value })} />
+              </div>
+            </div>
 
-        <div>
-          <FormLabel>End date <span className={styles.optional}>(optional)</span></FormLabel>
-          <Input type="date" value={form.endDate} onChange={e => set({ ...form, endDate: e.target.value })} />
-        </div>
+            {/* Payer + Notes */}
+            <div className={styles.twoCol}>
+              <div className={styles.field}>
+                <FormLabel>Payer / payee <span className={styles.optional}>(optional)</span></FormLabel>
+                <Input value={form.payer} onChange={e => set({ ...form, payer: e.target.value })} placeholder="e.g. OTP Bank" />
+              </div>
+              <div className={styles.field}>
+                <FormLabel>Notes <span className={styles.optional}>(optional)</span></FormLabel>
+                <Input value={form.notes} onChange={e => set({ ...form, notes: e.target.value })} />
+              </div>
+            </div>
 
-        <div className={styles.formFullRow}>
-          <FormLabel>Payer / payee <span className={styles.optional}>(optional)</span></FormLabel>
-          <Input value={form.payer} onChange={e => set({ ...form, payer: e.target.value })} placeholder="e.g. OTP Bank" />
-        </div>
+            {error && <p className={styles.formError}>{error}</p>}
 
-        <div className={styles.formFullRow}>
-          <FormLabel>Notes <span className={styles.optional}>(optional)</span></FormLabel>
-          <Input value={form.notes} onChange={e => set({ ...form, notes: e.target.value })} placeholder="" />
+            <div className={styles.actions}>
+              <Button variant="secondary" size="md" onClick={onClose}>Cancel</Button>
+              <Button variant="primary" size="md" onClick={onSave} disabled={saving}>
+                {saving ? 'Saving…' : 'Save'}
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -550,32 +582,14 @@ export default function RecurringPage() {
       </main>
       <AppFooter />
 
-      {/* Add dialog */}
       {showAddDialog && (
-        <Dialog onClose={() => setShowAddDialog(false)} title="Add recurring payment">
-          {paymentFormBody(addForm, setAddForm)}
-          {addError && <p className={styles.formError}>{addError}</p>}
-          <div className={styles.dialogActions}>
-            <Button variant="secondary" size="md" onClick={() => setShowAddDialog(false)}>Cancel</Button>
-            <Button variant="primary" size="md" onClick={handleAdd} disabled={addSaving}>
-              {addSaving ? 'Saving…' : 'Add'}
-            </Button>
-          </div>
-        </Dialog>
+        <PaymentModal form={addForm} set={setAddForm} title="Add recurring payment"
+          error={addError} saving={addSaving} onSave={handleAdd} onClose={() => setShowAddDialog(false)} />
       )}
 
-      {/* Edit dialog */}
       {editingPayment && (
-        <Dialog onClose={() => setEditingPayment(null)} title="Edit recurring payment">
-          {paymentFormBody(editForm, setEditForm)}
-          {editError && <p className={styles.formError}>{editError}</p>}
-          <div className={styles.dialogActions}>
-            <Button variant="secondary" size="md" onClick={() => setEditingPayment(null)}>Cancel</Button>
-            <Button variant="primary" size="md" onClick={handleEdit} disabled={editSaving}>
-              {editSaving ? 'Saving…' : 'Save'}
-            </Button>
-          </div>
-        </Dialog>
+        <PaymentModal form={editForm} set={setEditForm} title="Edit recurring payment"
+          error={editError} saving={editSaving} onSave={handleEdit} onClose={() => setEditingPayment(null)} />
       )}
 
       {/* Delete confirm */}
