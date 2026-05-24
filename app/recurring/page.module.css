@@ -39,12 +39,6 @@
   color: var(--color-text);
 }
 
-.pageSubtitle {
-  font-size: 0.9375rem;
-  color: var(--color-text-muted);
-  margin-top: var(--space-1);
-}
-
 /* ── Section ── */
 .section {
   background: var(--color-surface);
@@ -179,7 +173,7 @@
 
 .dueDateBadge {
   display: inline-block;
-  padding: 1px 6px;
+  padding: var(--space-1) 0 var(--sapce-1) var(--space-2);
   border-radius: var(--radius-sm);
   background: var(--color-surface-alt);
   font-weight: 500;
@@ -212,8 +206,7 @@
 }
 
 .payBtn {
-  padding: var(--space-1) var(--space-3);
-  background: var(--color-primary, #f26e4d);
+  background: var(--color-primary, #93359365);
   color: #fff;
   border: none;
   border-radius: var(--radius-md);
@@ -221,21 +214,30 @@
   font-weight: 500;
   cursor: pointer;
   transition: opacity 0.15s;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  width: 32px;
+  justify-content: center;
 }
 .payBtn:hover:not(:disabled) { opacity: 0.85; }
 .payBtn:disabled { opacity: 0.5; cursor: default; }
 
 .skipBtn {
-  padding: var(--space-1) var(--space-3);
   background: transparent;
   color: var(--color-text-muted);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  width: 32px;
+  justify-content: center;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
-.skipBtn:hover:not(:disabled) { background: var(--color-surface-alt); color: var(--color-text); }
+.skipBtn:hover:not(:disabled) { opacity: 0.7; }
 .skipBtn:disabled { opacity: 0.5; cursor: default; }
 
 /* ── Payment list ── */
@@ -268,15 +270,6 @@
   flex: 1;
   min-width: 0;
 }
-
-.paymentTypeDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.dotExpense { background: var(--color-expense, #ef4444); }
-.dotIncome  { background: var(--color-income, #22c55e); }
 
 .paymentName {
   font-size: 0.9375rem;
@@ -328,13 +321,17 @@
 .kebabTrigger {
   background: transparent;
   border: none;
-  padding: var(--space-1) var(--space-2);
   cursor: pointer;
   border-radius: var(--radius-sm);
   font-size: 1rem;
   color: var(--color-text-muted);
   line-height: 1;
   letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  width: 32px;
   transition: background 0.15s, color 0.15s;
 }
 .kebabTrigger:hover { background: var(--color-surface-alt); color: var(--color-text); }

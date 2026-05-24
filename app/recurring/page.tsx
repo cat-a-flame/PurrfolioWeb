@@ -16,6 +16,11 @@ import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import { createClient } from '@/lib/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import { generateDueDates, frequencyLabel, nextDueDate, isoDate, monthBounds } from '@/lib/recurringUtils';
+import { FaCheck } from 'react-icons/fa';
+import { RxCross1 } from "react-icons/rx";
+import { FaChevronRight } from "react-icons/fa6";
+import { FaChevronLeft } from "react-icons/fa6";
+import { BsThreeDotsVertical } from "react-icons/bs";
 import type {
   RecurringPayment, RecurringOccurrence, RecurrenceFrequency,
   Wallet, Category, Label, TransactionType,
@@ -410,7 +415,6 @@ export default function RecurringPage() {
           <div className={styles.pageHeader}>
             <div>
               <h1 className={styles.pageTitle}>Planned payments</h1>
-              <p className={styles.pageSubtitle}>Recurring income and expenses — see what&apos;s coming and mark them when they happen.</p>
             </div>
             <Button variant="primary" size="md" onClick={() => { setAddForm({ ...EMPTY_FORM, walletId: wallets.find(w => w.is_default)?.id ?? '' }); setShowAddDialog(true); setAddError(''); }}>
               + Add
@@ -422,14 +426,9 @@ export default function RecurringPage() {
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>Due this month</h2>
               <div className={styles.monthNav}>
-                <button className={styles.monthNavBtn} onClick={prevMonth}>‹</button>
+                <button className={styles.monthNavBtn} onClick={prevMonth}><FaChevronLeft /></button>
                 <span className={styles.monthLabel}>{monthLabel}</span>
-                <button className={styles.monthNavBtn} onClick={nextMonth}>›</button>
-                {!isCurrentMonth && (
-                  <button className={styles.monthNavToday} onClick={() => { setViewYear(today.getFullYear()); setViewMonth(today.getMonth()); }}>
-                    Today
-                  </button>
-                )}
+                <button className={styles.monthNavBtn} onClick={nextMonth}><FaChevronRight /></button>
               </div>
             </div>
 
@@ -488,12 +487,10 @@ export default function RecurringPage() {
                     return (
                       <div key={p.id} className={[styles.paymentRow, !p.is_active ? styles.paymentRowInactive : ''].join(' ')}>
                         <div className={styles.paymentMeta}>
-                          <span className={[styles.paymentTypeDot, p.type === 'income' ? styles.dotIncome : styles.dotExpense].join(' ')} />
                           <div>
                             <p className={styles.paymentName}>{p.name}</p>
                             <p className={styles.paymentSub}>
-                              {p.wallet && `${p.wallet.icon} ${p.wallet.name}`}
-                              {p.category && ` · ${p.category.icon} ${p.category.name}`}
+                              {p.category && ` ${p.category.icon} ${p.category.name}`}
                             </p>
                           </div>
                         </div>
@@ -510,13 +507,13 @@ export default function RecurringPage() {
                           <button
                             className={styles.kebabTrigger}
                             onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === p.id ? null : p.id); }}
-                          >⋮</button>
+                          ><BsThreeDotsVertical /></button>
                           {openMenuId === p.id && (
                             <div className={styles.kebabMenu} onClick={e => e.stopPropagation()}>
+                              <button className={styles.kebabItem} onClick={() => { openEdit(p); setOpenMenuId(null); }}>Edit</button>
                               <button className={styles.kebabItem} onClick={() => { handleToggleActive(p); setOpenMenuId(null); }}>
                                 {p.is_active ? 'Pause' : 'Resume'}
                               </button>
-                              <button className={styles.kebabItem} onClick={() => { openEdit(p); setOpenMenuId(null); }}>Edit</button>
                               <button className={[styles.kebabItem, styles.kebabItemDanger].join(' ')} onClick={() => { setDeletingPayment(p); setOpenMenuId(null); }}>Delete</button>
                             </div>
                           )}
@@ -527,9 +524,7 @@ export default function RecurringPage() {
                 </div>
               </div>
             ))}
-
           </section>
-
         </div>
       </main>
       <AppFooter />
@@ -736,13 +731,11 @@ function DueCard({ item, loading, onPay, onSkip, currency, dueDateLabel }: {
   return (
     <div className={[styles.dueCard, isOverdue ? styles.dueCardOverdue : ''].join(' ')}>
       <div className={styles.dueMeta}>
-        <span className={[styles.paymentTypeDot, payment.type === 'income' ? styles.dotIncome : styles.dotExpense].join(' ')} />
         <div>
           <p className={styles.dueName}>{payment.name}</p>
           <p className={styles.dueSub}>
+            {payment.category && ` ${payment.category.icon} ${payment.category.name}`} ·
             <span className={[styles.dueDateBadge, isOverdue ? styles.dueDateBadgeOverdue : ''].join(' ')}>{dueDateLabel}</span>
-            {payment.wallet && ` ${payment.wallet.icon} ${payment.wallet.name}`}
-            {payment.category && ` · ${payment.category.icon} ${payment.category.name}`}
           </p>
         </div>
       </div>
@@ -751,11 +744,11 @@ function DueCard({ item, loading, onPay, onSkip, currency, dueDateLabel }: {
           {payment.type === 'expense' ? '−' : '+'}{formatCurrency(payment.amount, currency)}
         </span>
         <div className={styles.dueActions}>
-          <button className={styles.payBtn} onClick={() => onPay(item)} disabled={loading} title="Mark as paid">
-            {loading ? '…' : '✓ Pay'}
-          </button>
           <button className={styles.skipBtn} onClick={() => onSkip(item)} disabled={loading} title="Skip this occurrence">
-            Skip
+            <RxCross1 />
+          </button>
+          <button className={styles.payBtn} onClick={() => onPay(item)} disabled={loading} title="Mark as paid">
+            <FaCheck />
           </button>
         </div>
       </div>

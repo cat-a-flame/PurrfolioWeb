@@ -635,6 +635,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -647,8 +648,7 @@
 }
 
 .plannedWidgetTitle {
-  font-size: 0.875rem;
-  font-weight: 600;
+    font-weight: 600;
   color: var(--color-text);
 }
 
@@ -672,6 +672,10 @@
   gap: var(--space-3);
   padding: var(--space-2) 0;
   border-top: 1px solid var(--color-border);
+
+  &:nth-child(2) {
+    border-top: none;
+  }
 }
 
 .plannedItemLeft {
@@ -681,15 +685,6 @@
   flex: 1;
   min-width: 0;
 }
-
-.plannedDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.dotExpense { background: var(--color-expense, #ef4444); }
-.dotIncome  { background: var(--color-income, #22c55e); }
 
 .plannedName {
   font-size: 0.875rem;
@@ -703,13 +698,12 @@
 .plannedDate {
   font-size: 0.75rem;
   color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
 }
 
 .plannedItemRight {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
   flex-shrink: 0;
+  text-align: end;
 }
 
 .plannedAmt {
@@ -723,13 +717,13 @@
 
 .plannedBtns {
   display: flex;
-  gap: 4px;
+  gap: var(--space-2);
 }
 
 .plannedPayBtn {
   width: 26px;
   height: 26px;
-  background: var(--color-primary, #f26e4d);
+  background: var(--color-primary, #93359365);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
@@ -758,7 +752,7 @@
   align-items: center;
   justify-content: center;
 }
-.plannedSkipBtn:hover:not(:disabled) { background: var(--color-border); color: var(--color-text); }
+.plannedSkipBtn:hover:not(:disabled) { opacity: 0.7; }
 .plannedSkipBtn:disabled { opacity: 0.5; cursor: default; }
 
 .plannedFooter {

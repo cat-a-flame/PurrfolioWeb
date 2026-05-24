@@ -14,6 +14,8 @@ import { formatHUF, formatCurrency } from '@/lib/utils';
 import { getExchangeRates, txToHUF } from '@/lib/exchangeRates';
 import { generateDueDates, isoDate as recurringIsoDate, monthBounds } from '@/lib/recurringUtils';
 import type { Transaction, Wallet, Category, Label, RecurringPayment, RecurringOccurrence } from '@/lib/types';
+import { FaCheck } from 'react-icons/fa';
+import { RxCross1 } from "react-icons/rx";
 import styles from './page.module.css';
 
 function isoDate(d: Date): string {
@@ -311,8 +313,8 @@ export default function DashboardPage() {
         getWalletRate(data.transfer.to_wallet_id, data.date),
       ]);
       const { error } = await supabase.from('transactions').insert([
-        { ...common, type: 'expense', amount: data.amount,             wallet_id: data.wallet_id,             exchange_rate_to_huf: expenseRate },
-        { ...common, type: 'income',  amount: data.transfer.to_amount, wallet_id: data.transfer.to_wallet_id, exchange_rate_to_huf: incomeRate },
+        { ...common, type: 'expense', amount: data.amount, wallet_id: data.wallet_id, exchange_rate_to_huf: expenseRate },
+        { ...common, type: 'income', amount: data.transfer.to_amount, wallet_id: data.transfer.to_wallet_id, exchange_rate_to_huf: incomeRate },
       ]);
       if (error) throw error;
     } else {
@@ -389,21 +391,6 @@ export default function DashboardPage() {
           <div className={styles.twoCol}>
             {/* Left column: Wallets + Planned payments widget */}
             <div className={styles.leftCol}>
-              {walletSummaries.length > 0 && (
-                <div className={styles.walletList}>
-                  {walletSummaries.map(({ wallet, balance: wb }) => (
-                    <div key={wallet.id} className={styles.walletCard} style={{ borderLeftColor: wallet.color }}>
-                      <div className={styles.walletCardHeader}>
-                        <span className={styles.walletCardIcon}>{wallet.icon}</span>
-                        <span className={styles.walletCardName}>{wallet.name}</span>
-                        <span className={styles.walletCardCurrency}>{wallet.currency}</span>
-                      </div>
-                      <div className={styles.walletCardBalance}>{formatCurrency(wb, wallet.currency)}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
               {/* Planned payments widget */}
               {(dashboardDueItems.length > 0 || recurringPayments.length > 0) && (
                 <div className={styles.plannedWidget}>
@@ -421,27 +408,47 @@ export default function DashboardPage() {
                     return (
                       <div key={key} className={[styles.plannedItem, isPast ? styles.plannedItemOverdue : ''].join(' ')}>
                         <div className={styles.plannedItemLeft}>
-                          <span className={[styles.plannedDot, item.payment.type === 'income' ? styles.dotIncome : styles.dotExpense].join(' ')} />
                           <div>
                             <p className={styles.plannedName}>{item.payment.name}</p>
-                            <p className={styles.plannedDate}>
-                              {item.dueDate.toLocaleDateString('default', { month: 'short', day: 'numeric' })}
-                              {isPast ? ' · overdue' : ''}
-                            </p>
+                            <span className={[styles.plannedAmt, item.payment.type === 'income' ? styles.amtIncome : styles.amtExpense].join(' ')}>
+                              {item.payment.type === 'expense' ? '−' : '+'}{formatCurrency(item.payment.amount, currency)}
+                            </span>
+
                           </div>
                         </div>
                         <div className={styles.plannedItemRight}>
-                          <span className={[styles.plannedAmt, item.payment.type === 'income' ? styles.amtIncome : styles.amtExpense].join(' ')}>
-                            {item.payment.type === 'expense' ? '−' : '+'}{formatCurrency(item.payment.amount, currency)}
-                          </span>
+                          <p className={styles.plannedDate}>
+                            {item.dueDate.toLocaleDateString('default', { month: 'short', day: 'numeric' })}
+                            {isPast ? ' · overdue' : ''}
+                          </p>
+
                           <div className={styles.plannedBtns}>
-                            <button className={styles.plannedPayBtn} disabled={payActionLoading === key} onClick={() => handleDashboardPay(item)}>✓</button>
-                            <button className={styles.plannedSkipBtn} disabled={payActionLoading === key} onClick={() => handleDashboardSkip(item)}>✗</button>
+                            <button className={styles.plannedSkipBtn} disabled={payActionLoading === key} onClick={() => handleDashboardSkip(item)}>
+                              <RxCross1 />
+                            </button>
+                            <button className={styles.plannedPayBtn} disabled={payActionLoading === key} onClick={() => handleDashboardPay(item)}>
+                              <FaCheck />
+                            </button>
                           </div>
                         </div>
                       </div>
                     );
                   })}
+                </div>
+              )}
+
+              {walletSummaries.length > 0 && (
+                <div className={styles.walletList}>
+                  {walletSummaries.map(({ wallet, balance: wb }) => (
+                    <div key={wallet.id} className={styles.walletCard} style={{ borderLeftColor: wallet.color }}>
+                      <div className={styles.walletCardHeader}>
+                        <span className={styles.walletCardIcon}>{wallet.icon}</span>
+                        <span className={styles.walletCardName}>{wallet.name}</span>
+                        <span className={styles.walletCardCurrency}>{wallet.currency}</span>
+                      </div>
+                      <div className={styles.walletCardBalance}>{formatCurrency(wb, wallet.currency)}</div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
