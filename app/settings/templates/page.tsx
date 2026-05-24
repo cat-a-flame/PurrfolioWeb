@@ -9,6 +9,7 @@ import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
+import LabelSelect from '@/components/ui/LabelSelect';
 import Toast from '@/components/ui/Toast';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import { createClient } from '@/lib/supabase/client';
@@ -184,10 +185,6 @@ export default function TemplatesSettingsPage() {
     else { setToast({ message: 'Template deleted.', variant: 'success' }); await fetchAll(); }
   }
 
-  function toggleLabel(form: TemplateFormFields, id: string): TemplateFormFields {
-    return { ...form, labelIds: form.labelIds.includes(id) ? form.labelIds.filter(l => l !== id) : [...form.labelIds, id] };
-  }
-
   function renderForm(form: TemplateFormFields, setForm: (f: TemplateFormFields) => void, onSubmit: (e: React.FormEvent) => void, saving: boolean, error: string, onClose: () => void, submitLabel: string) {
     const selectedWallet = wallets.find(w => w.id === form.walletId);
     return (
@@ -236,17 +233,7 @@ export default function TemplatesSettingsPage() {
         {labels.length > 0 && (
           <div className={styles.field}>
             <FormLabel>Labels</FormLabel>
-            <div className={styles.labelChips}>
-              {labels.map(label => {
-                const selected = form.labelIds.includes(label.id);
-                return (
-                  <button key={label.id} type="button" className={[styles.labelChip, selected ? styles.labelChipSelected : ''].filter(Boolean).join(' ')} onClick={() => setForm(toggleLabel(form, label.id))}>
-                    <span className={styles.labelDot} style={{ backgroundColor: label.color }} />
-                    {label.name}
-                  </button>
-                );
-              })}
-            </div>
+            <LabelSelect labels={labels} selectedIds={form.labelIds} onChange={ids => setForm({ ...form, labelIds: ids })} />
           </div>
         )}
         <div className={styles.field}>

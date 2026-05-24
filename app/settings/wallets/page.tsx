@@ -10,6 +10,7 @@ import NumberInput from '@/components/ui/NumberInput';
 import Toast from '@/components/ui/Toast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
+import Switch from '@/components/ui/Switch';
 import { createClient } from '@/lib/supabase/client';
 import { formatNumber } from '@/lib/utils';
 import type { Wallet, Currency } from '@/lib/types';
@@ -42,7 +43,7 @@ export default function WalletsSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingWallet, setEditingWallet] = useState<Wallet | null>(null);
   const [editFields, setEditFields] = useState<EditFields>({ name: '', icon: '', color: '#f26e4d', starting_balance: '0' });
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
@@ -94,12 +95,18 @@ export default function WalletsSettingsPage() {
   }
 
   function startEdit(wallet: Wallet) {
-    setEditingId(wallet.id);
+    setEditingWallet(wallet);
     setEditFields({ name: wallet.name, icon: wallet.icon, color: wallet.color, starting_balance: String(wallet.starting_balance) });
     setEditError('');
   }
 
-  async function handleEditSave(wallet: Wallet) {
+  function handleCloseEdit() {
+    setEditingWallet(null); setEditError('');
+  }
+
+  async function handleEditSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingWallet) return;
     setEditError('');
     if (!editFields.name.trim()) { setEditError('Name is required.'); return; }
     setEditSaving(true);
@@ -108,10 +115,10 @@ export default function WalletsSettingsPage() {
     const { error } = await supabase.from('wallets').update({
       name: editFields.name.trim(), icon: editFields.icon.trim() || '💰', color: editFields.color,
       starting_balance: isNaN(parsedBalance) ? 0 : parsedBalance,
-    }).eq('id', wallet.id);
+    }).eq('id', editingWallet.id);
     setEditSaving(false);
     if (error) { setEditError(error.message); } else {
-      setEditingId(null);
+      handleCloseEdit();
       setToast({ message: 'Wallet updated.', variant: 'success' });
       await fetchWallets();
     }
@@ -123,6 +130,7 @@ export default function WalletsSettingsPage() {
     if (!user) return;
     await supabase.from('wallets').update({ is_default: false }).eq('user_id', user.id);
     await supabase.from('wallets').update({ is_default: true }).eq('id', wallet.id);
+    handleCloseEdit();
     setToast({ message: `"${wallet.name}" set as default.`, variant: 'success' });
     await fetchWallets();
   }
@@ -161,59 +169,28 @@ export default function WalletsSettingsPage() {
           <p className={styles.emptyState}>No wallets yet. Click &quot;+ Add wallet&quot; to create one.</p>
         ) : (
           <div className={styles.list}>
-            {wallets.map(wallet => {
-              if (editingId === wallet.id) {
-                return (
-                  <div key={wallet.id} className={[styles.walletItem, styles.walletItemEditing].join(' ')}>
-                    <div className={styles.editRow}>
-                      <div className={styles.editFields}>
-                        <Input type="text" value={editFields.name} onChange={e => setEditFields(f => ({ ...f, name: e.target.value }))} placeholder="Name" />
-                        <NumberInput value={editFields.starting_balance} onChange={v => setEditFields(f => ({ ...f, starting_balance: v }))} placeholder="Starting balance" />
-                        <Input type="text" value={editFields.icon} onChange={e => setEditFields(f => ({ ...f, icon: e.target.value }))} placeholder="💰" maxLength={4} style={{ width: 72 }} />
-                        <input type="color" className={styles.colorPicker} value={editFields.color} onChange={e => setEditFields(f => ({ ...f, color: e.target.value }))} style={{ width: 52 }} />
-                      </div>
-                      {editError && <p className={styles.formError}>{editError}</p>}
-                      <div className={styles.editActions}>
-                        <Button variant="primary" size="sm" onClick={() => handleEditSave(wallet)} loading={editSaving}>Save</Button>
-                        <Button variant="secondary" size="sm" onClick={() => setEditingId(null)} disabled={editSaving}>Cancel</Button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-              return (
-                <div key={wallet.id} className={styles.walletItem}>
-                  <div className={styles.walletIcon} style={{ backgroundColor: wallet.color + '22' }}>
-                    <span>{wallet.icon}</span>
-                  </div>
-                  <div className={styles.walletInfo}>
-                    <span className={styles.walletName}>{wallet.name}</span>
-                    <span className={styles.walletCurrency}>
-                      {wallet.currency}
-                      {wallet.starting_balance !== 0 && (
-                        <span className={styles.walletStartingBalance}>
-                          {' '}· Starting: {wallet.starting_balance > 0 ? '+' : ''}{formatNumber(wallet.starting_balance)}
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                  {wallet.is_default && <span className={styles.defaultBadge}>Default</span>}
-                  <div className={styles.walletActions}>
-                    <Button variant="ghost" size="sm" onClick={() => startEdit(wallet)}>Edit</Button>
-                    {!wallet.is_default && (
-                      <Button variant="ghost" size="sm" onClick={() => handleSetDefault(wallet)}>Set default</Button>
-                    )}
-                    <Button
-                      variant="danger" size="sm"
-                      onClick={() => setDeletingWallet(wallet)}
-                      disabled={wallet.is_default || wallets.length <= 1}
-                    >
-                      Delete
-                    </Button>
-                  </div>
+            {wallets.map(wallet => (
+              <div key={wallet.id} className={styles.walletItem}>
+                <div className={styles.walletIcon} style={{ backgroundColor: wallet.color + '22' }}>
+                  <span>{wallet.icon}</span>
                 </div>
-              );
-            })}
+                <div className={styles.walletInfo}>
+                  <span className={styles.walletName}>{wallet.name}</span>
+                  <span className={styles.walletCurrency}>
+                    {wallet.currency}
+                    {wallet.starting_balance !== 0 && (
+                      <span className={styles.walletStartingBalance}>
+                        {' '}· Starting: {wallet.starting_balance > 0 ? '+' : ''}{formatNumber(wallet.starting_balance)}
+                      </span>
+                    )}
+                  </span>
+                </div>
+                {wallet.is_default && <span className={styles.defaultBadge}>Default</span>}
+                <div className={styles.walletActions}>
+                  <Button variant="ghost" size="sm" onClick={() => startEdit(wallet)}>Edit</Button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </section>
@@ -236,7 +213,7 @@ export default function WalletsSettingsPage() {
                     value={currencyOptions.find(o => o.value === currency) ?? currencyOptions[0]}
                     onChange={(opt) => opt && setCurrency(opt.value as Currency)}
                     isSearchable={false}
-                    styles={makeRsStyles()}
+                    styles={makeRsStyles<{ value: string; label: string }>()}
                     theme={rsTheme}
                     menuPosition="fixed"
                   />
@@ -261,6 +238,48 @@ export default function WalletsSettingsPage() {
             <div className={styles.dialogActions}>
               <Button variant="secondary" size="md" type="button" onClick={handleCloseAdd}>Cancel</Button>
               <Button type="submit" variant="primary" size="md" loading={saving}>Add wallet</Button>
+            </div>
+          </form>
+        </Dialog>
+      )}
+
+      {editingWallet && (
+        <Dialog title="Edit wallet" onClose={handleCloseEdit}>
+          <form onSubmit={handleEditSave} className={styles.form}>
+            <div className={styles.field}>
+              <FormLabel htmlFor="ew-name" required>Name</FormLabel>
+              <Input id="ew-name" type="text" value={editFields.name} onChange={e => setEditFields(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Savings" required autoFocus />
+            </div>
+            <div className={styles.field}>
+              <FormLabel>Starting balance</FormLabel>
+              <NumberInput value={editFields.starting_balance} onChange={v => setEditFields(f => ({ ...f, starting_balance: v }))} placeholder="0" />
+            </div>
+            <div className={styles.twoCol}>
+              <div className={styles.field}>
+                <FormLabel htmlFor="ew-icon">Icon (emoji)</FormLabel>
+                <Input id="ew-icon" type="text" value={editFields.icon} onChange={e => setEditFields(f => ({ ...f, icon: e.target.value }))} placeholder="💰" maxLength={4} />
+              </div>
+              <div className={styles.field}>
+                <FormLabel htmlFor="ew-color">Color</FormLabel>
+                <input id="ew-color" type="color" className={styles.colorPicker} value={editFields.color} onChange={e => setEditFields(f => ({ ...f, color: e.target.value }))} />
+              </div>
+            </div>
+            <div className={styles.field}>
+              <Switch
+                id="ew-default"
+                label="Default wallet"
+                checked={editingWallet.is_default}
+                onChange={() => handleSetDefault(editingWallet)}
+                disabled={editingWallet.is_default}
+              />
+            </div>
+            {editError && <p className={styles.formError}>{editError}</p>}
+            <div className={styles.dialogActions}>
+              {!editingWallet.is_default && wallets.length > 1 && (
+                <Button variant="danger" size="md" type="button" style={{ marginRight: 'auto' }} onClick={() => { setDeletingWallet(editingWallet); handleCloseEdit(); }}>Delete</Button>
+              )}
+              <Button variant="secondary" size="md" type="button" onClick={handleCloseEdit}>Cancel</Button>
+              <Button type="submit" variant="primary" size="md" loading={editSaving}>Save</Button>
             </div>
           </form>
         </Dialog>
