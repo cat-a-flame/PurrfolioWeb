@@ -100,13 +100,15 @@ html[data-theme="dark"] {
   --shadow-nav: 0 -2px 12px rgba(10, 0, 30, 0.5);
 }
 
-/* Reset */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* Reset — placed in @layer base so Chakra UI's recipes/utilities layers override it */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 }
 
 html {
