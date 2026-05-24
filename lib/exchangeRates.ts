@@ -29,3 +29,15 @@ export function toHUF(amount: number, currency: string | undefined, rates: Recor
   const rate = rates[currency];
   return rate ? amount * rate : amount;
 }
+
+/** Like toHUF but prefers a stored per-transaction rate over a live lookup map. */
+export function txToHUF(
+  amount: number,
+  currency: string | undefined,
+  storedRate: number | null | undefined,
+  ratesMap: Record<string, number>
+): number {
+  if (!currency || currency === 'HUF') return amount;
+  if (storedRate != null) return amount * storedRate;
+  return toHUF(amount, currency, ratesMap);
+}

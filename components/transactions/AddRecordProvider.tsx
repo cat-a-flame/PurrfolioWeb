@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import TransactionForm, { TransactionFormData } from './TransactionForm';
 import Toast from '@/components/ui/Toast';
 import { createClient } from '@/lib/supabase/client';
+import { getExchangeRates } from '@/lib/exchangeRates';
 import type { Category, Label, Template, Wallet } from '@/lib/types';
 
 type RawTemplateLabel = { label: Label | null };
@@ -58,14 +59,26 @@ export default function AddRecordProvider({ children }: { children: React.ReactN
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
+    const getWalletRate = async (walletId: string, date: string): Promise<number | null> => {
+      const wallet = wallets.find(w => w.id === walletId);
+      if (!wallet?.currency || wallet.currency === 'HUF') return null;
+      const rates = await getExchangeRates(date);
+      return rates[wallet.currency] ?? null;
+    };
+
     if (data.transfer) {
       // Generate a shared UUID to link both legs
       const transferGroupId = crypto.randomUUID();
       const common = { user_id: user.id, date: data.date, notes: data.notes || null, transfer_group_id: transferGroupId };
 
+      const [expenseRate, incomeRate] = await Promise.all([
+        getWalletRate(data.wallet_id, data.date),
+        getWalletRate(data.transfer.to_wallet_id, data.date),
+      ]);
+
       const { error } = await supabase.from('transactions').insert([
-        { ...common, type: 'expense', amount: data.amount,              wallet_id: data.wallet_id },
-        { ...common, type: 'income',  amount: data.transfer.to_amount,  wallet_id: data.transfer.to_wallet_id },
+        { ...common, type: 'expense', amount: data.amount,             wallet_id: data.wallet_id,          exchange_rate_to_huf: expenseRate },
+        { ...common, type: 'income',  amount: data.transfer.to_amount, wallet_id: data.transfer.to_wallet_id, exchange_rate_to_huf: incomeRate },
       ]);
       if (error) throw error;
 
@@ -75,6 +88,8 @@ export default function AddRecordProvider({ children }: { children: React.ReactN
       router.refresh();
       return;
     }
+
+    const exchangeRate = await getWalletRate(data.wallet_id, data.date);
 
     const { data: inserted, error } = await supabase
       .from('transactions')
@@ -87,6 +102,7 @@ export default function AddRecordProvider({ children }: { children: React.ReactN
         date: data.date,
         notes: data.notes || null,
         payer: data.payer || null,
+        exchange_rate_to_huf: exchangeRate,
       })
       .select()
       .single();

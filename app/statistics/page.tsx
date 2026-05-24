@@ -13,7 +13,7 @@ import AppFooter from '@/components/layout/AppFooter';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAllTransactions } from '@/lib/supabase/fetchAllTransactions';
-import { getExchangeRates, toHUF } from '@/lib/exchangeRates';
+import { getExchangeRates, toHUF, txToHUF } from '@/lib/exchangeRates';
 import { formatCurrency, formatHUF, formatNumber } from '@/lib/utils';
 import type { Transaction, Wallet, Currency } from '@/lib/types';
 import styles from './page.module.css';
@@ -109,7 +109,7 @@ export default function StatisticsPage() {
   useEffect(() => {
     const dates = [...new Set(
       allTxs
-        .filter(t => t.wallet?.currency && t.wallet.currency !== 'HUF')
+        .filter(t => t.wallet?.currency && t.wallet.currency !== 'HUF' && t.exchange_rate_to_huf == null)
         .map(t => t.date)
     )];
     if (!dates.length) return;
@@ -141,8 +141,8 @@ export default function StatisticsPage() {
   const prevTxs    = useMemo(() => filterRange(allTxs, prevRange.from, prevRange.to), [allTxs, prevRange]);
 
   // ── summary numbers ────────────────────────────────────────────────────
-  const income  = useMemo(() => periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
-  const expense = useMemo(() => periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
+  const income  = useMemo(() => periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
+  const expense = useMemo(() => periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
 
   const txCount = periodTxs.filter(t => !t.transfer_group_id).length;
   const animatedIncome  = useCountUp(income);
@@ -178,7 +178,7 @@ export default function StatisticsPage() {
       const name  = t.category?.name  ?? 'Uncategorised';
       const color = t.category?.color ?? '#94a3b8';
       const prev  = map.get(name) ?? { amount: 0, color };
-      map.set(name, { amount: prev.amount + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), color });
+      map.set(name, { amount: prev.amount + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), color });
     }
     const total = Array.from(map.values()).reduce((s, v) => s + v.amount, 0);
     const sorted = Array.from(map.entries()).sort((a, b) => b[1].amount - a[1].amount);
@@ -221,12 +221,12 @@ export default function StatisticsPage() {
     for (const t of periodTxs) {
       if (t.type !== 'expense' || t.transfer_group_id) continue;
       const name = t.category?.name ?? 'Uncategorised';
-      catMap.get(name)!.current += toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {});
+      catMap.get(name)!.current += txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
     }
     for (const t of prevTxs) {
       if (t.type !== 'expense' || t.transfer_group_id) continue;
       const name = t.category?.name ?? 'Uncategorised';
-      catMap.get(name)!.prev += toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {});
+      catMap.get(name)!.prev += txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
     }
     return Array.from(catMap.entries())
       .sort((a, b) => (b[1].current + b[1].prev) - (a[1].current + a[1].prev))
@@ -254,8 +254,8 @@ export default function StatisticsPage() {
         const key = t.date.slice(0, 7);
         const v   = map.get(key);
         if (!v) continue;
-        if (t.type === 'income')  v.income  += toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {});
-        if (t.type === 'expense') v.expense += toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {});
+        if (t.type === 'income')  v.income  += txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
+        if (t.type === 'expense') v.expense += txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
       }
       return Array.from(map.entries()).map(([k, v]) => ({ label: shortMonth(k), income: Math.round(v.income), expense: Math.round(v.expense) }));
     } else {
@@ -267,8 +267,8 @@ export default function StatisticsPage() {
         if (t.transfer_group_id) continue;
         const v = map.get(t.date);
         if (!v) continue;
-        if (t.type === 'income')  v.income  += toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {});
-        if (t.type === 'expense') v.expense += toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {});
+        if (t.type === 'income')  v.income  += txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
+        if (t.type === 'expense') v.expense += txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
       }
       return Array.from(map.entries()).map(([k, v]) => ({
         label: new Date(k + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
