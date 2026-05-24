@@ -123,7 +123,6 @@ export default function LabelsSettingsPage() {
                 </span>
                 <div className={styles.labelActions}>
                   <Button variant="ghost" size="sm" onClick={() => startEdit(label)}>Edit</Button>
-                  <Button variant="danger" size="sm" onClick={() => setDeletingLabel(label)}>Delete</Button>
                 </div>
               </div>
             ))}
@@ -167,21 +166,13 @@ export default function LabelsSettingsPage() {
               <FormLabel htmlFor="edit-label-name" required>Name</FormLabel>
               <Input id="edit-label-name" type="text" value={editName} onChange={e => setEditName(e.target.value)} placeholder="e.g. Recurring" required autoFocus />
             </div>
-            <div className={styles.twoCol}>
-              <div className={styles.field}>
-                <FormLabel htmlFor="edit-label-color">Color</FormLabel>
-                <input id="edit-label-color" type="color" className={styles.colorPicker} value={editColor} onChange={e => setEditColor(e.target.value)} />
-              </div>
-              <div className={styles.field}>
-                <FormLabel>Preview</FormLabel>
-                <span className={styles.labelChip}>
-                  <span className={styles.labelDot} style={{ backgroundColor: editColor }} />
-                  {editName || 'Label'}
-                </span>
-              </div>
+            <div className={styles.field}>
+              <FormLabel htmlFor="edit-label-color">Color</FormLabel>
+              <input id="edit-label-color" type="color" className={styles.colorPicker} value={editColor} onChange={e => setEditColor(e.target.value)} />
             </div>
             {editError && <p className={styles.formError}>{editError}</p>}
             <div className={styles.dialogActions}>
+              <Button variant="danger" size="md" type="button" style={{ marginRight: 'auto' }} onClick={() => { setDeletingLabel(editingLabel); handleCloseEdit(); }}>Delete</Button>
               <Button variant="secondary" size="md" type="button" onClick={handleCloseEdit}>Cancel</Button>
               <Button type="submit" variant="primary" size="md" loading={editSaving}>Save</Button>
             </div>

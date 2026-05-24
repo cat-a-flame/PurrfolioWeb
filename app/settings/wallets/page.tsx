@@ -129,6 +129,7 @@ export default function WalletsSettingsPage() {
     if (!user) return;
     await supabase.from('wallets').update({ is_default: false }).eq('user_id', user.id);
     await supabase.from('wallets').update({ is_default: true }).eq('id', wallet.id);
+    handleCloseEdit();
     setToast({ message: `"${wallet.name}" set as default.`, variant: 'success' });
     await fetchWallets();
   }
@@ -186,16 +187,6 @@ export default function WalletsSettingsPage() {
                 {wallet.is_default && <span className={styles.defaultBadge}>Default</span>}
                 <div className={styles.walletActions}>
                   <Button variant="ghost" size="sm" onClick={() => startEdit(wallet)}>Edit</Button>
-                  {!wallet.is_default && (
-                    <Button variant="ghost" size="sm" onClick={() => handleSetDefault(wallet)}>Set default</Button>
-                  )}
-                  <Button
-                    variant="danger" size="sm"
-                    onClick={() => setDeletingWallet(wallet)}
-                    disabled={wallet.is_default || wallets.length <= 1}
-                  >
-                    Delete
-                  </Button>
                 </div>
               </div>
             ))}
@@ -274,6 +265,12 @@ export default function WalletsSettingsPage() {
             </div>
             {editError && <p className={styles.formError}>{editError}</p>}
             <div className={styles.dialogActions}>
+              {!editingWallet.is_default && wallets.length > 1 && (
+                <Button variant="danger" size="md" type="button" style={{ marginRight: 'auto' }} onClick={() => { setDeletingWallet(editingWallet); handleCloseEdit(); }}>Delete</Button>
+              )}
+              {!editingWallet.is_default && (
+                <Button variant="secondary" size="md" type="button" onClick={() => handleSetDefault(editingWallet)}>Set as default</Button>
+              )}
               <Button variant="secondary" size="md" type="button" onClick={handleCloseEdit}>Cancel</Button>
               <Button type="submit" variant="primary" size="md" loading={editSaving}>Save</Button>
             </div>
