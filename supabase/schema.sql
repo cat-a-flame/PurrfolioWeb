@@ -197,6 +197,57 @@ CREATE TRIGGER templates_updated_at
   FOR EACH ROW EXECUTE PROCEDURE update_updated_at();
 
 -- ─────────────────────────────────────────
+-- Recurring / planned payments
+-- ─────────────────────────────────────────
+
+CREATE TABLE recurring_payments (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name        TEXT NOT NULL,
+  type        TEXT NOT NULL CHECK (type IN ('income', 'expense')),
+  amount      NUMERIC(15, 2) NOT NULL CHECK (amount > 0),
+  wallet_id   UUID REFERENCES wallets(id) ON DELETE SET NULL,
+  category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
+  frequency   TEXT NOT NULL CHECK (frequency IN ('weekly', 'biweekly', 'monthly', 'quarterly', 'yearly')),
+  start_date  DATE NOT NULL,
+  end_date    DATE,
+  is_active   BOOLEAN NOT NULL DEFAULT true,
+  notes       TEXT,
+  payer       TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Stores only actioned occurrences (paid or skipped); pending ones are computed from the rule.
+CREATE TABLE recurring_occurrences (
+  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recurring_payment_id UUID NOT NULL REFERENCES recurring_payments(id) ON DELETE CASCADE,
+  user_id              UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  due_date             DATE NOT NULL,
+  status               TEXT NOT NULL CHECK (status IN ('paid', 'skipped')),
+  transaction_id       UUID REFERENCES transactions(id) ON DELETE SET NULL,
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (recurring_payment_id, due_date)
+);
+
+CREATE INDEX idx_recurring_payments_user_id    ON recurring_payments(user_id);
+CREATE INDEX idx_recurring_occurrences_payment ON recurring_occurrences(recurring_payment_id);
+CREATE INDEX idx_recurring_occurrences_user    ON recurring_occurrences(user_id);
+
+ALTER TABLE recurring_payments   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE recurring_occurrences ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "recurring_payments: own rows" ON recurring_payments
+  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "recurring_occurrences: own rows" ON recurring_occurrences
+  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE TRIGGER recurring_payments_updated_at
+  BEFORE UPDATE ON recurring_payments
+  FOR EACH ROW EXECUTE PROCEDURE update_updated_at();
+
+-- ─────────────────────────────────────────
 -- Migration: run these if upgrading an existing database
 -- ─────────────────────────────────────────
 -- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS exchange_rate_to_huf NUMERIC(15, 6);

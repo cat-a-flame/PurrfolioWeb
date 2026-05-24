@@ -84,6 +84,15 @@
 .summaryIncome  { color: var(--color-income); }
 .summaryExpense { color: var(--color-expense); }
 
+.summaryProjected {
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+}
+.summaryProjectedIncome  { color: color-mix(in srgb, var(--color-income)  60%, var(--color-text-muted)); }
+.summaryProjectedExpense { color: color-mix(in srgb, var(--color-expense) 60%, var(--color-text-muted)); }
+
 /* ── Card grid ── */
 .grid {
   display: grid;
@@ -369,3 +378,4 @@
   font-weight: 500;
   line-height: 1.6;
 }
+/* ── Cash flow projection ── */

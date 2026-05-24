@@ -1,0 +1,764 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import ReactSelect from 'react-select';
+import AppHeader from '@/components/layout/AppHeader';
+import AppFooter from '@/components/layout/AppFooter';
+import Button from '@/components/ui/Button';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import FormLabel from '@/components/ui/FormLabel';
+import Input from '@/components/ui/Input';
+import NumberInput from '@/components/ui/NumberInput';
+import LabelSelect from '@/components/ui/LabelSelect';
+import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
+import Toast from '@/components/ui/Toast';
+import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
+import { createClient } from '@/lib/supabase/client';
+import { formatCurrency } from '@/lib/utils';
+import { generateDueDates, frequencyLabel, nextDueDate, isoDate, monthBounds } from '@/lib/recurringUtils';
+import type {
+  RecurringPayment, RecurringOccurrence, RecurrenceFrequency,
+  Wallet, Category, Label, TransactionType,
+} from '@/lib/types';
+import styles from './page.module.css';
+
+const FREQUENCIES: { value: RecurrenceFrequency; label: string }[] = [
+  { value: 'weekly',    label: 'Weekly' },
+  { value: 'biweekly',  label: 'Every 2 weeks' },
+  { value: 'monthly',   label: 'Monthly' },
+  { value: 'quarterly', label: 'Every 3 months' },
+  { value: 'yearly',    label: 'Yearly' },
+];
+
+interface FormFields {
+  name: string;
+  type: TransactionType;
+  amount: string;
+  walletId: string;
+  categoryId: string;
+  frequency: RecurrenceFrequency;
+  startDate: string;
+  endDate: string;
+  notes: string;
+  payer: string;
+  labelIds: string[];
+}
+
+const EMPTY_FORM: FormFields = {
+  name: '', type: 'expense', amount: '', walletId: '', categoryId: '',
+  frequency: 'monthly', startDate: isoDate(new Date()), endDate: '', notes: '', payer: '',
+  labelIds: [],
+};
+
+interface DueItem {
+  payment: RecurringPayment;
+  dueDate: Date;
+}
+
+export default function RecurringPage() {
+  const [payments, setPayments]     = useState<RecurringPayment[]>([]);
+  const [occurrences, setOccurrences] = useState<RecurringOccurrence[]>([]);
+  const [wallets, setWallets]       = useState<Wallet[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [labels, setLabels]         = useState<Label[]>([]);
+  const [loading, setLoading]       = useState(true);
+
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  const [showAddDialog, setShowAddDialog]   = useState(false);
+  const [addForm, setAddForm]               = useState<FormFields>(EMPTY_FORM);
+  const [addSaving, setAddSaving]           = useState(false);
+  const [addError, setAddError]             = useState('');
+
+  const [editingPayment, setEditingPayment] = useState<RecurringPayment | null>(null);
+  const [editForm, setEditForm]             = useState<FormFields>(EMPTY_FORM);
+  const [editSaving, setEditSaving]         = useState(false);
+  const [editError, setEditError]           = useState('');
+
+  const [deletingPayment, setDeletingPayment] = useState<RecurringPayment | null>(null);
+  const [deleteLoading, setDeleteLoading]     = useState(false);
+
+  const [actionLoading, setActionLoading] = useState<string | null>(null); // due item key
+
+  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
+  const dismissToast = useCallback(() => setToast(null), []);
+
+  // View month for due items (default: current month)
+  const today = new Date();
+  const [viewYear, setViewYear]   = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+
+  const fetchAll = useCallback(async () => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    type RawPayment = Omit<RecurringPayment, 'labels'> & { labels: { label: Label | null }[] };
+
+    const [pmtRes, walletRes, catRes, lblRes] = await Promise.all([
+      supabase.from('recurring_payments')
+        .select('*, wallet:wallets(*), category:categories(*), labels:recurring_payment_labels(label:labels(*))')
+        .eq('user_id', user.id)
+        .order('name'),
+      supabase.from('wallets').select('*').eq('user_id', user.id).order('name'),
+      supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
+      supabase.from('labels').select('*').eq('user_id', user.id).order('name'),
+    ]);
+
+    if (pmtRes.data) {
+      setPayments((pmtRes.data as RawPayment[]).map(p => ({
+        ...p,
+        labels: p.labels.map(l => l.label).filter((l): l is Label => l !== null),
+      })));
+    }
+    if (walletRes.data) setWallets(walletRes.data);
+    if (catRes.data)    setCategories(catRes.data);
+    if (lblRes.data)    setLabels(lblRes.data);
+
+    // Fetch occurrences for a wider window (3 months around view month)
+    const [from, to] = monthBounds(viewYear, viewMonth);
+    const wideFrom = new Date(from); wideFrom.setMonth(wideFrom.getMonth() - 1);
+    const wideTo   = new Date(to);   wideTo.setMonth(wideTo.getMonth() + 1);
+
+    const { data: occData } = await supabase
+      .from('recurring_occurrences')
+      .select('*')
+      .eq('user_id', user.id)
+      .gte('due_date', isoDate(wideFrom))
+      .lte('due_date', isoDate(wideTo));
+    if (occData) setOccurrences(occData);
+
+    setLoading(false);
+  }, [viewYear, viewMonth]);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  useEffect(() => {
+    if (!openMenuId) return;
+    function close() { setOpenMenuId(null); }
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [openMenuId]);
+
+  // Compute pending due items for the viewed month
+  const dueItems: DueItem[] = (() => {
+    const [from, to] = monthBounds(viewYear, viewMonth);
+    const actionedKeys = new Set(occurrences.map(o => `${o.recurring_payment_id}|${o.due_date}`));
+    const items: DueItem[] = [];
+    for (const p of payments) {
+      for (const date of generateDueDates(p, from, to)) {
+        const key = `${p.id}|${isoDate(date)}`;
+        if (!actionedKeys.has(key)) items.push({ payment: p, dueDate: date });
+      }
+    }
+    return items.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+  })();
+
+  const overdueItems  = dueItems.filter(i => i.dueDate < today && isoDate(i.dueDate) !== isoDate(today));
+  const upcomingItems = dueItems.filter(i => i.dueDate >= today || isoDate(i.dueDate) === isoDate(today));
+
+  // Month navigation
+  function prevMonth() {
+    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
+    else setViewMonth(m => m - 1);
+  }
+  function nextMonth() {
+    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); }
+    else setViewMonth(m => m + 1);
+  }
+
+  // ─── Mark as paid ────────────────────────────────────────────────────────────
+
+  async function handlePay(item: DueItem) {
+    const key = `${item.payment.id}|${isoDate(item.dueDate)}`;
+    setActionLoading(key);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setActionLoading(null); return; }
+
+    const wallet = item.payment.wallet_id ? wallets.find(w => w.id === item.payment.wallet_id) : null;
+
+    // Insert the transaction
+    const { data: txData, error: txErr } = await supabase
+      .from('transactions')
+      .insert({
+        user_id: user.id,
+        type: item.payment.type,
+        amount: item.payment.amount,
+        wallet_id: item.payment.wallet_id,
+        category_id: item.payment.category_id,
+        date: isoDate(item.dueDate),
+        notes: item.payment.notes,
+        payer: item.payment.payer,
+      })
+      .select('id')
+      .single();
+
+    if (txErr || !txData) {
+      setToast({ message: 'Failed to create transaction.', variant: 'error' });
+      setActionLoading(null);
+      return;
+    }
+
+    // Record the occurrence
+    const { error: occErr } = await supabase.from('recurring_occurrences').insert({
+      recurring_payment_id: item.payment.id,
+      user_id: user.id,
+      due_date: isoDate(item.dueDate),
+      status: 'paid',
+      transaction_id: txData.id,
+    });
+
+    if (occErr) {
+      setToast({ message: 'Transaction created but occurrence record failed.', variant: 'error' });
+    } else {
+      if (item.payment.labels && item.payment.labels.length > 0) {
+        await supabase.from('transaction_labels').insert(
+          item.payment.labels.map(l => ({ transaction_id: txData.id, label_id: l.id }))
+        );
+      }
+      const currency = (wallet?.currency ?? 'HUF') as 'HUF' | 'USD' | 'EUR';
+      setToast({ message: `${item.payment.name} — ${formatCurrency(item.payment.amount, currency)} added.`, variant: 'success' });
+      window.dispatchEvent(new Event('transaction-added'));
+    }
+    setActionLoading(null);
+    fetchAll();
+  }
+
+  // ─── Skip ────────────────────────────────────────────────────────────────────
+
+  async function handleSkip(item: DueItem) {
+    const key = `${item.payment.id}|${isoDate(item.dueDate)}`;
+    setActionLoading(key);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setActionLoading(null); return; }
+
+    const { error } = await supabase.from('recurring_occurrences').insert({
+      recurring_payment_id: item.payment.id,
+      user_id: user.id,
+      due_date: isoDate(item.dueDate),
+      status: 'skipped',
+      transaction_id: null,
+    });
+
+    if (error) setToast({ message: 'Failed to skip.', variant: 'error' });
+    else setToast({ message: `${item.payment.name} skipped.`, variant: 'success' });
+    setActionLoading(null);
+    fetchAll();
+  }
+
+  // ─── Add ─────────────────────────────────────────────────────────────────────
+
+  function validateForm(form: FormFields): string | null {
+    if (!form.name.trim()) return 'Name is required.';
+    const amt = parseFloat(form.amount);
+    if (!form.amount || isNaN(amt) || amt <= 0) return 'Enter a valid amount.';
+    if (!form.walletId) return 'Select a wallet.';
+    if (!form.startDate) return 'Start date is required.';
+    return null;
+  }
+
+  async function handleAdd() {
+    const err = validateForm(addForm);
+    if (err) { setAddError(err); return; }
+    setAddSaving(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setAddSaving(false); return; }
+
+    const { data: inserted, error } = await supabase.from('recurring_payments').insert({
+      user_id: user.id,
+      name: addForm.name.trim(),
+      type: addForm.type,
+      amount: parseFloat(addForm.amount),
+      wallet_id: addForm.walletId || null,
+      category_id: addForm.categoryId || null,
+      frequency: addForm.frequency,
+      start_date: addForm.startDate,
+      end_date: addForm.endDate || null,
+      notes: addForm.notes.trim() || null,
+      payer: addForm.payer.trim() || null,
+    }).select().single();
+
+    if (error || !inserted) {
+      setAddError('Failed to save. Please try again.');
+    } else {
+      if (addForm.labelIds.length > 0) {
+        await supabase.from('recurring_payment_labels').insert(
+          addForm.labelIds.map(lid => ({ recurring_payment_id: inserted.id, label_id: lid }))
+        );
+      }
+      setShowAddDialog(false);
+      setAddForm(EMPTY_FORM);
+      setAddError('');
+      setToast({ message: 'Recurring payment added.', variant: 'success' });
+      fetchAll();
+    }
+    setAddSaving(false);
+  }
+
+  // ─── Edit ────────────────────────────────────────────────────────────────────
+
+  function openEdit(p: RecurringPayment) {
+    setEditForm({
+      name: p.name, type: p.type, amount: String(p.amount),
+      walletId: p.wallet_id ?? '', categoryId: p.category_id ?? '',
+      frequency: p.frequency, startDate: p.start_date, endDate: p.end_date ?? '',
+      notes: p.notes ?? '', payer: p.payer ?? '',
+      labelIds: p.labels?.map(l => l.id) ?? [],
+    });
+    setEditingPayment(p);
+    setEditError('');
+  }
+
+  async function handleEdit() {
+    if (!editingPayment) return;
+    const err = validateForm(editForm);
+    if (err) { setEditError(err); return; }
+    setEditSaving(true);
+    const supabase = createClient();
+
+    const { error } = await supabase.from('recurring_payments').update({
+      name: editForm.name.trim(),
+      type: editForm.type,
+      amount: parseFloat(editForm.amount),
+      wallet_id: editForm.walletId || null,
+      category_id: editForm.categoryId || null,
+      frequency: editForm.frequency,
+      start_date: editForm.startDate,
+      end_date: editForm.endDate || null,
+      notes: editForm.notes.trim() || null,
+      payer: editForm.payer.trim() || null,
+    }).eq('id', editingPayment.id);
+
+    if (error) {
+      setEditError('Failed to save. Please try again.');
+    } else {
+      await supabase.from('recurring_payment_labels').delete().eq('recurring_payment_id', editingPayment.id);
+      if (editForm.labelIds.length > 0) {
+        await supabase.from('recurring_payment_labels').insert(
+          editForm.labelIds.map(lid => ({ recurring_payment_id: editingPayment.id, label_id: lid }))
+        );
+      }
+      setEditingPayment(null);
+      setToast({ message: 'Recurring payment updated.', variant: 'success' });
+      fetchAll();
+    }
+    setEditSaving(false);
+  }
+
+  // ─── Toggle active ────────────────────────────────────────────────────────────
+
+  async function handleToggleActive(p: RecurringPayment) {
+    const supabase = createClient();
+    await supabase.from('recurring_payments').update({ is_active: !p.is_active }).eq('id', p.id);
+    fetchAll();
+  }
+
+  // ─── Delete ───────────────────────────────────────────────────────────────────
+
+  async function handleDelete() {
+    if (!deletingPayment) return;
+    setDeleteLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.from('recurring_payments').delete().eq('id', deletingPayment.id);
+    if (error) {
+      setToast({ message: 'Failed to delete.', variant: 'error' });
+    } else {
+      setToast({ message: 'Recurring payment deleted.', variant: 'success' });
+      fetchAll();
+    }
+    setDeletingPayment(null);
+    setDeleteLoading(false);
+  }
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+  const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+  const isCurrentMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth();
+
+  function walletCurrency(walletId: string | null): 'HUF' | 'USD' | 'EUR' {
+    return (wallets.find(w => w.id === walletId)?.currency ?? 'HUF') as 'HUF' | 'USD' | 'EUR';
+  }
+
+  function dueDateLabel(date: Date): string {
+    const d = isoDate(date);
+    if (d === isoDate(today)) return 'Today';
+    const diff = Math.round((date.getTime() - today.getTime()) / 86400000);
+    if (diff < 0) return `${Math.abs(diff)}d overdue`;
+    if (diff === 1) return 'Tomorrow';
+    if (diff < 7) return `In ${diff} days`;
+    return date.toLocaleDateString('default', { month: 'short', day: 'numeric' });
+  }
+
+  if (loading) return (
+    <div className={styles.page}>
+      <AppHeader />
+      <main className={styles.main}><p className={styles.loading}>Loading…</p></main>
+      <AppFooter />
+    </div>
+  );
+
+  return (
+    <div className={styles.page}>
+      <AppHeader />
+      <main className={styles.main}>
+        <div className={styles.container}>
+
+          {/* ── Page header ── */}
+          <div className={styles.pageHeader}>
+            <div>
+              <h1 className={styles.pageTitle}>Planned payments</h1>
+              <p className={styles.pageSubtitle}>Recurring income and expenses — see what&apos;s coming and mark them when they happen.</p>
+            </div>
+            <Button variant="primary" size="md" onClick={() => { setAddForm({ ...EMPTY_FORM, walletId: wallets.find(w => w.is_default)?.id ?? '' }); setShowAddDialog(true); setAddError(''); }}>
+              + Add
+            </Button>
+          </div>
+
+          {/* ── Due this month ── */}
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Due this month</h2>
+              <div className={styles.monthNav}>
+                <button className={styles.monthNavBtn} onClick={prevMonth}>‹</button>
+                <span className={styles.monthLabel}>{monthLabel}</span>
+                <button className={styles.monthNavBtn} onClick={nextMonth}>›</button>
+                {!isCurrentMonth && (
+                  <button className={styles.monthNavToday} onClick={() => { setViewYear(today.getFullYear()); setViewMonth(today.getMonth()); }}>
+                    Today
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {dueItems.length === 0 && (
+              <p className={styles.empty}>
+                {payments.filter(p => p.is_active).length === 0
+                  ? 'No recurring payments yet. Add one above.'
+                  : 'All payments for this month have been handled.'}
+              </p>
+            )}
+
+            {overdueItems.length > 0 && (
+              <div className={styles.dueGroup}>
+                <p className={styles.dueGroupLabel}>Overdue</p>
+                {overdueItems.map(item => (
+                  <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
+                    item={item} loading={actionLoading === `${item.payment.id}|${isoDate(item.dueDate)}`}
+                    onPay={handlePay} onSkip={handleSkip}
+                    currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
+                ))}
+              </div>
+            )}
+
+            {upcomingItems.length > 0 && (
+              <div className={styles.dueGroup}>
+                {overdueItems.length > 0 && <p className={styles.dueGroupLabel}>Upcoming</p>}
+                {upcomingItems.map(item => (
+                  <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
+                    item={item} loading={actionLoading === `${item.payment.id}|${isoDate(item.dueDate)}`}
+                    onPay={handlePay} onSkip={handleSkip}
+                    currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* ── All recurring payments ── */}
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>All recurring payments</h2>
+
+            {payments.length === 0 && (
+              <p className={styles.empty}>No recurring payments defined yet.</p>
+            )}
+
+            {FREQUENCIES.filter(f => payments.some(p => p.frequency === f.value)).map(f => (
+              <div key={f.value} className={styles.dueGroup}>
+                <p className={styles.dueGroupLabel}>{f.label}</p>
+                <div className={styles.paymentList}>
+                  {payments.filter(p => p.frequency === f.value).sort((a, b) => {
+                    const na = nextDueDate(a)?.getTime() ?? Infinity;
+                    const nb = nextDueDate(b)?.getTime() ?? Infinity;
+                    return na - nb;
+                  }).map(p => {
+                    const next = nextDueDate(p);
+                    const currency = walletCurrency(p.wallet_id);
+                    return (
+                      <div key={p.id} className={[styles.paymentRow, !p.is_active ? styles.paymentRowInactive : ''].join(' ')}>
+                        <div className={styles.paymentMeta}>
+                          <span className={[styles.paymentTypeDot, p.type === 'income' ? styles.dotIncome : styles.dotExpense].join(' ')} />
+                          <div>
+                            <p className={styles.paymentName}>{p.name}</p>
+                            <p className={styles.paymentSub}>
+                              {p.wallet && `${p.wallet.icon} ${p.wallet.name}`}
+                              {p.category && ` · ${p.category.icon} ${p.category.name}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className={styles.paymentRight}>
+                          <span className={[styles.paymentAmount, p.type === 'income' ? styles.amtIncome : styles.amtExpense].join(' ')}>
+                            {p.type === 'expense' ? '−' : '+'}{formatCurrency(p.amount, currency)}
+                          </span>
+                          {next && p.is_active && (
+                            <span className={styles.nextDue}>Next: {next.toLocaleDateString('default', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                          )}
+                          {!p.is_active && <span className={styles.pausedBadge}>Paused</span>}
+                        </div>
+                        <div className={styles.kebabWrap}>
+                          <button
+                            className={styles.kebabTrigger}
+                            onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === p.id ? null : p.id); }}
+                          >⋮</button>
+                          {openMenuId === p.id && (
+                            <div className={styles.kebabMenu} onClick={e => e.stopPropagation()}>
+                              <button className={styles.kebabItem} onClick={() => { handleToggleActive(p); setOpenMenuId(null); }}>
+                                {p.is_active ? 'Pause' : 'Resume'}
+                              </button>
+                              <button className={styles.kebabItem} onClick={() => { openEdit(p); setOpenMenuId(null); }}>Edit</button>
+                              <button className={[styles.kebabItem, styles.kebabItemDanger].join(' ')} onClick={() => { setDeletingPayment(p); setOpenMenuId(null); }}>Delete</button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+          </section>
+
+        </div>
+      </main>
+      <AppFooter />
+
+      {showAddDialog && (
+        <PaymentModal form={addForm} set={setAddForm} title="Add recurring payment"
+          error={addError} saving={addSaving} onSave={handleAdd} onClose={() => setShowAddDialog(false)}
+          wallets={wallets} categories={categories} labels={labels} />
+      )}
+
+      {editingPayment && (
+        <PaymentModal form={editForm} set={setEditForm} title="Edit recurring payment"
+          error={editError} saving={editSaving} onSave={handleEdit} onClose={() => setEditingPayment(null)}
+          wallets={wallets} categories={categories} labels={labels} />
+      )}
+
+      {/* Delete confirm */}
+      {deletingPayment && (
+        <ConfirmDialog
+          title="Delete recurring payment"
+          message={`Delete "${deletingPayment.name}"? This won't affect existing transactions.`}
+          confirmLabel="Delete"
+          onConfirm={handleDelete}
+          onCancel={() => setDeletingPayment(null)}
+          loading={deleteLoading}
+        />
+      )}
+
+      {toast && <Toast message={toast.message} variant={toast.variant} onDismiss={dismissToast} />}
+    </div>
+  );
+}
+
+// ─── Payment modal ─────────────────────────────────────────────────────────────
+
+function buildCategoryOptions(categories: Category[]): SelectOption[] {
+  const parents = categories.filter(c => !c.parent_id);
+  const children = categories.filter(c => c.parent_id);
+  const opts: SelectOption[] = [];
+  for (const parent of parents) {
+    const kids = children.filter(c => c.parent_id === parent.id);
+    if (kids.length > 0) {
+      for (const kid of kids) {
+        opts.push({ value: kid.id, label: `${kid.icon} ${kid.name}`, group: `${parent.icon} ${parent.name}` });
+      }
+    } else {
+      opts.push({ value: parent.id, label: `${parent.icon} ${parent.name}` });
+    }
+  }
+  for (const child of children.filter(c => !parents.find(p => p.id === c.parent_id))) {
+    opts.push({ value: child.id, label: `${child.icon} ${child.name}` });
+  }
+  return opts;
+}
+
+function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallets, categories, labels }: {
+  form: FormFields;
+  set: (f: FormFields) => void;
+  title: string;
+  error: string;
+  saving: boolean;
+  onSave: () => void;
+  onClose: () => void;
+  wallets: Wallet[];
+  categories: Category[];
+  labels: Label[];
+}) {
+  const rsStyles = makeRsStyles<{ value: string; label: string }>();
+  const walletOptions = wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }));
+  const selectedWallet = walletOptions.find(o => o.value === form.walletId) ?? null;
+  const freqOptions = FREQUENCIES.map(f => ({ value: f.value, label: f.label }));
+  const selectedFreq = freqOptions.find(o => o.value === form.frequency) ?? null;
+  const categoryOptions = buildCategoryOptions(categories);
+
+  return (
+    <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.modal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div className={styles.modalHeader}>
+          <h2 className={styles.modalTitle}>{title}</h2>
+          <button type="button" className={styles.modalClose} onClick={onClose} aria-label="Close">✕</button>
+        </div>
+
+        <div className={styles.modalForm}>
+          {/* Type tabs */}
+          <div className={styles.typeTabs}>
+            <button type="button"
+              className={[styles.typeTab, form.type === 'expense' ? styles.typeTabExpense : ''].join(' ')}
+              onClick={() => set({ ...form, type: 'expense' })}>Expense</button>
+            <button type="button"
+              className={[styles.typeTab, form.type === 'income' ? styles.typeTabIncome : ''].join(' ')}
+              onClick={() => set({ ...form, type: 'income' })}>Income</button>
+          </div>
+
+          {/* Name */}
+          <div className={styles.field}>
+            <FormLabel required>Name</FormLabel>
+            <Input value={form.name} onChange={e => set({ ...form, name: e.target.value })} placeholder="Mortgage, Phone bill…" />
+          </div>
+
+          {/* Amount + Frequency */}
+          <div className={styles.twoCol}>
+            <div className={styles.field}>
+              <FormLabel required>Amount</FormLabel>
+              <NumberInput value={form.amount} onChange={v => set({ ...form, amount: v })} placeholder="0" />
+            </div>
+            <div className={styles.field}>
+              <FormLabel required>Frequency</FormLabel>
+              <ReactSelect<{ value: string; label: string }>
+                options={freqOptions}
+                value={selectedFreq}
+                onChange={opt => opt && set({ ...form, frequency: opt.value as RecurrenceFrequency })}
+                isSearchable={false}
+                styles={rsStyles}
+                theme={rsTheme}
+                menuPosition="fixed"
+              />
+            </div>
+          </div>
+
+          {/* Wallet + Category */}
+          <div className={styles.twoCol}>
+            <div className={styles.field}>
+              <FormLabel required>Wallet</FormLabel>
+              <ReactSelect<{ value: string; label: string }>
+                options={walletOptions}
+                value={selectedWallet}
+                onChange={opt => set({ ...form, walletId: opt?.value ?? '' })}
+                isSearchable
+                styles={rsStyles}
+                theme={rsTheme}
+                menuPosition="fixed"
+                placeholder="Select wallet…"
+              />
+            </div>
+            <div className={styles.field}>
+              <FormLabel>Category</FormLabel>
+              <SearchableSelect
+                options={categoryOptions}
+                value={form.categoryId}
+                onChange={v => set({ ...form, categoryId: v })}
+                placeholder="Choose category"
+              />
+            </div>
+          </div>
+
+          {/* Start + End date */}
+          <div className={styles.twoCol}>
+            <div className={styles.field}>
+              <FormLabel required>Start date</FormLabel>
+              <Input type="date" value={form.startDate} onChange={e => set({ ...form, startDate: e.target.value })} />
+            </div>
+            <div className={styles.field}>
+              <FormLabel>End date <span className={styles.optional}>(optional)</span></FormLabel>
+              <Input type="date" value={form.endDate} onChange={e => set({ ...form, endDate: e.target.value })} />
+            </div>
+          </div>
+
+          {/* Payer + Notes */}
+          <div className={styles.twoCol}>
+            <div className={styles.field}>
+              <FormLabel>Payer / payee <span className={styles.optional}>(optional)</span></FormLabel>
+              <Input value={form.payer} onChange={e => set({ ...form, payer: e.target.value })} placeholder="e.g. OTP Bank" />
+            </div>
+            <div className={styles.field}>
+              <FormLabel>Notes <span className={styles.optional}>(optional)</span></FormLabel>
+              <Input value={form.notes} onChange={e => set({ ...form, notes: e.target.value })} />
+            </div>
+          </div>
+
+          {/* Labels */}
+          {labels.length > 0 && (
+            <div className={styles.field}>
+              <FormLabel>Labels <span className={styles.optional}>(optional)</span></FormLabel>
+              <LabelSelect labels={labels} selectedIds={form.labelIds} onChange={ids => set({ ...form, labelIds: ids })} />
+            </div>
+          )}
+
+          {error && <p className={styles.formError}>{error}</p>}
+
+          <div className={styles.actions}>
+            <Button variant="secondary" size="md" onClick={onClose}>Cancel</Button>
+            <Button variant="primary" size="md" onClick={onSave} disabled={saving}>
+              {saving ? 'Saving…' : 'Save'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Due card sub-component ────────────────────────────────────────────────────
+
+function DueCard({ item, loading, onPay, onSkip, currency, dueDateLabel }: {
+  item: DueItem;
+  loading: boolean;
+  onPay: (item: DueItem) => void | Promise<void>;
+  onSkip: (item: DueItem) => void | Promise<void>;
+  currency: 'HUF' | 'USD' | 'EUR';
+  dueDateLabel: string;
+}) {
+  const { payment } = item;
+  const isOverdue = dueDateLabel.includes('overdue');
+  return (
+    <div className={[styles.dueCard, isOverdue ? styles.dueCardOverdue : ''].join(' ')}>
+      <div className={styles.dueMeta}>
+        <span className={[styles.paymentTypeDot, payment.type === 'income' ? styles.dotIncome : styles.dotExpense].join(' ')} />
+        <div>
+          <p className={styles.dueName}>{payment.name}</p>
+          <p className={styles.dueSub}>
+            <span className={[styles.dueDateBadge, isOverdue ? styles.dueDateBadgeOverdue : ''].join(' ')}>{dueDateLabel}</span>
+            {payment.wallet && ` ${payment.wallet.icon} ${payment.wallet.name}`}
+            {payment.category && ` · ${payment.category.icon} ${payment.category.name}`}
+          </p>
+        </div>
+      </div>
+      <div className={styles.dueRight}>
+        <span className={[styles.dueAmount, payment.type === 'income' ? styles.amtIncome : styles.amtExpense].join(' ')}>
+          {payment.type === 'expense' ? '−' : '+'}{formatCurrency(payment.amount, currency)}
+        </span>
+        <div className={styles.dueActions}>
+          <button className={styles.payBtn} onClick={() => onPay(item)} disabled={loading} title="Mark as paid">
+            {loading ? '…' : '✓ Pay'}
+          </button>
+          <button className={styles.skipBtn} onClick={() => onSkip(item)} disabled={loading} title="Skip this occurrence">
+            Skip
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

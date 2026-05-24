@@ -11,6 +11,7 @@ const navItems = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Transactions', href: '/transactions' },
   { label: 'Statistics', href: '/statistics' },
+  { label: 'Planned', href: '/recurring' },
 ];
 
 export default function AppHeader() {

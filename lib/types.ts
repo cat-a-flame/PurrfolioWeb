@@ -1,5 +1,6 @@
 export type TransactionType = 'income' | 'expense';
 export type Currency = 'HUF' | 'USD' | 'EUR';
+export type RecurrenceFrequency = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly';
 
 export type Wallet = {
   id: string;
@@ -68,5 +69,36 @@ export type Template = {
   wallet?: Wallet | null;
   category?: Category | null;
   labels?: Label[];
+};
+
+export type RecurringPayment = {
+  id: string;
+  user_id: string;
+  name: string;
+  type: TransactionType;
+  amount: number;
+  wallet_id: string | null;
+  category_id: string | null;
+  frequency: RecurrenceFrequency;
+  start_date: string;
+  end_date: string | null;
+  is_active: boolean;
+  notes: string | null;
+  payer: string | null;
+  created_at: string;
+  updated_at: string;
+  wallet?: Wallet | null;
+  category?: Category | null;
+  labels?: Label[];
+};
+
+export type RecurringOccurrence = {
+  id: string;
+  recurring_payment_id: string;
+  user_id: string;
+  due_date: string;
+  status: 'paid' | 'skipped';
+  transaction_id: string | null;
+  created_at: string;
 };
 
