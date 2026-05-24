@@ -344,17 +344,24 @@ export default function StatisticsPage() {
             return (
               <div className={styles.projectionSection}>
                 <h2 className={styles.projectionTitle}>Projected — {cashFlowProjection.monthLabel}</h2>
-                <div className={styles.projectionGrid}>
-                  <div className={styles.projCard}>
-                    <p className={styles.projLabel}>Income</p>
-                    <p className={styles.projActual}>{formatHUF(projIncome)}</p>
-                  </div>
-                  <div className={styles.projCard}>
-                    <p className={styles.projLabel}>Expenses &amp; Net</p>
-                    <p className={[styles.projActual, styles.projActualExpense].join(' ')}>{formatHUF(projExpense)}</p>
-                    <p className={[styles.projNet, projNet >= 0 ? styles.projNetPositive : styles.projNetExpense].join(' ')}>
-                      {projNet >= 0 ? '+' : ''}{formatHUF(projNet)} net
-                    </p>
+                <div className={styles.projCard}>
+                  <div className={styles.projCardInner}>
+                    <div className={styles.projStat}>
+                      <p className={styles.projLabel}>Income</p>
+                      <p className={styles.projActual}>{formatHUF(projIncome)}</p>
+                    </div>
+                    <div className={styles.projDivider} />
+                    <div className={styles.projStat}>
+                      <p className={styles.projLabel}>Expenses</p>
+                      <p className={[styles.projActual, styles.projActualExpense].join(' ')}>{formatHUF(projExpense)}</p>
+                    </div>
+                    <div className={styles.projDivider} />
+                    <div className={styles.projStat}>
+                      <p className={styles.projLabel}>Net</p>
+                      <p className={[styles.projActual, projNet >= 0 ? styles.projNetPositive : styles.projNetExpense].join(' ')}>
+                        {projNet >= 0 ? '+' : ''}{formatHUF(projNet)}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
