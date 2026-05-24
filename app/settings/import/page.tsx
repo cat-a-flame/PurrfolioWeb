@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import Link from 'next/link';
 import ReactSelect from 'react-select';
 import { createClient } from '@/lib/supabase/client';
+import { getExchangeRates } from '@/lib/exchangeRates';
 import Button from '@/components/ui/Button';
 import Toast from '@/components/ui/Toast';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
@@ -74,10 +75,13 @@ function parseDate(s: string): string | null {
   return null;
 }
 
-function autoDetectType(s: string): TransactionType | null {
+type ImportType = TransactionType | 'transfer';
+
+function autoDetectType(s: string): ImportType | null {
   const l = s.toLowerCase().trim();
   if (/expense|ausgab|kiadás|debit/.test(l)) return 'expense';
   if (/income|einnahm|bevétel|credit|revenue/.test(l)) return 'income';
+  if (/transfer|überweis|átutal/.test(l)) return 'transfer';
   return null;
 }
 
@@ -93,19 +97,28 @@ function uniqueColValues(rows: string[][], idx: number): string[] {
 // ─── Internal types ───────────────────────────────────────────────────────────
 
 type TypeSource = 'column' | 'fixed-income' | 'fixed-expense';
-type WalletSource = 'column' | 'fixed';
+type WalletSource = 'fixed' | 'column';
 
 interface ColumnMap {
   amount: string;
   date: string;
   typeSource: TypeSource;
   typeCol: string;
-  typeMapping: Record<string, TransactionType | ''>;
+  typeMapping: Record<string, ImportType | ''>;
   walletSource: WalletSource;
   walletCol: string;
   walletFixed: string;
   walletMapping: Record<string, string | null>;
+  // Transfer destination
+  transferToWalletSource: WalletSource;
+  transferToWalletFixed: string;
+  transferToWalletCol: string;
+  transferToWalletMapping: Record<string, string | null>;
+  transferToAmountCol: string;
+  // Category
   categoryCol: string;
+  categoryMapping: Record<string, string | null>;
+  // Other optional
   notesCol: string;
   payerCol: string;
   labelsCol: string;
@@ -113,11 +126,13 @@ interface ColumnMap {
 
 interface PreviewRow {
   index: number;
-  raw: string[];          // original CSV fields for this row
+  raw: string[];
   date: string | null;
-  type: TransactionType | null;
+  type: ImportType | null;
   amount: number | null;
   walletId: string | null;
+  transferToWalletId: string | null;
+  transferToAmount: number | null;
   categoryId: string | null;
   notes: string | null;
   payer: string | null;
@@ -142,7 +157,10 @@ export default function ImportPage() {
     amount: '', date: '',
     typeSource: 'column', typeCol: '', typeMapping: {},
     walletSource: 'fixed', walletCol: '', walletFixed: '', walletMapping: {},
-    categoryCol: '', notesCol: '', payerCol: '', labelsCol: '',
+    transferToWalletSource: 'fixed', transferToWalletFixed: '', transferToWalletCol: '', transferToWalletMapping: {},
+    transferToAmountCol: '',
+    categoryCol: '', categoryMapping: {},
+    notesCol: '', payerCol: '', labelsCol: '',
   });
 
   const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
@@ -189,7 +207,14 @@ export default function ImportPage() {
       setCsv(parsed);
       setFileName(file.name);
       setImportResult(null);
-      setColMap(m => ({ ...m, amount: '', date: '', typeCol: '', typeMapping: {}, walletCol: '', walletMapping: {}, categoryCol: '', notesCol: '', payerCol: '', labelsCol: '' }));
+      setColMap(m => ({
+        ...m,
+        amount: '', date: '', typeCol: '', typeMapping: {},
+        walletCol: '', walletMapping: {},
+        transferToWalletCol: '', transferToWalletMapping: {}, transferToAmountCol: '',
+        categoryCol: '', categoryMapping: {},
+        notesCol: '', payerCol: '', labelsCol: '',
+      }));
     };
     reader.readAsText(file, 'utf-8');
   }
@@ -222,7 +247,7 @@ export default function ImportPage() {
     if (!csv) return;
     const idx = colIdx(col);
     const vals = idx >= 0 ? uniqueColValues(csv.rows, idx) : [];
-    const mapping: Record<string, TransactionType | ''> = {};
+    const mapping: Record<string, ImportType | ''> = {};
     for (const v of vals) mapping[v] = autoDetectType(v) ?? '';
     setColMap(m => ({ ...m, typeCol: col, typeMapping: mapping }));
   }
@@ -239,6 +264,39 @@ export default function ImportPage() {
     setColMap(m => ({ ...m, walletCol: col, walletMapping: mapping }));
   }
 
+  function onTransferToWalletColChange(col: string) {
+    if (!csv) return;
+    const idx = colIdx(col);
+    const vals = idx >= 0 ? uniqueColValues(csv.rows, idx) : [];
+    const mapping: Record<string, string | null> = {};
+    for (const v of vals) {
+      const match = wallets.find(w => w.name.toLowerCase() === v.toLowerCase());
+      mapping[v] = match?.id ?? null;
+    }
+    setColMap(m => ({ ...m, transferToWalletCol: col, transferToWalletMapping: mapping }));
+  }
+
+  function onCategoryColChange(col: string) {
+    if (!col) {
+      setColMap(m => ({ ...m, categoryCol: '', categoryMapping: {} }));
+      return;
+    }
+    if (!csv) return;
+    const idx = colIdx(col);
+    const vals = idx >= 0 ? uniqueColValues(csv.rows, idx) : [];
+    const mapping: Record<string, string | null> = {};
+    for (const v of vals) {
+      const match = categories.find(c => c.name.toLowerCase() === v.toLowerCase());
+      mapping[v] = match?.id ?? null;
+    }
+    setColMap(m => ({ ...m, categoryCol: col, categoryMapping: mapping }));
+  }
+
+  // ─── Derived flags ────────────────────────────────────────────────────────
+
+  const hasTransferType = colMap.typeSource === 'column' && Object.values(colMap.typeMapping).includes('transfer');
+  const unmappedCategories = Object.entries(colMap.categoryMapping).filter(([, v]) => v === null);
+
   // ─── Step 2 validation ────────────────────────────────────────────────────
 
   function validateStep2(): string | null {
@@ -247,7 +305,7 @@ export default function ImportPage() {
     if (colMap.typeSource === 'column') {
       if (!colMap.typeCol) return 'Select the Transaction Type column or choose a fixed type.';
       const missing = Object.entries(colMap.typeMapping).find(([, v]) => !v);
-      if (missing) return `Map type value "${missing[0]}" to Income or Expense.`;
+      if (missing) return `Map type value "${missing[0]}" to Income, Expense, or Transfer.`;
     }
     if (colMap.walletSource === 'column') {
       if (!colMap.walletCol) return 'Select the Wallet column or choose a fixed wallet.';
@@ -255,6 +313,15 @@ export default function ImportPage() {
       if (missing) return `Assign a wallet for CSV value "${missing[0]}".`;
     } else {
       if (!colMap.walletFixed) return 'Select a wallet.';
+    }
+    if (hasTransferType) {
+      if (colMap.transferToWalletSource === 'column') {
+        if (!colMap.transferToWalletCol) return 'Select the destination wallet column for transfers.';
+        const missing = Object.entries(colMap.transferToWalletMapping).find(([k, v]) => k && !v);
+        if (missing) return `Assign a destination wallet for transfer value "${missing[0]}".`;
+      } else {
+        if (!colMap.transferToWalletFixed) return 'Select a destination wallet for transfers.';
+      }
     }
     return null;
   }
@@ -264,14 +331,16 @@ export default function ImportPage() {
   function buildPreview(): PreviewRow[] {
     if (!csv) return [];
     const { rows } = csv;
-    const amtI = colIdx(colMap.amount);
-    const datI = colIdx(colMap.date);
-    const typI = colMap.typeSource === 'column' ? colIdx(colMap.typeCol) : -1;
-    const walI = colMap.walletSource === 'column' ? colIdx(colMap.walletCol) : -1;
-    const catI = colMap.categoryCol ? colIdx(colMap.categoryCol) : -1;
-    const notI = colMap.notesCol ? colIdx(colMap.notesCol) : -1;
-    const payI = colMap.payerCol ? colIdx(colMap.payerCol) : -1;
-    const lblI = colMap.labelsCol ? colIdx(colMap.labelsCol) : -1;
+    const amtI  = colIdx(colMap.amount);
+    const datI  = colIdx(colMap.date);
+    const typI  = colMap.typeSource === 'column' ? colIdx(colMap.typeCol) : -1;
+    const walI  = colMap.walletSource === 'column' ? colIdx(colMap.walletCol) : -1;
+    const catI  = colMap.categoryCol ? colIdx(colMap.categoryCol) : -1;
+    const notI  = colMap.notesCol ? colIdx(colMap.notesCol) : -1;
+    const payI  = colMap.payerCol ? colIdx(colMap.payerCol) : -1;
+    const lblI  = colMap.labelsCol ? colIdx(colMap.labelsCol) : -1;
+    const ttwI  = colMap.transferToWalletSource === 'column' && colMap.transferToWalletCol ? colIdx(colMap.transferToWalletCol) : -1;
+    const ttAmI = colMap.transferToAmountCol ? colIdx(colMap.transferToAmountCol) : -1;
 
     return rows.map((row, i) => {
       const errors: string[] = [];
@@ -284,12 +353,12 @@ export default function ImportPage() {
       const parsedDate = parseDate(rawDate);
       if (!parsedDate) errors.push('Invalid date');
 
-      let txType: TransactionType | null = null;
+      let txType: ImportType | null = null;
       if (colMap.typeSource === 'fixed-income') txType = 'income';
       else if (colMap.typeSource === 'fixed-expense') txType = 'expense';
       else if (typI >= 0) {
         const raw = (row[typI] ?? '').trim();
-        txType = (colMap.typeMapping[raw] as TransactionType) || null;
+        txType = (colMap.typeMapping[raw] as ImportType) || null;
         if (!txType) errors.push('Unknown type');
       }
 
@@ -305,13 +374,30 @@ export default function ImportPage() {
       }
       if (!walletId) errors.push('No wallet');
 
+      // Transfer destination
+      let transferToWalletId: string | null = null;
+      let transferToAmount: number | null = null;
+      if (txType === 'transfer') {
+        if (colMap.transferToWalletSource === 'fixed') {
+          transferToWalletId = colMap.transferToWalletFixed || null;
+        } else if (ttwI >= 0) {
+          const raw = (row[ttwI] ?? '').trim();
+          transferToWalletId = colMap.transferToWalletMapping[raw] ?? null;
+        }
+        if (!transferToWalletId) errors.push('No destination wallet');
+        if (ttAmI >= 0) {
+          const raw = (row[ttAmI] ?? '').trim();
+          const parsed = parseAmount(raw);
+          transferToAmount = parsed !== null ? Math.abs(parsed) : null;
+        }
+        if (transferToAmount === null) transferToAmount = amount;
+      }
+
+      // Category: use the explicit mapping built in Step 2
       let categoryId: string | null = null;
       if (catI >= 0) {
         const raw = (row[catI] ?? '').trim();
-        if (raw) {
-          const match = categories.find(c => c.name.toLowerCase() === raw.toLowerCase());
-          categoryId = match?.id ?? null;
-        }
+        if (raw) categoryId = colMap.categoryMapping[raw] ?? null;
       }
 
       const notes = notI >= 0 ? ((row[notI] ?? '').trim() || null) : null;
@@ -329,7 +415,7 @@ export default function ImportPage() {
         }
       }
 
-      return { index: i, raw: row, date: parsedDate, type: txType, amount, walletId, categoryId, notes, payer, labelIds, errors };
+      return { index: i, raw: row, date: parsedDate, type: txType, amount, walletId, transferToWalletId, transferToAmount, categoryId, notes, payer, labelIds, errors };
     });
   }
 
@@ -355,11 +441,38 @@ export default function ImportPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setImporting(false); return; }
 
+    // Pre-fetch exchange rates for all non-HUF dates in one pass
+    const datesToFetch = new Set<string>();
+    for (const r of valid) {
+      const fromWallet = wallets.find(w => w.id === r.walletId);
+      if (fromWallet?.currency && fromWallet.currency !== 'HUF') datesToFetch.add(r.date!);
+      if (r.type === 'transfer') {
+        const toWallet = wallets.find(w => w.id === r.transferToWalletId);
+        if (toWallet?.currency && toWallet.currency !== 'HUF') datesToFetch.add(r.date!);
+      }
+    }
+    const ratesCache: Record<string, Record<string, number>> = {};
+    await Promise.all([...datesToFetch].map(async date => {
+      ratesCache[date] = await getExchangeRates(date);
+    }));
+
+    function rateFor(walletId: string | null, date: string | null): number | null {
+      if (!walletId || !date) return null;
+      const wallet = wallets.find(w => w.id === walletId);
+      if (!wallet?.currency || wallet.currency === 'HUF') return null;
+      return ratesCache[date]?.[wallet.currency] ?? null;
+    }
+
     let success = 0;
     let failed = 0;
+
+    const regular = valid.filter(r => r.type !== 'transfer');
+    const transfers = valid.filter(r => r.type === 'transfer');
+
+    // Regular rows: batch insert
     const BATCH = 100;
-    for (let i = 0; i < valid.length; i += BATCH) {
-      const slice = valid.slice(i, i + BATCH);
+    for (let i = 0; i < regular.length; i += BATCH) {
+      const slice = regular.slice(i, i + BATCH);
       const batch = slice.map(r => ({
         user_id: user.id,
         type: r.type as TransactionType,
@@ -369,6 +482,7 @@ export default function ImportPage() {
         date: r.date as string,
         notes: r.notes,
         payer: r.payer,
+        exchange_rate_to_huf: rateFor(r.walletId, r.date),
       }));
       const { data: inserted, error } = await supabase.from('transactions').insert(batch).select('id');
       if (error || !inserted) {
@@ -378,10 +492,33 @@ export default function ImportPage() {
         const labelLinks = inserted.flatMap((tx: { id: string }, idx: number) =>
           slice[idx].labelIds.map(lid => ({ transaction_id: tx.id, label_id: lid }))
         ).filter((link: { transaction_id: string; label_id: string }) => link.label_id);
-        if (labelLinks.length > 0) {
-          await supabase.from('transaction_labels').insert(labelLinks);
-        }
+        if (labelLinks.length > 0) await supabase.from('transaction_labels').insert(labelLinks);
       }
+    }
+
+    // Transfer rows: each becomes two linked transactions
+    for (const r of transfers) {
+      const transferGroupId = crypto.randomUUID();
+      const common = { user_id: user.id, date: r.date as string, notes: r.notes, transfer_group_id: transferGroupId };
+      const { error } = await supabase.from('transactions').insert([
+        {
+          ...common,
+          type: 'expense',
+          amount: r.amount as number,
+          wallet_id: r.walletId as string,
+          category_id: r.categoryId,
+          exchange_rate_to_huf: rateFor(r.walletId, r.date),
+        },
+        {
+          ...common,
+          type: 'income',
+          amount: (r.transferToAmount ?? r.amount) as number,
+          wallet_id: r.transferToWalletId as string,
+          exchange_rate_to_huf: rateFor(r.transferToWalletId, r.date),
+        },
+      ]);
+      if (error) failed += 2;
+      else success += 2;
     }
 
     const skipped = previewRows.filter(r => r.errors.length > 0).length + failed;
@@ -408,14 +545,16 @@ export default function ImportPage() {
       amount: '', date: '',
       typeSource: 'column', typeCol: '', typeMapping: {},
       walletSource: 'fixed', walletCol: '', walletFixed: m.walletFixed, walletMapping: {},
-      categoryCol: '', notesCol: '', payerCol: '', labelsCol: '',
+      transferToWalletSource: 'fixed', transferToWalletFixed: '', transferToWalletCol: '', transferToWalletMapping: {},
+      transferToAmountCol: '',
+      categoryCol: '', categoryMapping: {},
+      notesCol: '', payerCol: '', labelsCol: '',
     }));
   }
 
   // ─── Render helpers ───────────────────────────────────────────────────────
 
   const headers = csv?.headers ?? [];
-
   const colOptions = headers.map(h => ({ value: h, label: h }));
   const colOptionsWithBlank = [{ value: '', label: '— select column —' }, ...colOptions];
   const colOptionsWithSkip = [{ value: '', label: 'Skip' }, ...colOptions];
@@ -427,6 +566,10 @@ export default function ImportPage() {
     : filterView === 'invalid'
     ? previewRows.filter(r => r.errors.length > 0)
     : previewRows;
+
+  const hasAnyTransfer = previewRows.some(r => r.type === 'transfer');
+  const walletOpts = [{ value: '', label: '— select wallet —' }, ...wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` }))];
+  const categoryOpts = [{ value: '', label: '— skip (no category) —' }, ...categories.map(c => ({ value: c.id, label: `${c.icon} ${c.name}` }))];
 
   return (
     <div className={styles.container}>
@@ -442,9 +585,7 @@ export default function ImportPage() {
                 step > i + 1 ? styles.stepDone : '',
               ].filter(Boolean).join(' ')}
             >
-              <span className={styles.stepBubble}>
-                {step > i + 1 ? '✓' : i + 1}
-              </span>
+              <span className={styles.stepBubble}>{step > i + 1 ? '✓' : i + 1}</span>
               <span className={styles.stepLabel}>{label}</span>
             </div>
           ))}
@@ -470,13 +611,7 @@ export default function ImportPage() {
             onKeyDown={e => e.key === 'Enter' && fileInputRef.current?.click()}
             aria-label="Upload CSV file"
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              className={styles.hiddenInput}
-              onChange={onFileInput}
-            />
+            <input ref={fileInputRef} type="file" accept=".csv" className={styles.hiddenInput} onChange={onFileInput} />
             <span className={styles.dropIcon}>📂</span>
             {csv ? (
               <div className={styles.fileInfoBlock}>
@@ -496,14 +631,10 @@ export default function ImportPage() {
               <p className={styles.previewLabel}>Preview — first 5 rows</p>
               <div className={styles.tableScroll}>
                 <table className={styles.table}>
-                  <thead>
-                    <tr>{csv.headers.map(h => <th key={h}>{h}</th>)}</tr>
-                  </thead>
+                  <thead><tr>{csv.headers.map(h => <th key={h}>{h}</th>)}</tr></thead>
                   <tbody>
                     {csv.rows.slice(0, 5).map((row, ri) => (
-                      <tr key={ri}>
-                        {row.map((cell, ci) => <td key={ci}>{cell}</td>)}
-                      </tr>
+                      <tr key={ri}>{row.map((cell, ci) => <td key={ci}>{cell}</td>)}</tr>
                     ))}
                   </tbody>
                 </table>
@@ -539,16 +670,11 @@ export default function ImportPage() {
                   <ReactSelect<{ value: string; label: string }>
                     options={colOptionsWithBlank}
                     value={colOptionsWithBlank.find(o => o.value === colMap.amount) ?? colOptionsWithBlank[0]}
-                    onChange={(opt) => setColMap(m => ({ ...m, amount: opt?.value ?? '' }))}
-                    isSearchable={false}
-                    styles={makeRsStyles('sm')}
-                    theme={rsTheme}
-                    menuPosition="fixed"
+                    onChange={opt => setColMap(m => ({ ...m, amount: opt?.value ?? '' }))}
+                    isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
                   />
                 </div>
-                {colMap.amount && (
-                  <span className={styles.sample}>{sampleValue(colMap.amount)}</span>
-                )}
+                {colMap.amount && <span className={styles.sample}>{sampleValue(colMap.amount)}</span>}
               </div>
             </div>
 
@@ -560,20 +686,15 @@ export default function ImportPage() {
                   <ReactSelect<{ value: string; label: string }>
                     options={colOptionsWithBlank}
                     value={colOptionsWithBlank.find(o => o.value === colMap.date) ?? colOptionsWithBlank[0]}
-                    onChange={(opt) => setColMap(m => ({ ...m, date: opt?.value ?? '' }))}
-                    isSearchable={false}
-                    styles={makeRsStyles('sm')}
-                    theme={rsTheme}
-                    menuPosition="fixed"
+                    onChange={opt => setColMap(m => ({ ...m, date: opt?.value ?? '' }))}
+                    isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
                   />
                 </div>
-                {colMap.date && (
-                  <span className={styles.sample}>{sampleValue(colMap.date)}</span>
-                )}
+                {colMap.date && <span className={styles.sample}>{sampleValue(colMap.date)}</span>}
               </div>
             </div>
 
-            {/* Transaction Type */}
+            {/* Type */}
             <div className={styles.mapRow}>
               <span className={styles.fieldName}><span className={styles.req}>*</span>Type</span>
               <div className={styles.mapControls}>
@@ -583,21 +704,17 @@ export default function ImportPage() {
                     { value: 'fixed-income', label: 'All Income' },
                     { value: 'fixed-expense', label: 'All Expense' },
                   ];
-                  const currentTypeSource = colMap.typeSource === 'column' ? 'column' : colMap.typeSource;
                   return (
                     <div style={{ minWidth: 200 }}>
                       <ReactSelect<{ value: string; label: string }>
                         options={typeSourceOptions}
-                        value={typeSourceOptions.find(o => o.value === currentTypeSource) ?? typeSourceOptions[0]}
-                        onChange={(opt) => {
+                        value={typeSourceOptions.find(o => o.value === colMap.typeSource) ?? typeSourceOptions[0]}
+                        onChange={opt => {
                           const v = (opt?.value ?? 'column') as TypeSource;
                           if (v === 'column') setColMap(m => ({ ...m, typeSource: 'column' }));
                           else setColMap(m => ({ ...m, typeSource: v, typeMapping: {} }));
                         }}
-                        isSearchable={false}
-                        styles={makeRsStyles('sm')}
-                        theme={rsTheme}
-                        menuPosition="fixed"
+                        isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
                       />
                     </div>
                   );
@@ -607,26 +724,24 @@ export default function ImportPage() {
                     <ReactSelect<{ value: string; label: string }>
                       options={colOptionsWithBlank}
                       value={colOptionsWithBlank.find(o => o.value === colMap.typeCol) ?? colOptionsWithBlank[0]}
-                      onChange={(opt) => onTypeColChange(opt?.value ?? '')}
-                      isSearchable={false}
-                      styles={makeRsStyles('sm')}
-                      theme={rsTheme}
-                      menuPosition="fixed"
+                      onChange={opt => onTypeColChange(opt?.value ?? '')}
+                      isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
                     />
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Type value mapping */}
+            {/* Type value mapping — now includes Transfer */}
             {colMap.typeSource === 'column' && colMap.typeCol && Object.keys(colMap.typeMapping).length > 0 && (
               <div className={styles.valueMapBlock}>
-                <p className={styles.valueMapTitle}>Assign each value to Income or Expense:</p>
+                <p className={styles.valueMapTitle}>Assign each value to Income, Expense, or Transfer:</p>
                 {Object.entries(colMap.typeMapping).map(([val, mapped]) => {
                   const typeMappingOpts = [
                     { value: '', label: '— assign —' },
                     { value: 'income', label: 'Income' },
                     { value: 'expense', label: 'Expense' },
+                    { value: 'transfer', label: 'Transfer' },
                   ];
                   return (
                     <div key={val} className={styles.valueMapRow}>
@@ -638,12 +753,9 @@ export default function ImportPage() {
                           value={typeMappingOpts.find(o => o.value === (mapped ?? '')) ?? typeMappingOpts[0]}
                           onChange={opt => setColMap(m => ({
                             ...m,
-                            typeMapping: { ...m.typeMapping, [val]: (opt?.value ?? '') as TransactionType | '' },
+                            typeMapping: { ...m.typeMapping, [val]: (opt?.value ?? '') as ImportType | '' },
                           }))}
-                          isSearchable={false}
-                          styles={makeRsStyles('sm')}
-                          theme={rsTheme}
-                          menuPosition="fixed"
+                          isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
                         />
                       </div>
                     </div>
@@ -658,32 +770,19 @@ export default function ImportPage() {
               <div className={styles.mapControls}>
                 <div style={{ minWidth: 200 }}>
                   <ReactSelect<{ value: string; label: string }>
-                    options={[
-                      { value: 'fixed', label: 'Fixed wallet' },
-                      { value: 'column', label: 'From column…' },
-                    ]}
-                    value={colMap.walletSource === 'fixed'
-                      ? { value: 'fixed', label: 'Fixed wallet' }
-                      : { value: 'column', label: 'From column…' }}
+                    options={[{ value: 'fixed', label: 'Fixed wallet' }, { value: 'column', label: 'From column…' }]}
+                    value={colMap.walletSource === 'fixed' ? { value: 'fixed', label: 'Fixed wallet' } : { value: 'column', label: 'From column…' }}
                     onChange={opt => setColMap(m => ({ ...m, walletSource: (opt?.value ?? 'fixed') as WalletSource }))}
-                    isSearchable={false}
-                    styles={makeRsStyles('sm')}
-                    theme={rsTheme}
-                    menuPosition="fixed"
+                    isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
                   />
                 </div>
                 {colMap.walletSource === 'fixed' ? (
                   <div style={{ minWidth: 200 }}>
                     <ReactSelect<{ value: string; label: string }>
-                      options={[{ value: '', label: '— select wallet —' }, ...wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` }))]}
-                      value={wallets.find(w => w.id === colMap.walletFixed)
-                        ? { value: colMap.walletFixed, label: `${wallets.find(w => w.id === colMap.walletFixed)!.icon} ${wallets.find(w => w.id === colMap.walletFixed)!.name}` }
-                        : { value: '', label: '— select wallet —' }}
+                      options={walletOpts}
+                      value={walletOpts.find(o => o.value === colMap.walletFixed) ?? walletOpts[0]}
                       onChange={opt => setColMap(m => ({ ...m, walletFixed: opt?.value ?? '' }))}
-                      isSearchable={false}
-                      styles={makeRsStyles('sm')}
-                      theme={rsTheme}
-                      menuPosition="fixed"
+                      isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
                     />
                   </div>
                 ) : (
@@ -692,23 +791,76 @@ export default function ImportPage() {
                       options={colOptionsWithBlank}
                       value={colOptionsWithBlank.find(o => o.value === colMap.walletCol) ?? colOptionsWithBlank[0]}
                       onChange={opt => onWalletColChange(opt?.value ?? '')}
-                      isSearchable={false}
-                      styles={makeRsStyles('sm')}
-                      theme={rsTheme}
-                      menuPosition="fixed"
+                      isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
                     />
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Wallet value mapping */}
             {colMap.walletSource === 'column' && colMap.walletCol && Object.keys(colMap.walletMapping).length > 0 && (
               <div className={styles.valueMapBlock}>
                 <p className={styles.valueMapTitle}>Match each wallet name to one of your wallets:</p>
-                {Object.entries(colMap.walletMapping).map(([val, wId]) => {
-                  const walletOpts = [{ value: '', label: '— select wallet —' }, ...wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` }))];
-                  return (
+                {Object.entries(colMap.walletMapping).map(([val, wId]) => (
+                  <div key={val} className={styles.valueMapRow}>
+                    <span className={styles.csvVal}>&ldquo;{val}&rdquo;</span>
+                    <span className={styles.arrow}>→</span>
+                    <div style={{ minWidth: 200 }}>
+                      <ReactSelect<{ value: string; label: string }>
+                        options={walletOpts}
+                        value={walletOpts.find(o => o.value === (wId ?? '')) ?? walletOpts[0]}
+                        onChange={opt => setColMap(m => ({ ...m, walletMapping: { ...m.walletMapping, [val]: opt?.value || null } }))}
+                        isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Transfer settings — shown only when at least one type is mapped to 'transfer' */}
+          {hasTransferType && (
+            <div className={styles.fieldGroup}>
+              <p className={styles.groupTitle}>Transfer settings</p>
+
+              <div className={styles.mapRow}>
+                <span className={styles.fieldName}><span className={styles.req}>*</span>To wallet</span>
+                <div className={styles.mapControls}>
+                  <div style={{ minWidth: 200 }}>
+                    <ReactSelect<{ value: string; label: string }>
+                      options={[{ value: 'fixed', label: 'Fixed wallet' }, { value: 'column', label: 'From column…' }]}
+                      value={colMap.transferToWalletSource === 'fixed' ? { value: 'fixed', label: 'Fixed wallet' } : { value: 'column', label: 'From column…' }}
+                      onChange={opt => setColMap(m => ({ ...m, transferToWalletSource: (opt?.value ?? 'fixed') as WalletSource }))}
+                      isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
+                    />
+                  </div>
+                  {colMap.transferToWalletSource === 'fixed' ? (
+                    <div style={{ minWidth: 200 }}>
+                      <ReactSelect<{ value: string; label: string }>
+                        options={walletOpts}
+                        value={walletOpts.find(o => o.value === colMap.transferToWalletFixed) ?? walletOpts[0]}
+                        onChange={opt => setColMap(m => ({ ...m, transferToWalletFixed: opt?.value ?? '' }))}
+                        isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ minWidth: 200 }}>
+                      <ReactSelect<{ value: string; label: string }>
+                        options={colOptionsWithBlank}
+                        value={colOptionsWithBlank.find(o => o.value === colMap.transferToWalletCol) ?? colOptionsWithBlank[0]}
+                        onChange={opt => onTransferToWalletColChange(opt?.value ?? '')}
+                        isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {colMap.transferToWalletSource === 'column' && colMap.transferToWalletCol && Object.keys(colMap.transferToWalletMapping).length > 0 && (
+                <div className={styles.valueMapBlock}>
+                  <p className={styles.valueMapTitle}>Match each destination wallet name:</p>
+                  {Object.entries(colMap.transferToWalletMapping).map(([val, wId]) => (
                     <div key={val} className={styles.valueMapRow}>
                       <span className={styles.csvVal}>&ldquo;{val}&rdquo;</span>
                       <span className={styles.arrow}>→</span>
@@ -716,22 +868,34 @@ export default function ImportPage() {
                         <ReactSelect<{ value: string; label: string }>
                           options={walletOpts}
                           value={walletOpts.find(o => o.value === (wId ?? '')) ?? walletOpts[0]}
-                          onChange={opt => setColMap(m => ({
-                            ...m,
-                            walletMapping: { ...m.walletMapping, [val]: opt?.value || null },
-                          }))}
-                          isSearchable={false}
-                          styles={makeRsStyles('sm')}
-                          theme={rsTheme}
-                          menuPosition="fixed"
+                          onChange={opt => setColMap(m => ({ ...m, transferToWalletMapping: { ...m.transferToWalletMapping, [val]: opt?.value || null } }))}
+                          isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
                         />
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
+              )}
+
+              <div className={styles.mapRow}>
+                <span className={styles.fieldName}>To amount</span>
+                <div className={styles.mapControls}>
+                  <div style={{ minWidth: 200 }}>
+                    <ReactSelect<{ value: string; label: string }>
+                      options={colOptionsWithSkip}
+                      value={colOptionsWithSkip.find(o => o.value === colMap.transferToAmountCol) ?? colOptionsWithSkip[0]}
+                      onChange={opt => setColMap(m => ({ ...m, transferToAmountCol: opt?.value ?? '' }))}
+                      isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
+                    />
+                  </div>
+                  {colMap.transferToAmountCol && <span className={styles.sample}>{sampleValue(colMap.transferToAmountCol)}</span>}
+                </div>
               </div>
-            )}
-          </div>
+              <p className={styles.fieldHint}>
+                Amount received in the destination wallet. Leave as Skip to use the same amount as the source.
+              </p>
+            </div>
+          )}
 
           {/* Optional fields */}
           <div className={styles.fieldGroup}>
@@ -745,22 +909,42 @@ export default function ImportPage() {
                   <ReactSelect<{ value: string; label: string }>
                     options={colOptionsWithSkip}
                     value={colOptionsWithSkip.find(o => o.value === colMap.categoryCol) ?? colOptionsWithSkip[0]}
-                    onChange={opt => setColMap(m => ({ ...m, categoryCol: opt?.value ?? '' }))}
-                    isSearchable={false}
-                    styles={makeRsStyles('sm')}
-                    theme={rsTheme}
-                    menuPosition="fixed"
+                    onChange={opt => onCategoryColChange(opt?.value ?? '')}
+                    isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
                   />
                 </div>
-                {colMap.categoryCol && (
-                  <span className={styles.sample}>{sampleValue(colMap.categoryCol)}</span>
-                )}
+                {colMap.categoryCol && <span className={styles.sample}>{sampleValue(colMap.categoryCol)}</span>}
               </div>
             </div>
-            {colMap.categoryCol && (
-              <p className={styles.fieldHint}>
-                Category names are matched by name to your existing categories. Unrecognised names are imported without a category.
-              </p>
+
+            {/* Category value mapping */}
+            {colMap.categoryCol && Object.keys(colMap.categoryMapping).length > 0 && (
+              <div className={styles.valueMapBlock}>
+                <p className={styles.valueMapTitle}>
+                  Map each category to one of yours
+                  {unmappedCategories.length > 0 && (
+                    <span className={styles.unmappedBadge}>{unmappedCategories.length} unmatched</span>
+                  )}:
+                </p>
+                {Object.entries(colMap.categoryMapping).map(([val, catId]) => (
+                  <div key={val} className={styles.valueMapRow}>
+                    <span className={styles.csvVal}>&ldquo;{val}&rdquo;</span>
+                    <span className={styles.arrow}>→</span>
+                    <div style={{ minWidth: 220 }}>
+                      <ReactSelect<{ value: string; label: string }>
+                        options={categoryOpts}
+                        value={categoryOpts.find(o => o.value === (catId ?? '')) ?? categoryOpts[0]}
+                        onChange={opt => setColMap(m => ({ ...m, categoryMapping: { ...m.categoryMapping, [val]: opt?.value || null } }))}
+                        isSearchable styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
+                      />
+                    </div>
+                    {catId !== null && <span className={styles.autoMatched}>✓ matched</span>}
+                  </div>
+                ))}
+                {unmappedCategories.length > 0 && (
+                  <p className={styles.fieldHint}>Unmatched categories will be imported without a category.</p>
+                )}
+              </div>
             )}
 
             {/* Notes */}
@@ -772,15 +956,10 @@ export default function ImportPage() {
                     options={colOptionsWithSkip}
                     value={colOptionsWithSkip.find(o => o.value === colMap.notesCol) ?? colOptionsWithSkip[0]}
                     onChange={opt => setColMap(m => ({ ...m, notesCol: opt?.value ?? '' }))}
-                    isSearchable={false}
-                    styles={makeRsStyles('sm')}
-                    theme={rsTheme}
-                    menuPosition="fixed"
+                    isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
                   />
                 </div>
-                {colMap.notesCol && (
-                  <span className={styles.sample}>{sampleValue(colMap.notesCol)}</span>
-                )}
+                {colMap.notesCol && <span className={styles.sample}>{sampleValue(colMap.notesCol)}</span>}
               </div>
             </div>
 
@@ -793,15 +972,10 @@ export default function ImportPage() {
                     options={colOptionsWithSkip}
                     value={colOptionsWithSkip.find(o => o.value === colMap.payerCol) ?? colOptionsWithSkip[0]}
                     onChange={opt => setColMap(m => ({ ...m, payerCol: opt?.value ?? '' }))}
-                    isSearchable={false}
-                    styles={makeRsStyles('sm')}
-                    theme={rsTheme}
-                    menuPosition="fixed"
+                    isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
                   />
                 </div>
-                {colMap.payerCol && (
-                  <span className={styles.sample}>{sampleValue(colMap.payerCol)}</span>
-                )}
+                {colMap.payerCol && <span className={styles.sample}>{sampleValue(colMap.payerCol)}</span>}
               </div>
             </div>
 
@@ -814,15 +988,10 @@ export default function ImportPage() {
                     options={colOptionsWithSkip}
                     value={colOptionsWithSkip.find(o => o.value === colMap.labelsCol) ?? colOptionsWithSkip[0]}
                     onChange={opt => setColMap(m => ({ ...m, labelsCol: opt?.value ?? '' }))}
-                    isSearchable={false}
-                    styles={makeRsStyles('sm')}
-                    theme={rsTheme}
-                    menuPosition="fixed"
+                    isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
                   />
                 </div>
-                {colMap.labelsCol && (
-                  <span className={styles.sample}>{sampleValue(colMap.labelsCol)}</span>
-                )}
+                {colMap.labelsCol && <span className={styles.sample}>{sampleValue(colMap.labelsCol)}</span>}
               </div>
             </div>
             {colMap.labelsCol && (
@@ -846,7 +1015,6 @@ export default function ImportPage() {
 
           {!importResult ? (
             <>
-              {/* Stats + filter tabs */}
               <div className={styles.previewHeader}>
                 <div className={styles.importStats}>
                   <div className={styles.stat}>
@@ -860,7 +1028,6 @@ export default function ImportPage() {
                     </div>
                   )}
                 </div>
-
                 <div className={styles.filterTabs}>
                   {(['all', 'valid', 'invalid'] as const).map(v => (
                     <button
@@ -876,7 +1043,6 @@ export default function ImportPage() {
                 </div>
               </div>
 
-              {/* Table */}
               <div className={styles.tableScroll}>
                 <table className={styles.table}>
                   <thead>
@@ -886,6 +1052,7 @@ export default function ImportPage() {
                       <th>Type</th>
                       <th>Amount</th>
                       <th>Wallet</th>
+                      {hasAnyTransfer && <th>To wallet</th>}
                       <th>Category</th>
                       <th>Notes</th>
                       <th>Labels</th>
@@ -894,9 +1061,11 @@ export default function ImportPage() {
                   </thead>
                   <tbody>
                     {displayedRows.map(row => {
-                      const wallet = wallets.find(w => w.id === row.walletId);
-                      const category = categories.find(c => c.id === row.categoryId);
-                      const bad = row.errors.length > 0;
+                      const wallet    = wallets.find(w => w.id === row.walletId);
+                      const toWallet  = wallets.find(w => w.id === row.transferToWalletId);
+                      const category  = categories.find(c => c.id === row.categoryId);
+                      const bad       = row.errors.length > 0;
+                      const isTransfer = row.type === 'transfer';
                       return (
                         <>
                           <tr key={row.index} className={bad ? styles.rowError : ''}>
@@ -904,17 +1073,24 @@ export default function ImportPage() {
                             <td>{row.date ?? <span className={styles.missing}>–</span>}</td>
                             <td>
                               {row.type ? (
-                                <span className={row.type === 'income' ? styles.tagIncome : styles.tagExpense}>
-                                  {row.type}
+                                <span className={isTransfer ? styles.tagTransfer : row.type === 'income' ? styles.tagIncome : styles.tagExpense}>
+                                  {isTransfer ? '↔ transfer' : row.type}
                                 </span>
                               ) : <span className={styles.missing}>–</span>}
                             </td>
-                            <td className={row.type === 'expense' ? styles.amtExpense : styles.amtIncome}>
+                            <td className={isTransfer ? styles.amtTransfer : row.type === 'expense' ? styles.amtExpense : styles.amtIncome}>
                               {row.amount !== null
-                                ? (row.type === 'expense' ? '−' : '+') + row.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                ? (isTransfer ? '' : row.type === 'expense' ? '−' : '+') + row.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                                 : <span className={styles.missing}>–</span>}
                             </td>
                             <td>{wallet ? `${wallet.icon} ${wallet.name}` : <span className={styles.missing}>–</span>}</td>
+                            {hasAnyTransfer && (
+                              <td>
+                                {isTransfer
+                                  ? (toWallet ? `${toWallet.icon} ${toWallet.name}` : <span className={styles.missing}>–</span>)
+                                  : <span className={styles.muted}>—</span>}
+                              </td>
+                            )}
                             <td>{category?.name ?? <span className={styles.muted}>none</span>}</td>
                             <td className={styles.noteCol}>{row.notes ?? ''}</td>
                             <td>
@@ -930,19 +1106,15 @@ export default function ImportPage() {
                             <td>
                               {bad ? (
                                 <ul className={styles.errorList}>
-                                  {row.errors.map((e, i) => (
-                                    <li key={i} className={styles.statusErr}>✕ {e}</li>
-                                  ))}
+                                  {row.errors.map((e, i) => <li key={i} className={styles.statusErr}>✕ {e}</li>)}
                                 </ul>
-                              ) : (
-                                <span className={styles.statusOk}>✓</span>
-                              )}
+                              ) : <span className={styles.statusOk}>✓</span>}
                             </td>
                           </tr>
                           {bad && (
                             <tr key={`${row.index}-raw`} className={styles.rawRow}>
                               <td />
-                              <td colSpan={8} className={styles.rawCell}>
+                              <td colSpan={hasAnyTransfer ? 9 : 8} className={styles.rawCell}>
                                 <span className={styles.rawLabel}>Original: </span>
                                 {(csv?.headers ?? []).map((h, i) => (
                                   <span key={i} className={styles.rawField}>
@@ -959,19 +1131,11 @@ export default function ImportPage() {
                   </tbody>
                 </table>
               </div>
-              {displayedRows.length === 0 && (
-                <p className={styles.truncNote}>No rows to show for this filter.</p>
-              )}
+              {displayedRows.length === 0 && <p className={styles.truncNote}>No rows to show for this filter.</p>}
 
               <div className={styles.actions}>
                 <Button variant="secondary" size="md" onClick={() => setStep(2)} disabled={importing}>← Back</Button>
-                <Button
-                  variant="primary"
-                  size="md"
-                  loading={importing}
-                  disabled={validCount === 0 || importing}
-                  onClick={handleImport}
-                >
+                <Button variant="primary" size="md" loading={importing} disabled={validCount === 0 || importing} onClick={handleImport}>
                   Import {validCount} transaction{validCount !== 1 ? 's' : ''}
                 </Button>
               </div>
