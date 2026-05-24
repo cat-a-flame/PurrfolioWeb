@@ -63,6 +63,8 @@ export default function RecurringPage() {
   const [labels, setLabels]         = useState<Label[]>([]);
   const [loading, setLoading]       = useState(true);
 
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
   const [showAddDialog, setShowAddDialog]   = useState(false);
   const [addForm, setAddForm]               = useState<FormFields>(EMPTY_FORM);
   const [addSaving, setAddSaving]           = useState(false);
@@ -130,6 +132,13 @@ export default function RecurringPage() {
   }, [viewYear, viewMonth]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  useEffect(() => {
+    if (!openMenuId) return;
+    function close() { setOpenMenuId(null); }
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [openMenuId]);
 
   // Compute pending due items for the viewed month
   const dueItems: DueItem[] = (() => {
@@ -497,12 +506,20 @@ export default function RecurringPage() {
                           )}
                           {!p.is_active && <span className={styles.pausedBadge}>Paused</span>}
                         </div>
-                        <div className={styles.paymentActions}>
-                          <button className={styles.iconBtn} onClick={() => handleToggleActive(p)} title={p.is_active ? 'Pause' : 'Resume'}>
-                            {p.is_active ? '⏸' : '▶'}
-                          </button>
-                          <button className={styles.iconBtn} onClick={() => openEdit(p)} title="Edit">✏️</button>
-                          <button className={[styles.iconBtn, styles.iconBtnDanger].join(' ')} onClick={() => setDeletingPayment(p)} title="Delete">🗑</button>
+                        <div className={styles.kebabWrap}>
+                          <button
+                            className={styles.kebabTrigger}
+                            onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === p.id ? null : p.id); }}
+                          >···</button>
+                          {openMenuId === p.id && (
+                            <div className={styles.kebabMenu} onClick={e => e.stopPropagation()}>
+                              <button className={styles.kebabItem} onClick={() => { handleToggleActive(p); setOpenMenuId(null); }}>
+                                {p.is_active ? 'Pause' : 'Resume'}
+                              </button>
+                              <button className={styles.kebabItem} onClick={() => { openEdit(p); setOpenMenuId(null); }}>Edit</button>
+                              <button className={[styles.kebabItem, styles.kebabItemDanger].join(' ')} onClick={() => { setDeletingPayment(p); setOpenMenuId(null); }}>Delete</button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

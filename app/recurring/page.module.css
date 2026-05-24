@@ -320,24 +320,54 @@
   font-weight: 500;
 }
 
-.paymentActions {
-  display: flex;
-  gap: var(--space-1);
+.kebabWrap {
+  position: relative;
   flex-shrink: 0;
 }
 
-.iconBtn {
+.kebabTrigger {
   background: transparent;
   border: none;
-  padding: var(--space-1);
+  padding: var(--space-1) var(--space-2);
   cursor: pointer;
   border-radius: var(--radius-sm);
-  font-size: 0.9375rem;
-  transition: background 0.15s;
+  font-size: 1rem;
+  color: var(--color-text-muted);
   line-height: 1;
+  letter-spacing: 0.05em;
+  transition: background 0.15s, color 0.15s;
 }
-.iconBtn:hover { background: var(--color-surface-alt); }
-.iconBtnDanger:hover { background: color-mix(in srgb, var(--color-error, #ef4444) 12%, transparent); }
+.kebabTrigger:hover { background: var(--color-surface-alt); color: var(--color-text); }
+
+.kebabMenu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  min-width: 120px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+}
+
+.kebabItem {
+  background: transparent;
+  border: none;
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  cursor: pointer;
+  border-radius: calc(var(--radius-md) - 2px);
+  transition: background 0.12s;
+}
+.kebabItem:hover { background: var(--color-surface-alt); }
+.kebabItemDanger { color: var(--color-error, #ef4444); }
+.kebabItemDanger:hover { background: color-mix(in srgb, var(--color-error, #ef4444) 10%, transparent); }
 
 /* ── Modal (matches TransactionForm style) ── */
 .overlay {
