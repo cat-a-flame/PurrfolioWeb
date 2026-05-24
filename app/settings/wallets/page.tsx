@@ -10,6 +10,7 @@ import NumberInput from '@/components/ui/NumberInput';
 import Toast from '@/components/ui/Toast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
+import Switch from '@/components/ui/Switch';
 import { createClient } from '@/lib/supabase/client';
 import { formatNumber } from '@/lib/utils';
 import type { Wallet, Currency } from '@/lib/types';
@@ -263,13 +264,19 @@ export default function WalletsSettingsPage() {
                 <input id="ew-color" type="color" className={styles.colorPicker} value={editFields.color} onChange={e => setEditFields(f => ({ ...f, color: e.target.value }))} />
               </div>
             </div>
+            <div className={styles.field}>
+              <Switch
+                id="ew-default"
+                label="Default wallet"
+                checked={editingWallet.is_default}
+                onChange={() => handleSetDefault(editingWallet)}
+                disabled={editingWallet.is_default}
+              />
+            </div>
             {editError && <p className={styles.formError}>{editError}</p>}
             <div className={styles.dialogActions}>
               {!editingWallet.is_default && wallets.length > 1 && (
                 <Button variant="danger" size="md" type="button" style={{ marginRight: 'auto' }} onClick={() => { setDeletingWallet(editingWallet); handleCloseEdit(); }}>Delete</Button>
-              )}
-              {!editingWallet.is_default && (
-                <Button variant="secondary" size="md" type="button" onClick={() => handleSetDefault(editingWallet)}>Set as default</Button>
               )}
               <Button variant="secondary" size="md" type="button" onClick={handleCloseEdit}>Cancel</Button>
               <Button type="submit" variant="primary" size="md" loading={editSaving}>Save</Button>
