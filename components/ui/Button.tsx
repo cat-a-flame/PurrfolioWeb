@@ -1,4 +1,4 @@
-import styles from './Button.module.css';
+import { Button as ChakraButton } from '@chakra-ui/react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type ButtonSize = 'sm' | 'md';
@@ -10,29 +10,36 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
 }
 
+const variantMap: Record<ButtonVariant, { colorPalette: string; variant: string }> = {
+  primary:   { colorPalette: 'accent',  variant: 'solid'   },
+  secondary: { colorPalette: 'neutral', variant: 'outline' },
+  ghost:     { colorPalette: 'neutral', variant: 'ghost'   },
+  danger:    { colorPalette: 'danger',  variant: 'solid'   },
+};
+
 export default function Button({
   variant = 'primary',
   size = 'md',
   loading = false,
   disabled,
   children,
-  className,
+  type = 'button',
   ...props
 }: ButtonProps) {
-  const cls = [
-    styles.btn,
-    styles[variant],
-    styles[size],
-    loading ? styles.loading : '',
-    className ?? '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-
+  const { colorPalette, variant: chakraVariant } = variantMap[variant];
   return (
-    <button className={cls} disabled={disabled || loading} {...props}>
-      {loading ? <span className={styles.spinner} aria-hidden="true" /> : null}
-      <span className={loading ? styles.hiddenText : undefined}>{children}</span>
-    </button>
+    <ChakraButton
+      colorPalette={colorPalette}
+      variant={chakraVariant}
+      size={size}
+      loading={loading}
+      disabled={disabled || loading}
+      type={type}
+      borderRadius="var(--radius-md)"
+      fontFamily="var(--font-figtree)"
+      {...(props as any)}
+    >
+      {children}
+    </ChakraButton>
   );
 }

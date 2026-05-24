@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import styles from './Toast.module.css';
+import { Alert, CloseButton } from '@chakra-ui/react';
 
 export type ToastVariant = 'success' | 'error';
 
@@ -18,45 +18,60 @@ export default function Toast({
   duration = 4000,
   onDismiss,
 }: ToastProps) {
-  const [leaving, setLeaving] = useState(false);
+  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLeaving(true);
-    }, duration - 300);
-
-    const cleanup = setTimeout(() => {
-      onDismiss();
-    }, duration);
-
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(cleanup);
-    };
+    const hide  = setTimeout(() => setVisible(false), duration - 300);
+    const close = setTimeout(onDismiss, duration);
+    return () => { clearTimeout(hide); clearTimeout(close); };
   }, [duration, onDismiss]);
 
+  function dismiss() {
+    setVisible(false);
+    setTimeout(onDismiss, 300);
+  }
+
+  const status = variant === 'error' ? 'error' : 'success';
+
   return (
-    <div
-      className={[
-        styles.toast,
-        styles[variant],
-        leaving ? styles.leaving : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
+    <Alert.Root
+      status={status}
       role="alert"
+      position="fixed"
+      bottom="var(--space-6)"
+      right="var(--space-6)"
+      zIndex={9999}
+      maxW="360px"
+      minW="240px"
+      borderRadius="var(--radius-lg)"
+      boxShadow="var(--shadow-lg)"
+      border="1px solid"
+      borderColor={variant === 'error' ? 'var(--color-danger)' : 'var(--color-border)'}
+      bg={variant === 'error' ? 'var(--color-danger-light)' : 'var(--color-surface)'}
+      color={variant === 'error' ? 'var(--color-danger)' : 'var(--color-text)'}
+      fontFamily="var(--font-figtree)"
+      transition="opacity 300ms ease, transform 300ms ease"
+      opacity={visible ? 1 : 0}
+      transform={visible ? 'translateX(0)' : 'translateX(calc(100% + var(--space-6)))'}
+      display="flex"
+      alignItems="center"
+      gap="var(--space-2)"
+      px="var(--space-4)"
+      py="var(--space-3)"
     >
-      <span className={styles.message}>{message}</span>
-      <button
-        className={styles.close}
-        onClick={() => {
-          setLeaving(true);
-          setTimeout(onDismiss, 300);
-        }}
-        aria-label="Dismiss"
-      >
-        ×
-      </button>
-    </div>
+      <Alert.Indicator />
+      <Alert.Content flex={1}>
+        <Alert.Description fontSize="0.9375rem" fontWeight={500}>
+          {message}
+        </Alert.Description>
+      </Alert.Content>
+      <CloseButton
+        size="sm"
+        onClick={dismiss}
+        color="inherit"
+        opacity={0.7}
+        _hover={{ opacity: 1 }}
+      />
+    </Alert.Root>
   );
 }

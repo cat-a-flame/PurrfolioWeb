@@ -1,7 +1,7 @@
 'use client';
 
+import { Dialog as ChakraDialog } from '@chakra-ui/react';
 import Button from './Button';
-import styles from './ConfirmDialog.module.css';
 
 interface ConfirmDialogProps {
   title: string;
@@ -23,30 +23,47 @@ export default function ConfirmDialog({
   loading = false,
 }: ConfirmDialogProps) {
   return (
-    <div className={styles.overlay} onClick={onCancel}>
-      <div
-        className={styles.dialog}
-        onClick={(e) => e.stopPropagation()}
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="confirm-title"
-        aria-describedby="confirm-message"
-      >
-        <h2 id="confirm-title" className={styles.title}>
-          {title}
-        </h2>
-        <p id="confirm-message" className={styles.message}>
-          {message}
-        </p>
-        <div className={styles.actions}>
-          <Button variant="secondary" size="md" onClick={onCancel} disabled={loading}>
-            {cancelLabel}
-          </Button>
-          <Button variant="danger" size="md" onClick={onConfirm} loading={loading}>
-            {confirmLabel}
-          </Button>
-        </div>
-      </div>
-    </div>
+    <ChakraDialog.Root
+      open
+      onOpenChange={({ open }) => { if (!open) onCancel(); }}
+      role="alertdialog"
+      modal
+    >
+      <ChakraDialog.Backdrop bg="var(--color-overlay)" />
+      <ChakraDialog.Positioner>
+        <ChakraDialog.Content
+          bg="var(--color-surface)"
+          border="1px solid var(--color-border)"
+          borderRadius="var(--radius-xl)"
+          boxShadow="var(--shadow-lg)"
+          maxW="420px"
+          fontFamily="var(--font-figtree)"
+        >
+          <ChakraDialog.Header px="var(--space-6)" pt="var(--space-5)" pb="var(--space-2)">
+            <ChakraDialog.Title
+              fontSize="1.0625rem"
+              fontWeight={700}
+              color="var(--color-text)"
+              fontFamily="var(--font-figtree)"
+            >
+              {title}
+            </ChakraDialog.Title>
+          </ChakraDialog.Header>
+          <ChakraDialog.Body px="var(--space-6)" pb="var(--space-5)">
+            <p style={{ fontSize: '0.9375rem', color: 'var(--color-text-muted)', lineHeight: 1.6, marginBottom: 'var(--space-6)' }}>
+              {message}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+              <Button variant="secondary" size="md" onClick={onCancel} disabled={loading}>
+                {cancelLabel}
+              </Button>
+              <Button variant="danger" size="md" onClick={onConfirm} loading={loading}>
+                {confirmLabel}
+              </Button>
+            </div>
+          </ChakraDialog.Body>
+        </ChakraDialog.Content>
+      </ChakraDialog.Positioner>
+    </ChakraDialog.Root>
   );
 }

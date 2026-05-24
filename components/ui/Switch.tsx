@@ -1,4 +1,4 @@
-import styles from './Switch.module.css';
+import { Switch as ChakraSwitch } from '@chakra-ui/react';
 
 interface SwitchProps {
   checked: boolean;
@@ -9,27 +9,29 @@ interface SwitchProps {
 }
 
 export default function Switch({ checked, onChange, disabled, label, id }: SwitchProps) {
-  const trackClass = [styles.track, checked ? styles.checked : '', disabled ? styles.disabled : ''].filter(Boolean).join(' ');
-  const labelClass = [styles.label, disabled ? styles.disabled : ''].filter(Boolean).join(' ');
-
   return (
-    <span className={styles.row}>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        id={id}
-        className={trackClass}
-        onClick={() => !disabled && onChange(!checked)}
-        disabled={disabled}
-      >
-        <span className={styles.thumb} />
-      </button>
+    <ChakraSwitch.Root
+      colorPalette="accent"
+      checked={checked}
+      onCheckedChange={({ checked }) => onChange(checked)}
+      disabled={disabled}
+      display="flex"
+      alignItems="center"
+      gap="var(--space-3)"
+    >
+      <ChakraSwitch.HiddenInput id={id} />
+      <ChakraSwitch.Control>
+        <ChakraSwitch.Thumb />
+      </ChakraSwitch.Control>
       {label && (
-        <label htmlFor={id} className={labelClass} onClick={() => !disabled && onChange(!checked)}>
+        <ChakraSwitch.Label
+          fontSize="0.9375rem"
+          fontWeight={500}
+          color="var(--color-text)"
+        >
           {label}
-        </label>
+        </ChakraSwitch.Label>
       )}
-    </span>
+    </ChakraSwitch.Root>
   );
 }
