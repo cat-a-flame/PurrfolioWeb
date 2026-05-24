@@ -141,6 +141,7 @@ interface PreviewRow {
   payer: string | null;
   labelIds: string[];
   errors: string[];
+  isCategoryTransfer: boolean; // single-leg transfer detected via category sentinel
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -301,29 +302,22 @@ export default function ImportPage() {
 
   // ─── Derived flags ────────────────────────────────────────────────────────
 
-  const hasTransferType =
-    (colMap.typeSource === 'column' && Object.values(colMap.typeMapping).includes('transfer')) ||
-    Object.values(colMap.categoryMapping).includes(TRANSFER_SENTINEL);
-  const unmappedCategories = Object.entries(colMap.categoryMapping).filter(([, v]) => v === null);
+  // Category-sentinel transfers: each CSV row is already one leg (sign gives direction).
+  // Type-column transfers: one CSV row becomes a full expense+income pair.
+  const hasTypeColumnTransfers = colMap.typeSource === 'column' && Object.values(colMap.typeMapping).includes('transfer');
+  const hasCategoryTransfers   = Object.values(colMap.categoryMapping).includes(TRANSFER_SENTINEL);
+  const hasTransferType        = hasTypeColumnTransfers || hasCategoryTransfers;
+  const unmappedCategories = Object.entries(colMap.categoryMapping).filter(([, v]) => v === null || v === '');
 
-  // Source wallet IDs that appear on transfer rows — used for 'by-source' mode
+  // Source wallet IDs on type-column transfer rows — used for 'by-source' destination mode
   const transferSourceWalletIds: string[] = (() => {
-    if (!csv || !hasTransferType) return [];
-    const typIdx = colMap.typeSource === 'column' ? colIdx(colMap.typeCol) : -1;
+    if (!csv || !hasTypeColumnTransfers) return [];
+    const typIdx = colIdx(colMap.typeCol);
     const walIdx = colMap.walletSource === 'column' ? colIdx(colMap.walletCol) : -1;
-    const catIdx = colMap.categoryCol ? colIdx(colMap.categoryCol) : -1;
     const seen = new Set<string>();
     for (const row of csv.rows) {
-      let isTransfer = false;
-      if (typIdx >= 0) {
-        const typeVal = (row[typIdx] ?? '').trim();
-        if (colMap.typeMapping[typeVal] === 'transfer') isTransfer = true;
-      }
-      if (!isTransfer && catIdx >= 0) {
-        const catVal = (row[catIdx] ?? '').trim();
-        if (colMap.categoryMapping[catVal] === TRANSFER_SENTINEL) isTransfer = true;
-      }
-      if (!isTransfer) continue;
+      const typeVal = typIdx >= 0 ? (row[typIdx] ?? '').trim() : '';
+      if (colMap.typeMapping[typeVal] !== 'transfer') continue;
       const srcId = colMap.walletSource === 'fixed'
         ? (colMap.walletFixed || null)
         : (walIdx >= 0 ? (colMap.walletMapping[(row[walIdx] ?? '').trim()] ?? null) : null);
@@ -349,7 +343,7 @@ export default function ImportPage() {
     } else {
       if (!colMap.walletFixed) return 'Select a wallet.';
     }
-    if (hasTransferType) {
+    if (hasTypeColumnTransfers) {
       if (colMap.transferToWalletSource === 'column') {
         if (!colMap.transferToWalletCol) return 'Select the destination wallet column for transfers.';
         const missing = Object.entries(colMap.transferToWalletMapping).find(([k, v]) => k && !v);
@@ -395,13 +389,15 @@ export default function ImportPage() {
       const parsedDate = parseDate(rawDate);
       if (!parsedDate) errors.push('Invalid date');
 
-      // Detect category-sentinel transfer before type determination so it can override
+      // Detect category-sentinel transfer before type determination so it can override.
+      // These rows already represent one leg — sign of the raw amount gives direction.
       const catRawVal = catI >= 0 ? (row[catI] ?? '').trim() : '';
       const isCategoryTransfer = catRawVal !== '' && colMap.categoryMapping[catRawVal] === TRANSFER_SENTINEL;
 
       let txType: ImportType | null = null;
       if (isCategoryTransfer) {
-        txType = 'transfer';
+        // positive → income leg, negative → expense leg
+        txType = parsedAmt !== null ? (parsedAmt >= 0 ? 'income' : 'expense') : null;
       } else if (colMap.typeSource === 'fixed-income') {
         txType = 'income';
       } else if (colMap.typeSource === 'fixed-expense') {
@@ -424,10 +420,10 @@ export default function ImportPage() {
       }
       if (!walletId) errors.push('No wallet');
 
-      // Transfer destination
+      // Transfer destination — only for type-column transfers (full pair from one row)
       let transferToWalletId: string | null = null;
       let transferToAmount: number | null = null;
-      if (txType === 'transfer') {
+      if (!isCategoryTransfer && txType === 'transfer') {
         if (colMap.transferToWalletSource === 'fixed') {
           transferToWalletId = colMap.transferToWalletFixed || null;
         } else if (colMap.transferToWalletSource === 'by-source') {
@@ -466,7 +462,7 @@ export default function ImportPage() {
         }
       }
 
-      return { index: i, raw: row, date: parsedDate, type: txType, amount, walletId, transferToWalletId, transferToAmount, categoryId, notes, payer, labelIds, errors };
+      return { index: i, raw: row, date: parsedDate, type: txType, amount, walletId, transferToWalletId, transferToAmount, categoryId, notes, payer, labelIds, errors, isCategoryTransfer };
     });
   }
 
@@ -517,8 +513,9 @@ export default function ImportPage() {
     let success = 0;
     let failed = 0;
 
-    const regular = valid.filter(r => r.type !== 'transfer');
-    const transfers = valid.filter(r => r.type === 'transfer');
+    const regular          = valid.filter(r => !r.isCategoryTransfer && r.type !== 'transfer');
+    const categoryTransfers = valid.filter(r => r.isCategoryTransfer);
+    const typeColTransfers  = valid.filter(r => !r.isCategoryTransfer && r.type === 'transfer');
 
     // Regular rows: batch insert
     const BATCH = 100;
@@ -547,8 +544,35 @@ export default function ImportPage() {
       }
     }
 
-    // Transfer rows: each becomes two linked transactions
-    for (const r of transfers) {
+    // Category-sentinel transfers: each CSV row is already one leg — insert as income/expense with transfer_group_id
+    for (let i = 0; i < categoryTransfers.length; i += BATCH) {
+      const slice = categoryTransfers.slice(i, i + BATCH);
+      const batch = slice.map(r => ({
+        user_id: user.id,
+        type: r.type as TransactionType,
+        amount: r.amount as number,
+        wallet_id: r.walletId as string,
+        category_id: r.categoryId,
+        date: r.date as string,
+        notes: r.notes,
+        payer: r.payer,
+        transfer_group_id: crypto.randomUUID(),
+        exchange_rate_to_huf: rateFor(r.walletId, r.date),
+      }));
+      const { data: inserted, error } = await supabase.from('transactions').insert(batch).select('id');
+      if (error || !inserted) {
+        failed += batch.length;
+      } else {
+        success += inserted.length;
+        const labelLinks = inserted.flatMap((tx: { id: string }, idx: number) =>
+          slice[idx].labelIds.map(lid => ({ transaction_id: tx.id, label_id: lid }))
+        ).filter((link: { transaction_id: string; label_id: string }) => link.label_id);
+        if (labelLinks.length > 0) await supabase.from('transaction_labels').insert(labelLinks);
+      }
+    }
+
+    // Type-column transfers: each CSV row becomes two linked transactions (expense + income pair)
+    for (const r of typeColTransfers) {
       const transferGroupId = crypto.randomUUID();
       const common = { user_id: user.id, date: r.date as string, notes: r.notes, transfer_group_id: transferGroupId };
       const { error } = await supabase.from('transactions').insert([
@@ -874,8 +898,9 @@ export default function ImportPage() {
             )}
           </div>
 
-          {/* Transfer settings — shown only when at least one type is mapped to 'transfer' */}
-          {hasTransferType && (
+          {/* Transfer settings — only needed when a type column maps values to 'transfer' (full pair per row).
+              Category-sentinel transfers are single-leg rows and don't need a destination configured. */}
+          {hasTypeColumnTransfers && (
             <div className={styles.fieldGroup}>
               <p className={styles.groupTitle}>Transfer settings</p>
 
@@ -1178,7 +1203,7 @@ export default function ImportPage() {
                             <td>
                               {row.type ? (
                                 <span className={isTransfer ? styles.tagTransfer : row.type === 'income' ? styles.tagIncome : styles.tagExpense}>
-                                  {isTransfer ? '↔ transfer' : row.type}
+                                  {isTransfer ? '↔ transfer' : (row.isCategoryTransfer ? `↔ ${row.type}` : row.type)}
                                 </span>
                               ) : <span className={styles.missing}>–</span>}
                             </td>
