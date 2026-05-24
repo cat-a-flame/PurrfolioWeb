@@ -33,7 +33,7 @@ export default function CategoriesSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editFields, setEditFields] = useState<EditFields>({ name: '', icon: '', color: '#f26e4d', parent_id: '' });
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
@@ -94,27 +94,33 @@ export default function CategoriesSettingsPage() {
   }
 
   function startEdit(cat: Category) {
-    setEditingId(cat.id);
+    setEditingCategory(cat);
     setEditFields({ name: cat.name, icon: cat.icon, color: cat.color, parent_id: cat.parent_id ?? '' });
     setEditError('');
   }
 
-  async function handleEditSave(cat: Category) {
+  function handleCloseEdit() {
+    setEditingCategory(null); setEditError('');
+  }
+
+  async function handleEditSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingCategory) return;
     setEditError('');
     if (!editFields.name.trim()) { setEditError('Name is required.'); return; }
     setEditSaving(true);
     const supabase = createClient();
-    const parentId = editFields.parent_id || cat.parent_id || null;
+    const parentId = editFields.parent_id || editingCategory.parent_id || null;
     const effectiveColor = parentId
       ? (categories.find(c => c.id === parentId)?.color ?? editFields.color)
       : editFields.color;
     const { error } = await supabase.from('categories').update({
       name: editFields.name.trim(), icon: editFields.icon.trim() || '📁',
       color: effectiveColor, parent_id: editFields.parent_id || null,
-    }).eq('id', cat.id);
+    }).eq('id', editingCategory.id);
     setEditSaving(false);
     if (error) { setEditError(error.message); } else {
-      setEditingId(null);
+      handleCloseEdit();
       setToast({ message: 'Category updated.', variant: 'success' });
       await fetchCategories();
     }
@@ -134,47 +140,7 @@ export default function CategoriesSettingsPage() {
   const topLevel = categories.filter(c => !c.parent_id);
   const getChildren = (pid: string) => categories.filter(c => c.parent_id === pid);
 
-  function renderEditRow(cat: Category, isChild: boolean) {
-    const parentOptions = categories.filter(c => !c.parent_id && c.id !== cat.id);
-    return (
-      <div className={[styles.catItem, styles.catItemEditing, isChild ? styles.catItemChild : ''].filter(Boolean).join(' ')}>
-        <div className={styles.editRow}>
-          <div className={styles.editFields}>
-            <Input type="text" value={editFields.name} onChange={e => setEditFields(f => ({ ...f, name: e.target.value }))} placeholder="Name" required />
-            <Input type="text" value={editFields.icon} onChange={e => setEditFields(f => ({ ...f, icon: e.target.value }))} placeholder="📁" maxLength={4} style={{ width: 72 }} />
-            {!isChild && <input type="color" className={styles.colorPicker} value={editFields.color} onChange={e => setEditFields(f => ({ ...f, color: e.target.value }))} style={{ width: 52 }} />}
-            {!isChild && (() => {
-              const parentSelectOptions = [
-                { value: '', label: '— Top level —' },
-                ...parentOptions.map(c => ({ value: c.id, label: `${c.icon} ${c.name}` })),
-              ];
-              return (
-                <div style={{ minWidth: 160 }}>
-                  <ReactSelect<{ value: string; label: string }>
-                    options={parentSelectOptions}
-                    value={parentSelectOptions.find(o => o.value === editFields.parent_id) ?? parentSelectOptions[0]}
-                    onChange={(opt) => setEditFields(f => ({ ...f, parent_id: opt?.value ?? '' }))}
-                    isSearchable
-                    styles={makeRsStyles('sm')}
-                    theme={rsTheme}
-                    menuPosition="fixed"
-                  />
-                </div>
-              );
-            })()}
-          </div>
-          {editError && <p className={styles.formError}>{editError}</p>}
-          <div className={styles.editActions}>
-            <Button variant="primary" size="sm" onClick={() => handleEditSave(cat)} loading={editSaving}>Save</Button>
-            <Button variant="secondary" size="sm" onClick={() => setEditingId(null)} disabled={editSaving}>Cancel</Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   function renderChildRow(cat: Category) {
-    if (editingId === cat.id) return <React.Fragment key={cat.id}>{renderEditRow(cat, true)}</React.Fragment>;
     const parentColor = categories.find(c => c.id === cat.parent_id)?.color ?? cat.color;
     return (
       <div key={cat.id} className={[styles.catItem, styles.catItemChild].join(' ')}>
@@ -193,7 +159,6 @@ export default function CategoriesSettingsPage() {
     const children = getChildren(cat.id);
     const hasChildren = children.length > 0;
     const isExpanded = expandedIds.has(cat.id);
-    if (editingId === cat.id) return <React.Fragment key={cat.id}>{renderEditRow(cat, false)}</React.Fragment>;
     return (
       <div key={cat.id} className={styles.parentGroup}>
         <div className={styles.catItem}>
@@ -221,6 +186,8 @@ export default function CategoriesSettingsPage() {
       </div>
     );
   }
+
+  const isEditingChild = editingCategory?.parent_id != null && editingCategory.parent_id !== '';
 
   return (
     <div className={styles.container}>
@@ -273,7 +240,7 @@ export default function CategoriesSettingsPage() {
                     value={addParentOptions.find(o => o.value === parentId) ?? addParentOptions[0]}
                     onChange={(opt) => setParentId(opt?.value ?? '')}
                     isSearchable
-                    styles={makeRsStyles()}
+                    styles={makeRsStyles<{ value: string; label: string }>()}
                     theme={rsTheme}
                     menuPosition="fixed"
                   />
@@ -284,6 +251,57 @@ export default function CategoriesSettingsPage() {
             <div className={styles.dialogActions}>
               <Button variant="secondary" size="md" type="button" onClick={handleCloseAdd}>Cancel</Button>
               <Button type="submit" variant="primary" size="md" loading={saving}>Add category</Button>
+            </div>
+          </form>
+        </Dialog>
+      )}
+
+      {editingCategory && (
+        <Dialog title="Edit category" onClose={handleCloseEdit}>
+          <form onSubmit={handleEditSave} className={styles.form}>
+            <div className={styles.field}>
+              <FormLabel htmlFor="ecat-name" required>Name</FormLabel>
+              <Input id="ecat-name" type="text" value={editFields.name} onChange={e => setEditFields(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Groceries" required autoFocus />
+            </div>
+            <div className={styles.twoCol}>
+              <div className={styles.field}>
+                <FormLabel htmlFor="ecat-icon">Icon (emoji)</FormLabel>
+                <Input id="ecat-icon" type="text" value={editFields.icon} onChange={e => setEditFields(f => ({ ...f, icon: e.target.value }))} placeholder="📁" maxLength={4} />
+              </div>
+              {!isEditingChild && (
+                <div className={styles.field}>
+                  <FormLabel htmlFor="ecat-color">Color</FormLabel>
+                  <input id="ecat-color" type="color" className={styles.colorPicker} value={editFields.color} onChange={e => setEditFields(f => ({ ...f, color: e.target.value }))} />
+                </div>
+              )}
+            </div>
+            {!isEditingChild && (
+              <div className={styles.field}>
+                <FormLabel htmlFor="ecat-parent">Parent category</FormLabel>
+                {(() => {
+                  const parentOptions = [
+                    { value: '', label: '— Top level —' },
+                    ...categories.filter(c => !c.parent_id && c.id !== editingCategory.id).map(c => ({ value: c.id, label: `${c.icon} ${c.name}` })),
+                  ];
+                  return (
+                    <ReactSelect<{ value: string; label: string }>
+                      inputId="ecat-parent"
+                      options={parentOptions}
+                      value={parentOptions.find(o => o.value === editFields.parent_id) ?? parentOptions[0]}
+                      onChange={(opt) => setEditFields(f => ({ ...f, parent_id: opt?.value ?? '' }))}
+                      isSearchable
+                      styles={makeRsStyles<{ value: string; label: string }>()}
+                      theme={rsTheme}
+                      menuPosition="fixed"
+                    />
+                  );
+                })()}
+              </div>
+            )}
+            {editError && <p className={styles.formError}>{editError}</p>}
+            <div className={styles.dialogActions}>
+              <Button variant="secondary" size="md" type="button" onClick={handleCloseEdit}>Cancel</Button>
+              <Button type="submit" variant="primary" size="md" loading={editSaving}>Save</Button>
             </div>
           </form>
         </Dialog>

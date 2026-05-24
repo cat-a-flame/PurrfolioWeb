@@ -21,7 +21,7 @@ export default function LabelsSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingLabel, setEditingLabel] = useState<Label | null>(null);
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState('#6366f1');
   const [editSaving, setEditSaving] = useState(false);
@@ -67,18 +67,24 @@ export default function LabelsSettingsPage() {
   }
 
   function startEdit(label: Label) {
-    setEditingId(label.id); setEditName(label.name); setEditColor(label.color); setEditError('');
+    setEditingLabel(label); setEditName(label.name); setEditColor(label.color); setEditError('');
   }
 
-  async function handleEditSave(label: Label) {
+  function handleCloseEdit() {
+    setEditingLabel(null); setEditError('');
+  }
+
+  async function handleEditSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingLabel) return;
     setEditError('');
     if (!editName.trim()) { setEditError('Name is required.'); return; }
     setEditSaving(true);
     const supabase = createClient();
-    const { error } = await supabase.from('labels').update({ name: editName.trim(), color: editColor }).eq('id', label.id);
+    const { error } = await supabase.from('labels').update({ name: editName.trim(), color: editColor }).eq('id', editingLabel.id);
     setEditSaving(false);
     if (error) { setEditError(error.message); } else {
-      setEditingId(null);
+      handleCloseEdit();
       setToast({ message: 'Label updated.', variant: 'success' });
       await fetchLabels();
     }
@@ -109,35 +115,18 @@ export default function LabelsSettingsPage() {
           <p className={styles.emptyState}>No labels yet.</p>
         ) : (
           <div className={styles.list}>
-            {labels.map(label => {
-              if (editingId === label.id) {
-                return (
-                  <div key={label.id} className={styles.labelRow}>
-                    <Input type="text" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Name" />
-                    <input type="color" className={styles.colorPicker} value={editColor} onChange={e => setEditColor(e.target.value)} style={{ width: 52, flexShrink: 0 }} />
-                    <span className={styles.labelChip}>
-                      <span className={styles.labelDot} style={{ backgroundColor: editColor }} />
-                      {editName || 'Preview'}
-                    </span>
-                    {editError && <p className={styles.formError}>{editError}</p>}
-                    <Button variant="primary" size="sm" onClick={() => handleEditSave(label)} loading={editSaving}>Save</Button>
-                    <Button variant="secondary" size="sm" onClick={() => setEditingId(null)} disabled={editSaving}>Cancel</Button>
-                  </div>
-                );
-              }
-              return (
-                <div key={label.id} className={styles.labelRow}>
-                  <span className={styles.labelChip}>
-                    <span className={styles.labelDot} style={{ backgroundColor: label.color }} />
-                    {label.name}
-                  </span>
-                  <div className={styles.labelActions}>
-                    <Button variant="ghost" size="sm" onClick={() => startEdit(label)}>Edit</Button>
-                    <Button variant="danger" size="sm" onClick={() => setDeletingLabel(label)}>Delete</Button>
-                  </div>
+            {labels.map(label => (
+              <div key={label.id} className={styles.labelRow}>
+                <span className={styles.labelChip}>
+                  <span className={styles.labelDot} style={{ backgroundColor: label.color }} />
+                  {label.name}
+                </span>
+                <div className={styles.labelActions}>
+                  <Button variant="ghost" size="sm" onClick={() => startEdit(label)}>Edit</Button>
+                  <Button variant="danger" size="sm" onClick={() => setDeletingLabel(label)}>Delete</Button>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </section>
@@ -166,6 +155,35 @@ export default function LabelsSettingsPage() {
             <div className={styles.dialogActions}>
               <Button variant="secondary" size="md" type="button" onClick={handleCloseAdd}>Cancel</Button>
               <Button type="submit" variant="primary" size="md" loading={saving}>Add label</Button>
+            </div>
+          </form>
+        </Dialog>
+      )}
+
+      {editingLabel && (
+        <Dialog title="Edit label" onClose={handleCloseEdit}>
+          <form onSubmit={handleEditSave} className={styles.form}>
+            <div className={styles.field}>
+              <FormLabel htmlFor="edit-label-name" required>Name</FormLabel>
+              <Input id="edit-label-name" type="text" value={editName} onChange={e => setEditName(e.target.value)} placeholder="e.g. Recurring" required autoFocus />
+            </div>
+            <div className={styles.twoCol}>
+              <div className={styles.field}>
+                <FormLabel htmlFor="edit-label-color">Color</FormLabel>
+                <input id="edit-label-color" type="color" className={styles.colorPicker} value={editColor} onChange={e => setEditColor(e.target.value)} />
+              </div>
+              <div className={styles.field}>
+                <FormLabel>Preview</FormLabel>
+                <span className={styles.labelChip}>
+                  <span className={styles.labelDot} style={{ backgroundColor: editColor }} />
+                  {editName || 'Label'}
+                </span>
+              </div>
+            </div>
+            {editError && <p className={styles.formError}>{editError}</p>}
+            <div className={styles.dialogActions}>
+              <Button variant="secondary" size="md" type="button" onClick={handleCloseEdit}>Cancel</Button>
+              <Button type="submit" variant="primary" size="md" loading={editSaving}>Save</Button>
             </div>
           </form>
         </Dialog>
