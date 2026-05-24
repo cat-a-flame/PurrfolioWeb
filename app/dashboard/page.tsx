@@ -12,7 +12,8 @@ import { createClient } from '@/lib/supabase/client';
 import { fetchAllTransactions } from '@/lib/supabase/fetchAllTransactions';
 import { formatHUF, formatCurrency } from '@/lib/utils';
 import { getExchangeRates, txToHUF } from '@/lib/exchangeRates';
-import type { Transaction, Wallet, Category, Label } from '@/lib/types';
+import { generateDueDates, isoDate as recurringIsoDate, monthBounds } from '@/lib/recurringUtils';
+import type { Transaction, Wallet, Category, Label, RecurringPayment, RecurringOccurrence } from '@/lib/types';
 import styles from './page.module.css';
 
 function isoDate(d: Date): string {
@@ -77,6 +78,10 @@ export default function DashboardPage() {
   const [editingTransferPair, setEditingTransferPair] = useState<Transaction | undefined>();
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
 
+  const [recurringPayments, setRecurringPayments] = useState<RecurringPayment[]>([]);
+  const [recurringOccurrences, setRecurringOccurrences] = useState<RecurringOccurrence[]>([]);
+  const [payActionLoading, setPayActionLoading] = useState<string | null>(null);
+
   // Exchange rates: date → { EUR: number, USD: number, … } (HUF per 1 unit)
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
 
@@ -104,16 +109,23 @@ export default function DashboardPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const [transactions, walletRes, catRes, lblRes] = await Promise.all([
+    const today = new Date();
+    const [from, to] = monthBounds(today.getFullYear(), today.getMonth());
+    const [transactions, walletRes, catRes, lblRes, pmtRes, occRes] = await Promise.all([
       fetchAllTransactions(user.id),
       supabase.from('wallets').select('*').eq('user_id', user.id).order('name'),
       supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
       supabase.from('labels').select('*').eq('user_id', user.id).order('name'),
+      supabase.from('recurring_payments').select('*, wallet:wallets(*), category:categories(*)').eq('user_id', user.id).eq('is_active', true),
+      supabase.from('recurring_occurrences').select('*').eq('user_id', user.id)
+        .gte('due_date', recurringIsoDate(from)).lte('due_date', recurringIsoDate(to)),
     ]);
     setAllTransactions(transactions);
     if (walletRes.data) setWallets(walletRes.data);
     if (catRes.data) setCategories(catRes.data);
     if (lblRes.data) setLabels(lblRes.data);
+    if (pmtRes.data) setRecurringPayments(pmtRes.data as RecurringPayment[]);
+    if (occRes.data) setRecurringOccurrences(occRes.data);
     setLoading(false);
   }, []);
 
@@ -158,6 +170,70 @@ export default function DashboardPage() {
 
   const hasMore = periodTxs.length > displayCount;
   const visiblePeriodTxs = periodTxs.slice(0, displayCount);
+
+  // Planned payments due this month (pending only)
+  const dashboardDueItems = useMemo(() => {
+    const now = new Date();
+    const [from, to] = monthBounds(now.getFullYear(), now.getMonth());
+    const actionedKeys = new Set(recurringOccurrences.map(o => `${o.recurring_payment_id}|${o.due_date}`));
+    const items: { payment: RecurringPayment; dueDate: Date }[] = [];
+    for (const p of recurringPayments) {
+      for (const date of generateDueDates(p, from, to)) {
+        const key = `${p.id}|${recurringIsoDate(date)}`;
+        if (!actionedKeys.has(key)) items.push({ payment: p, dueDate: date });
+      }
+    }
+    return items.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime()).slice(0, 5);
+  }, [recurringPayments, recurringOccurrences]);
+
+  const plannedExpense = useMemo(() => {
+    const now = new Date();
+    const [from, to] = monthBounds(now.getFullYear(), now.getMonth());
+    const actionedKeys = new Set(recurringOccurrences.map(o => `${o.recurring_payment_id}|${o.due_date}`));
+    let total = 0;
+    for (const p of recurringPayments) {
+      if (p.type !== 'expense') continue;
+      for (const date of generateDueDates(p, from, to)) {
+        const key = `${p.id}|${recurringIsoDate(date)}`;
+        if (!actionedKeys.has(key)) total += p.amount;
+      }
+    }
+    return total;
+  }, [recurringPayments, recurringOccurrences]);
+
+  async function handleDashboardPay(item: { payment: RecurringPayment; dueDate: Date }) {
+    const key = `${item.payment.id}|${recurringIsoDate(item.dueDate)}`;
+    setPayActionLoading(key);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setPayActionLoading(null); return; }
+    const { data: txData, error: txErr } = await supabase.from('transactions').insert({
+      user_id: user.id, type: item.payment.type, amount: item.payment.amount,
+      wallet_id: item.payment.wallet_id, category_id: item.payment.category_id,
+      date: recurringIsoDate(item.dueDate), notes: item.payment.notes, payer: item.payment.payer,
+    }).select('id').single();
+    if (txErr || !txData) { setPayActionLoading(null); return; }
+    await supabase.from('recurring_occurrences').insert({
+      recurring_payment_id: item.payment.id, user_id: user.id,
+      due_date: recurringIsoDate(item.dueDate), status: 'paid', transaction_id: txData.id,
+    });
+    setPayActionLoading(null);
+    window.dispatchEvent(new Event('transaction-added'));
+  }
+
+  async function handleDashboardSkip(item: { payment: RecurringPayment; dueDate: Date }) {
+    const key = `${item.payment.id}|${recurringIsoDate(item.dueDate)}`;
+    setPayActionLoading(key);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setPayActionLoading(null); return; }
+    await supabase.from('recurring_occurrences').insert({
+      recurring_payment_id: item.payment.id, user_id: user.id,
+      due_date: recurringIsoDate(item.dueDate), status: 'skipped', transaction_id: null,
+    });
+    setPayActionLoading(null);
+    fetchData();
+  }
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -311,7 +387,7 @@ export default function DashboardPage() {
           </div>
 
           <div className={styles.twoCol}>
-            {/* Left column: Wallets (hidden on mobile) */}
+            {/* Left column: Wallets + Planned payments widget */}
             <div className={styles.leftCol}>
               {walletSummaries.length > 0 && (
                 <div className={styles.walletList}>
@@ -325,6 +401,54 @@ export default function DashboardPage() {
                       <div className={styles.walletCardBalance}>{formatCurrency(wb, wallet.currency)}</div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Planned payments widget */}
+              {(dashboardDueItems.length > 0 || recurringPayments.length > 0) && (
+                <div className={styles.plannedWidget}>
+                  <div className={styles.plannedWidgetHeader}>
+                    <span className={styles.plannedWidgetTitle}>Planned this month</span>
+                    <Link href="/recurring" className={styles.plannedWidgetLink}>View all →</Link>
+                  </div>
+                  {dashboardDueItems.length === 0 && (
+                    <p className={styles.plannedWidgetEmpty}>All handled ✓</p>
+                  )}
+                  {dashboardDueItems.map(item => {
+                    const key = `${item.payment.id}|${recurringIsoDate(item.dueDate)}`;
+                    const wallet = wallets.find(w => w.id === item.payment.wallet_id);
+                    const currency = (wallet?.currency ?? 'HUF') as 'HUF' | 'USD' | 'EUR';
+                    const isPast = item.dueDate < new Date() && recurringIsoDate(item.dueDate) !== recurringIsoDate(new Date());
+                    return (
+                      <div key={key} className={[styles.plannedItem, isPast ? styles.plannedItemOverdue : ''].join(' ')}>
+                        <div className={styles.plannedItemLeft}>
+                          <span className={[styles.plannedDot, item.payment.type === 'income' ? styles.dotIncome : styles.dotExpense].join(' ')} />
+                          <div>
+                            <p className={styles.plannedName}>{item.payment.name}</p>
+                            <p className={styles.plannedDate}>
+                              {item.dueDate.toLocaleDateString('default', { month: 'short', day: 'numeric' })}
+                              {isPast ? ' · overdue' : ''}
+                            </p>
+                          </div>
+                        </div>
+                        <div className={styles.plannedItemRight}>
+                          <span className={[styles.plannedAmt, item.payment.type === 'income' ? styles.amtIncome : styles.amtExpense].join(' ')}>
+                            {item.payment.type === 'expense' ? '−' : '+'}{formatCurrency(item.payment.amount, currency)}
+                          </span>
+                          <div className={styles.plannedBtns}>
+                            <button className={styles.plannedPayBtn} disabled={payActionLoading === key} onClick={() => handleDashboardPay(item)}>✓</button>
+                            <button className={styles.plannedSkipBtn} disabled={payActionLoading === key} onClick={() => handleDashboardSkip(item)}>✗</button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {plannedExpense > 0 && (
+                    <div className={styles.plannedFooter}>
+                      <span>Remaining to pay</span>
+                      <span className={styles.amtExpense}>{formatHUF(plannedExpense)}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
