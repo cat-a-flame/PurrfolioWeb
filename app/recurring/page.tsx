@@ -505,6 +505,8 @@ export default function RecurringPage() {
                   })}
                 </div>
               </div>
+            ))}
+
           </section>
 
         </div>
