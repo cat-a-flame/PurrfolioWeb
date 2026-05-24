@@ -9,6 +9,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
+import LabelSelect from '@/components/ui/LabelSelect';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
 import Toast from '@/components/ui/Toast';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
@@ -17,7 +18,7 @@ import { formatCurrency } from '@/lib/utils';
 import { generateDueDates, frequencyLabel, nextDueDate, isoDate, monthBounds } from '@/lib/recurringUtils';
 import type {
   RecurringPayment, RecurringOccurrence, RecurrenceFrequency,
-  Wallet, Category, TransactionType,
+  Wallet, Category, Label, TransactionType,
 } from '@/lib/types';
 import styles from './page.module.css';
 
@@ -40,11 +41,13 @@ interface FormFields {
   endDate: string;
   notes: string;
   payer: string;
+  labelIds: string[];
 }
 
 const EMPTY_FORM: FormFields = {
   name: '', type: 'expense', amount: '', walletId: '', categoryId: '',
   frequency: 'monthly', startDate: isoDate(new Date()), endDate: '', notes: '', payer: '',
+  labelIds: [],
 };
 
 interface DueItem {
@@ -57,6 +60,7 @@ export default function RecurringPage() {
   const [occurrences, setOccurrences] = useState<RecurringOccurrence[]>([]);
   const [wallets, setWallets]       = useState<Wallet[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [labels, setLabels]         = useState<Label[]>([]);
   const [loading, setLoading]       = useState(true);
 
   const [showAddDialog, setShowAddDialog]   = useState(false);
@@ -87,18 +91,27 @@ export default function RecurringPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const [pmtRes, walletRes, catRes] = await Promise.all([
+    type RawPayment = Omit<RecurringPayment, 'labels'> & { labels: { label: Label | null }[] };
+
+    const [pmtRes, walletRes, catRes, lblRes] = await Promise.all([
       supabase.from('recurring_payments')
-        .select('*, wallet:wallets(*), category:categories(*)')
+        .select('*, wallet:wallets(*), category:categories(*), labels:recurring_payment_labels(label:labels(*))')
         .eq('user_id', user.id)
         .order('name'),
       supabase.from('wallets').select('*').eq('user_id', user.id).order('name'),
       supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
+      supabase.from('labels').select('*').eq('user_id', user.id).order('name'),
     ]);
 
-    if (pmtRes.data)    setPayments(pmtRes.data as RecurringPayment[]);
+    if (pmtRes.data) {
+      setPayments((pmtRes.data as RawPayment[]).map(p => ({
+        ...p,
+        labels: p.labels.map(l => l.label).filter((l): l is Label => l !== null),
+      })));
+    }
     if (walletRes.data) setWallets(walletRes.data);
     if (catRes.data)    setCategories(catRes.data);
+    if (lblRes.data)    setLabels(lblRes.data);
 
     // Fetch occurrences for a wider window (3 months around view month)
     const [from, to] = monthBounds(viewYear, viewMonth);
@@ -190,6 +203,11 @@ export default function RecurringPage() {
     if (occErr) {
       setToast({ message: 'Transaction created but occurrence record failed.', variant: 'error' });
     } else {
+      if (item.payment.labels && item.payment.labels.length > 0) {
+        await supabase.from('transaction_labels').insert(
+          item.payment.labels.map(l => ({ transaction_id: txData.id, label_id: l.id }))
+        );
+      }
       const currency = (wallet?.currency ?? 'HUF') as 'HUF' | 'USD' | 'EUR';
       setToast({ message: `${item.payment.name} — ${formatCurrency(item.payment.amount, currency)} added.`, variant: 'success' });
       window.dispatchEvent(new Event('transaction-added'));
@@ -240,7 +258,7 @@ export default function RecurringPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setAddSaving(false); return; }
 
-    const { error } = await supabase.from('recurring_payments').insert({
+    const { data: inserted, error } = await supabase.from('recurring_payments').insert({
       user_id: user.id,
       name: addForm.name.trim(),
       type: addForm.type,
@@ -252,11 +270,16 @@ export default function RecurringPage() {
       end_date: addForm.endDate || null,
       notes: addForm.notes.trim() || null,
       payer: addForm.payer.trim() || null,
-    });
+    }).select().single();
 
-    if (error) {
+    if (error || !inserted) {
       setAddError('Failed to save. Please try again.');
     } else {
+      if (addForm.labelIds.length > 0) {
+        await supabase.from('recurring_payment_labels').insert(
+          addForm.labelIds.map(lid => ({ recurring_payment_id: inserted.id, label_id: lid }))
+        );
+      }
       setShowAddDialog(false);
       setAddForm(EMPTY_FORM);
       setAddError('');
@@ -274,6 +297,7 @@ export default function RecurringPage() {
       walletId: p.wallet_id ?? '', categoryId: p.category_id ?? '',
       frequency: p.frequency, startDate: p.start_date, endDate: p.end_date ?? '',
       notes: p.notes ?? '', payer: p.payer ?? '',
+      labelIds: p.labels?.map(l => l.id) ?? [],
     });
     setEditingPayment(p);
     setEditError('');
@@ -302,6 +326,12 @@ export default function RecurringPage() {
     if (error) {
       setEditError('Failed to save. Please try again.');
     } else {
+      await supabase.from('recurring_payment_labels').delete().eq('recurring_payment_id', editingPayment.id);
+      if (editForm.labelIds.length > 0) {
+        await supabase.from('recurring_payment_labels').insert(
+          editForm.labelIds.map(lid => ({ recurring_payment_id: editingPayment.id, label_id: lid }))
+        );
+      }
       setEditingPayment(null);
       setToast({ message: 'Recurring payment updated.', variant: 'success' });
       fetchAll();
@@ -481,13 +511,13 @@ export default function RecurringPage() {
       {showAddDialog && (
         <PaymentModal form={addForm} set={setAddForm} title="Add recurring payment"
           error={addError} saving={addSaving} onSave={handleAdd} onClose={() => setShowAddDialog(false)}
-          wallets={wallets} categories={categories} />
+          wallets={wallets} categories={categories} labels={labels} />
       )}
 
       {editingPayment && (
         <PaymentModal form={editForm} set={setEditForm} title="Edit recurring payment"
           error={editError} saving={editSaving} onSave={handleEdit} onClose={() => setEditingPayment(null)}
-          wallets={wallets} categories={categories} />
+          wallets={wallets} categories={categories} labels={labels} />
       )}
 
       {/* Delete confirm */}
@@ -529,7 +559,7 @@ function buildCategoryOptions(categories: Category[]): SelectOption[] {
   return opts;
 }
 
-function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallets, categories }: {
+function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallets, categories, labels }: {
   form: FormFields;
   set: (f: FormFields) => void;
   title: string;
@@ -539,6 +569,7 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
   onClose: () => void;
   wallets: Wallet[];
   categories: Category[];
+  labels: Label[];
 }) {
   const rsStyles = makeRsStyles<{ value: string; label: string }>();
   const walletOptions = wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }));
@@ -641,6 +672,14 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
               <Input value={form.notes} onChange={e => set({ ...form, notes: e.target.value })} />
             </div>
           </div>
+
+          {/* Labels */}
+          {labels.length > 0 && (
+            <div className={styles.field}>
+              <FormLabel>Labels <span className={styles.optional}>(optional)</span></FormLabel>
+              <LabelSelect labels={labels} selectedIds={form.labelIds} onChange={ids => set({ ...form, labelIds: ids })} />
+            </div>
+          )}
 
           {error && <p className={styles.formError}>{error}</p>}
 

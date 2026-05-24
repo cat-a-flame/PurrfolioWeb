@@ -89,6 +89,7 @@ export type RecurringPayment = {
   updated_at: string;
   wallet?: Wallet | null;
   category?: Category | null;
+  labels?: Label[];
 };
 
 export type RecurringOccurrence = {
