@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import ReactSelect from 'react-select';
 import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import Button from '@/components/ui/Button';
@@ -8,7 +9,9 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
+import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
 import Toast from '@/components/ui/Toast';
+import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import { createClient } from '@/lib/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import { generateDueDates, frequencyLabel, nextDueDate, isoDate, monthBounds } from '@/lib/recurringUtils';
@@ -350,113 +353,6 @@ export default function RecurringPage() {
     return date.toLocaleDateString('default', { month: 'short', day: 'numeric' });
   }
 
-  function PaymentModal({ form, set, title, error, saving, onSave, onClose }: {
-    form: FormFields;
-    set: (f: FormFields) => void;
-    title: string;
-    error: string;
-    saving: boolean;
-    onSave: () => void;
-    onClose: () => void;
-  }) {
-    return (
-      <div className={styles.overlay} onClick={onClose}>
-        <div className={styles.modal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
-          <div className={styles.modalHeader}>
-            <h2 className={styles.modalTitle}>{title}</h2>
-            <button type="button" className={styles.modalClose} onClick={onClose} aria-label="Close">✕</button>
-          </div>
-
-          <div className={styles.modalForm}>
-            {/* Type tabs */}
-            <div className={styles.typeTabs}>
-              <button type="button"
-                className={[styles.typeTab, form.type === 'expense' ? styles.typeTabExpense : ''].join(' ')}
-                onClick={() => set({ ...form, type: 'expense' })}>Expense</button>
-              <button type="button"
-                className={[styles.typeTab, form.type === 'income' ? styles.typeTabIncome : ''].join(' ')}
-                onClick={() => set({ ...form, type: 'income' })}>Income</button>
-            </div>
-
-            {/* Name */}
-            <div className={styles.field}>
-              <FormLabel required>Name</FormLabel>
-              <Input value={form.name} onChange={e => set({ ...form, name: e.target.value })} placeholder="Mortgage, Phone bill…" />
-            </div>
-
-            {/* Amount + Frequency */}
-            <div className={styles.twoCol}>
-              <div className={styles.field}>
-                <FormLabel required>Amount</FormLabel>
-                <NumberInput value={form.amount} onChange={v => set({ ...form, amount: v })} placeholder="0" />
-              </div>
-              <div className={styles.field}>
-                <FormLabel required>Frequency</FormLabel>
-                <select className={styles.select} value={form.frequency}
-                  onChange={e => set({ ...form, frequency: e.target.value as RecurrenceFrequency })}>
-                  {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-                </select>
-              </div>
-            </div>
-
-            {/* Wallet + Category */}
-            <div className={styles.twoCol}>
-              <div className={styles.field}>
-                <FormLabel required>Wallet</FormLabel>
-                <select className={styles.select} value={form.walletId}
-                  onChange={e => set({ ...form, walletId: e.target.value })}>
-                  <option value="">— select —</option>
-                  {wallets.map(w => <option key={w.id} value={w.id}>{w.icon} {w.name}</option>)}
-                </select>
-              </div>
-              <div className={styles.field}>
-                <FormLabel>Category</FormLabel>
-                <select className={styles.select} value={form.categoryId}
-                  onChange={e => set({ ...form, categoryId: e.target.value })}>
-                  <option value="">— none —</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-                </select>
-              </div>
-            </div>
-
-            {/* Start + End date */}
-            <div className={styles.twoCol}>
-              <div className={styles.field}>
-                <FormLabel required>Start date</FormLabel>
-                <Input type="date" value={form.startDate} onChange={e => set({ ...form, startDate: e.target.value })} />
-              </div>
-              <div className={styles.field}>
-                <FormLabel>End date <span className={styles.optional}>(optional)</span></FormLabel>
-                <Input type="date" value={form.endDate} onChange={e => set({ ...form, endDate: e.target.value })} />
-              </div>
-            </div>
-
-            {/* Payer + Notes */}
-            <div className={styles.twoCol}>
-              <div className={styles.field}>
-                <FormLabel>Payer / payee <span className={styles.optional}>(optional)</span></FormLabel>
-                <Input value={form.payer} onChange={e => set({ ...form, payer: e.target.value })} placeholder="e.g. OTP Bank" />
-              </div>
-              <div className={styles.field}>
-                <FormLabel>Notes <span className={styles.optional}>(optional)</span></FormLabel>
-                <Input value={form.notes} onChange={e => set({ ...form, notes: e.target.value })} />
-              </div>
-            </div>
-
-            {error && <p className={styles.formError}>{error}</p>}
-
-            <div className={styles.actions}>
-              <Button variant="secondary" size="md" onClick={onClose}>Cancel</Button>
-              <Button variant="primary" size="md" onClick={onSave} disabled={saving}>
-                {saving ? 'Saving…' : 'Save'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (loading) return (
     <div className={styles.page}>
       <AppHeader />
@@ -584,12 +480,14 @@ export default function RecurringPage() {
 
       {showAddDialog && (
         <PaymentModal form={addForm} set={setAddForm} title="Add recurring payment"
-          error={addError} saving={addSaving} onSave={handleAdd} onClose={() => setShowAddDialog(false)} />
+          error={addError} saving={addSaving} onSave={handleAdd} onClose={() => setShowAddDialog(false)}
+          wallets={wallets} categories={categories} />
       )}
 
       {editingPayment && (
         <PaymentModal form={editForm} set={setEditForm} title="Edit recurring payment"
-          error={editError} saving={editSaving} onSave={handleEdit} onClose={() => setEditingPayment(null)} />
+          error={editError} saving={editSaving} onSave={handleEdit} onClose={() => setEditingPayment(null)}
+          wallets={wallets} categories={categories} />
       )}
 
       {/* Delete confirm */}
@@ -605,6 +503,155 @@ export default function RecurringPage() {
       )}
 
       {toast && <Toast message={toast.message} variant={toast.variant} onDismiss={dismissToast} />}
+    </div>
+  );
+}
+
+// ─── Payment modal ─────────────────────────────────────────────────────────────
+
+function buildCategoryOptions(categories: Category[]): SelectOption[] {
+  const parents = categories.filter(c => !c.parent_id);
+  const children = categories.filter(c => c.parent_id);
+  const opts: SelectOption[] = [];
+  for (const parent of parents) {
+    const kids = children.filter(c => c.parent_id === parent.id);
+    if (kids.length > 0) {
+      for (const kid of kids) {
+        opts.push({ value: kid.id, label: `${kid.icon} ${kid.name}`, group: `${parent.icon} ${parent.name}` });
+      }
+    } else {
+      opts.push({ value: parent.id, label: `${parent.icon} ${parent.name}` });
+    }
+  }
+  for (const child of children.filter(c => !parents.find(p => p.id === c.parent_id))) {
+    opts.push({ value: child.id, label: `${child.icon} ${child.name}` });
+  }
+  return opts;
+}
+
+function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallets, categories }: {
+  form: FormFields;
+  set: (f: FormFields) => void;
+  title: string;
+  error: string;
+  saving: boolean;
+  onSave: () => void;
+  onClose: () => void;
+  wallets: Wallet[];
+  categories: Category[];
+}) {
+  const rsStyles = makeRsStyles();
+  const walletOptions = wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }));
+  const selectedWallet = walletOptions.find(o => o.value === form.walletId) ?? null;
+  const freqOptions = FREQUENCIES.map(f => ({ value: f.value, label: f.label }));
+  const selectedFreq = freqOptions.find(o => o.value === form.frequency) ?? null;
+  const categoryOptions = buildCategoryOptions(categories);
+
+  return (
+    <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.modal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div className={styles.modalHeader}>
+          <h2 className={styles.modalTitle}>{title}</h2>
+          <button type="button" className={styles.modalClose} onClick={onClose} aria-label="Close">✕</button>
+        </div>
+
+        <div className={styles.modalForm}>
+          {/* Type tabs */}
+          <div className={styles.typeTabs}>
+            <button type="button"
+              className={[styles.typeTab, form.type === 'expense' ? styles.typeTabExpense : ''].join(' ')}
+              onClick={() => set({ ...form, type: 'expense' })}>Expense</button>
+            <button type="button"
+              className={[styles.typeTab, form.type === 'income' ? styles.typeTabIncome : ''].join(' ')}
+              onClick={() => set({ ...form, type: 'income' })}>Income</button>
+          </div>
+
+          {/* Name */}
+          <div className={styles.field}>
+            <FormLabel required>Name</FormLabel>
+            <Input value={form.name} onChange={e => set({ ...form, name: e.target.value })} placeholder="Mortgage, Phone bill…" />
+          </div>
+
+          {/* Amount + Frequency */}
+          <div className={styles.twoCol}>
+            <div className={styles.field}>
+              <FormLabel required>Amount</FormLabel>
+              <NumberInput value={form.amount} onChange={v => set({ ...form, amount: v })} placeholder="0" />
+            </div>
+            <div className={styles.field}>
+              <FormLabel required>Frequency</FormLabel>
+              <ReactSelect
+                options={freqOptions}
+                value={selectedFreq}
+                onChange={opt => opt && set({ ...form, frequency: opt.value as RecurrenceFrequency })}
+                isSearchable={false}
+                styles={rsStyles}
+                theme={rsTheme}
+                menuPosition="fixed"
+              />
+            </div>
+          </div>
+
+          {/* Wallet + Category */}
+          <div className={styles.twoCol}>
+            <div className={styles.field}>
+              <FormLabel required>Wallet</FormLabel>
+              <ReactSelect
+                options={walletOptions}
+                value={selectedWallet}
+                onChange={opt => set({ ...form, walletId: opt?.value ?? '' })}
+                isSearchable
+                styles={rsStyles}
+                theme={rsTheme}
+                menuPosition="fixed"
+                placeholder="Select wallet…"
+              />
+            </div>
+            <div className={styles.field}>
+              <FormLabel>Category</FormLabel>
+              <SearchableSelect
+                options={categoryOptions}
+                value={form.categoryId}
+                onChange={v => set({ ...form, categoryId: v })}
+                placeholder="Choose category"
+              />
+            </div>
+          </div>
+
+          {/* Start + End date */}
+          <div className={styles.twoCol}>
+            <div className={styles.field}>
+              <FormLabel required>Start date</FormLabel>
+              <Input type="date" value={form.startDate} onChange={e => set({ ...form, startDate: e.target.value })} />
+            </div>
+            <div className={styles.field}>
+              <FormLabel>End date <span className={styles.optional}>(optional)</span></FormLabel>
+              <Input type="date" value={form.endDate} onChange={e => set({ ...form, endDate: e.target.value })} />
+            </div>
+          </div>
+
+          {/* Payer + Notes */}
+          <div className={styles.twoCol}>
+            <div className={styles.field}>
+              <FormLabel>Payer / payee <span className={styles.optional}>(optional)</span></FormLabel>
+              <Input value={form.payer} onChange={e => set({ ...form, payer: e.target.value })} placeholder="e.g. OTP Bank" />
+            </div>
+            <div className={styles.field}>
+              <FormLabel>Notes <span className={styles.optional}>(optional)</span></FormLabel>
+              <Input value={form.notes} onChange={e => set({ ...form, notes: e.target.value })} />
+            </div>
+          </div>
+
+          {error && <p className={styles.formError}>{error}</p>}
+
+          <div className={styles.actions}>
+            <Button variant="secondary" size="md" onClick={onClose}>Cancel</Button>
+            <Button variant="primary" size="md" onClick={onSave} disabled={saving}>
+              {saving ? 'Saving…' : 'Save'}
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
