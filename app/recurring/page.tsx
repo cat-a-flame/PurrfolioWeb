@@ -469,7 +469,11 @@ export default function RecurringPage() {
               <div key={f.value} className={styles.dueGroup}>
                 <p className={styles.dueGroupLabel}>{f.label}</p>
                 <div className={styles.paymentList}>
-                  {payments.filter(p => p.frequency === f.value).map(p => {
+                  {payments.filter(p => p.frequency === f.value).sort((a, b) => {
+                    const na = nextDueDate(a)?.getTime() ?? Infinity;
+                    const nb = nextDueDate(b)?.getTime() ?? Infinity;
+                    return na - nb;
+                  }).map(p => {
                     const next = nextDueDate(p);
                     const currency = walletCurrency(p.wallet_id);
                     return (
