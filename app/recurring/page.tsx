@@ -580,7 +580,7 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
             </div>
             <div className={styles.field}>
               <FormLabel required>Frequency</FormLabel>
-              <ReactSelect
+              <ReactSelect<{ value: string; label: string }>
                 options={freqOptions}
                 value={selectedFreq}
                 onChange={opt => opt && set({ ...form, frequency: opt.value as RecurrenceFrequency })}
@@ -596,7 +596,7 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
           <div className={styles.twoCol}>
             <div className={styles.field}>
               <FormLabel required>Wallet</FormLabel>
-              <ReactSelect
+              <ReactSelect<{ value: string; label: string }>
                 options={walletOptions}
                 value={selectedWallet}
                 onChange={opt => set({ ...form, walletId: opt?.value ?? '' })}
