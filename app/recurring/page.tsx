@@ -540,7 +540,7 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
   wallets: Wallet[];
   categories: Category[];
 }) {
-  const rsStyles = makeRsStyles();
+  const rsStyles = makeRsStyles<{ value: string; label: string }>();
   const walletOptions = wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }));
   const selectedWallet = walletOptions.find(o => o.value === form.walletId) ?? null;
   const freqOptions = FREQUENCIES.map(f => ({ value: f.value, label: f.label }));
@@ -661,8 +661,8 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
 function DueCard({ item, loading, onPay, onSkip, currency, dueDateLabel }: {
   item: DueItem;
   loading: boolean;
-  onPay: (item: DueItem) => void;
-  onSkip: (item: DueItem) => void;
+  onPay: (item: DueItem) => void | Promise<void>;
+  onSkip: (item: DueItem) => void | Promise<void>;
   currency: 'HUF' | 'USD' | 'EUR';
   dueDateLabel: string;
 }) {
