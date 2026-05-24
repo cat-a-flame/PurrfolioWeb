@@ -77,9 +77,12 @@ export default function CategoriesSettingsPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSaving(false); return; }
+    const effectiveColor = parentId
+      ? (categories.find(c => c.id === parentId)?.color ?? color)
+      : color;
     const { error } = await supabase.from('categories').insert({
       user_id: user.id, name: name.trim(), type: 'both',
-      icon: icon.trim() || '📁', color, is_default: false,
+      icon: icon.trim() || '📁', color: effectiveColor, is_default: false,
       parent_id: parentId || null,
     });
     setSaving(false);
@@ -101,9 +104,13 @@ export default function CategoriesSettingsPage() {
     if (!editFields.name.trim()) { setEditError('Name is required.'); return; }
     setEditSaving(true);
     const supabase = createClient();
+    const parentId = editFields.parent_id || cat.parent_id || null;
+    const effectiveColor = parentId
+      ? (categories.find(c => c.id === parentId)?.color ?? editFields.color)
+      : editFields.color;
     const { error } = await supabase.from('categories').update({
       name: editFields.name.trim(), icon: editFields.icon.trim() || '📁',
-      color: editFields.color, parent_id: editFields.parent_id || null,
+      color: effectiveColor, parent_id: editFields.parent_id || null,
     }).eq('id', cat.id);
     setEditSaving(false);
     if (error) { setEditError(error.message); } else {
@@ -135,7 +142,7 @@ export default function CategoriesSettingsPage() {
           <div className={styles.editFields}>
             <Input type="text" value={editFields.name} onChange={e => setEditFields(f => ({ ...f, name: e.target.value }))} placeholder="Name" required />
             <Input type="text" value={editFields.icon} onChange={e => setEditFields(f => ({ ...f, icon: e.target.value }))} placeholder="📁" maxLength={4} style={{ width: 72 }} />
-            <input type="color" className={styles.colorPicker} value={editFields.color} onChange={e => setEditFields(f => ({ ...f, color: e.target.value }))} style={{ width: 52 }} />
+            {!isChild && <input type="color" className={styles.colorPicker} value={editFields.color} onChange={e => setEditFields(f => ({ ...f, color: e.target.value }))} style={{ width: 52 }} />}
             {!isChild && (() => {
               const parentSelectOptions = [
                 { value: '', label: '— Top level —' },
@@ -168,10 +175,11 @@ export default function CategoriesSettingsPage() {
 
   function renderChildRow(cat: Category) {
     if (editingId === cat.id) return <React.Fragment key={cat.id}>{renderEditRow(cat, true)}</React.Fragment>;
+    const parentColor = categories.find(c => c.id === cat.parent_id)?.color ?? cat.color;
     return (
       <div key={cat.id} className={[styles.catItem, styles.catItemChild].join(' ')}>
         <span className={styles.childIndent}>↳</span>
-        <div className={styles.catIcon} style={{ backgroundColor: cat.color + '22' }}><span>{cat.icon || '📁'}</span></div>
+        <div className={styles.catIcon} style={{ backgroundColor: parentColor + '22' }}><span>{cat.icon || '📁'}</span></div>
         <span className={styles.catName}>{cat.name}</span>
         <div className={styles.catActions}>
           <Button variant="ghost" size="sm" onClick={() => startEdit(cat)}>Edit</Button>
@@ -244,10 +252,12 @@ export default function CategoriesSettingsPage() {
                 <FormLabel htmlFor="cat-icon">Icon (emoji)</FormLabel>
                 <Input id="cat-icon" type="text" value={icon} onChange={e => setIcon(e.target.value)} placeholder="📁" maxLength={4} />
               </div>
-              <div className={styles.field}>
-                <FormLabel htmlFor="cat-color">Color</FormLabel>
-                <input id="cat-color" type="color" className={styles.colorPicker} value={color} onChange={e => setColor(e.target.value)} />
-              </div>
+              {!parentId && (
+                <div className={styles.field}>
+                  <FormLabel htmlFor="cat-color">Color</FormLabel>
+                  <input id="cat-color" type="color" className={styles.colorPicker} value={color} onChange={e => setColor(e.target.value)} />
+                </div>
+              )}
             </div>
             <div className={styles.field}>
               <FormLabel htmlFor="cat-parent">Parent category</FormLabel>
