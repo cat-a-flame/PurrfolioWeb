@@ -465,43 +465,46 @@ export default function RecurringPage() {
               <p className={styles.empty}>No recurring payments defined yet.</p>
             )}
 
-            <div className={styles.paymentList}>
-              {payments.map(p => {
-                const next = nextDueDate(p);
-                const currency = walletCurrency(p.wallet_id);
-                return (
-                  <div key={p.id} className={[styles.paymentRow, !p.is_active ? styles.paymentRowInactive : ''].join(' ')}>
-                    <div className={styles.paymentMeta}>
-                      <span className={[styles.paymentTypeDot, p.type === 'income' ? styles.dotIncome : styles.dotExpense].join(' ')} />
-                      <div>
-                        <p className={styles.paymentName}>{p.name}</p>
-                        <p className={styles.paymentSub}>
-                          {frequencyLabel(p.frequency)}
-                          {p.wallet && ` · ${p.wallet.icon} ${p.wallet.name}`}
-                          {p.category && ` · ${p.category.icon} ${p.category.name}`}
-                        </p>
+            {FREQUENCIES.filter(f => payments.some(p => p.frequency === f.value)).map(f => (
+              <div key={f.value} className={styles.dueGroup}>
+                <p className={styles.dueGroupLabel}>{f.label}</p>
+                <div className={styles.paymentList}>
+                  {payments.filter(p => p.frequency === f.value).map(p => {
+                    const next = nextDueDate(p);
+                    const currency = walletCurrency(p.wallet_id);
+                    return (
+                      <div key={p.id} className={[styles.paymentRow, !p.is_active ? styles.paymentRowInactive : ''].join(' ')}>
+                        <div className={styles.paymentMeta}>
+                          <span className={[styles.paymentTypeDot, p.type === 'income' ? styles.dotIncome : styles.dotExpense].join(' ')} />
+                          <div>
+                            <p className={styles.paymentName}>{p.name}</p>
+                            <p className={styles.paymentSub}>
+                              {p.wallet && `${p.wallet.icon} ${p.wallet.name}`}
+                              {p.category && ` · ${p.category.icon} ${p.category.name}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className={styles.paymentRight}>
+                          <span className={[styles.paymentAmount, p.type === 'income' ? styles.amtIncome : styles.amtExpense].join(' ')}>
+                            {p.type === 'expense' ? '−' : '+'}{formatCurrency(p.amount, currency)}
+                          </span>
+                          {next && p.is_active && (
+                            <span className={styles.nextDue}>Next: {next.toLocaleDateString('default', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                          )}
+                          {!p.is_active && <span className={styles.pausedBadge}>Paused</span>}
+                        </div>
+                        <div className={styles.paymentActions}>
+                          <button className={styles.iconBtn} onClick={() => handleToggleActive(p)} title={p.is_active ? 'Pause' : 'Resume'}>
+                            {p.is_active ? '⏸' : '▶'}
+                          </button>
+                          <button className={styles.iconBtn} onClick={() => openEdit(p)} title="Edit">✏️</button>
+                          <button className={[styles.iconBtn, styles.iconBtnDanger].join(' ')} onClick={() => setDeletingPayment(p)} title="Delete">🗑</button>
+                        </div>
                       </div>
-                    </div>
-                    <div className={styles.paymentRight}>
-                      <span className={[styles.paymentAmount, p.type === 'income' ? styles.amtIncome : styles.amtExpense].join(' ')}>
-                        {p.type === 'expense' ? '−' : '+'}{formatCurrency(p.amount, currency)}
-                      </span>
-                      {next && p.is_active && (
-                        <span className={styles.nextDue}>Next: {next.toLocaleDateString('default', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                      )}
-                      {!p.is_active && <span className={styles.pausedBadge}>Paused</span>}
-                    </div>
-                    <div className={styles.paymentActions}>
-                      <button className={styles.iconBtn} onClick={() => handleToggleActive(p)} title={p.is_active ? 'Pause' : 'Resume'}>
-                        {p.is_active ? '⏸' : '▶'}
-                      </button>
-                      <button className={styles.iconBtn} onClick={() => openEdit(p)} title="Edit">✏️</button>
-                      <button className={[styles.iconBtn, styles.iconBtnDanger].join(' ')} onClick={() => setDeletingPayment(p)} title="Delete">🗑</button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    );
+                  })}
+                </div>
+              </div>
           </section>
 
         </div>
