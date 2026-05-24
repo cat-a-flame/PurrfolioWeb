@@ -98,6 +98,7 @@ function uniqueColValues(rows: string[][], idx: number): string[] {
 
 type TypeSource = 'column' | 'fixed-income' | 'fixed-expense';
 type WalletSource = 'fixed' | 'column';
+type TransferToWalletSource = 'fixed' | 'column' | 'by-source';
 
 interface ColumnMap {
   amount: string;
@@ -110,10 +111,10 @@ interface ColumnMap {
   walletFixed: string;
   walletMapping: Record<string, string | null>;
   // Transfer destination
-  transferToWalletSource: WalletSource;
+  transferToWalletSource: TransferToWalletSource;
   transferToWalletFixed: string;
   transferToWalletCol: string;
-  transferToWalletMapping: Record<string, string | null>;
+  transferToWalletMapping: Record<string, string | null>; // csv-value→walletId (column mode) or sourceWalletId→destWalletId (by-source mode)
   transferToAmountCol: string;
   // Category
   categoryCol: string;
@@ -297,6 +298,23 @@ export default function ImportPage() {
   const hasTransferType = colMap.typeSource === 'column' && Object.values(colMap.typeMapping).includes('transfer');
   const unmappedCategories = Object.entries(colMap.categoryMapping).filter(([, v]) => v === null);
 
+  // Source wallet IDs that appear on transfer rows — used for 'by-source' mode
+  const transferSourceWalletIds: string[] = (() => {
+    if (!csv || !hasTransferType) return [];
+    const typIdx = colIdx(colMap.typeCol);
+    const walIdx = colMap.walletSource === 'column' ? colIdx(colMap.walletCol) : -1;
+    const seen = new Set<string>();
+    for (const row of csv.rows) {
+      const typeVal = typIdx >= 0 ? (row[typIdx] ?? '').trim() : '';
+      if (colMap.typeMapping[typeVal] !== 'transfer') continue;
+      const srcId = colMap.walletSource === 'fixed'
+        ? (colMap.walletFixed || null)
+        : (walIdx >= 0 ? (colMap.walletMapping[(row[walIdx] ?? '').trim()] ?? null) : null);
+      if (srcId) seen.add(srcId);
+    }
+    return [...seen];
+  })();
+
   // ─── Step 2 validation ────────────────────────────────────────────────────
 
   function validateStep2(): string | null {
@@ -319,6 +337,13 @@ export default function ImportPage() {
         if (!colMap.transferToWalletCol) return 'Select the destination wallet column for transfers.';
         const missing = Object.entries(colMap.transferToWalletMapping).find(([k, v]) => k && !v);
         if (missing) return `Assign a destination wallet for transfer value "${missing[0]}".`;
+      } else if (colMap.transferToWalletSource === 'by-source') {
+        for (const srcId of transferSourceWalletIds) {
+          if (!colMap.transferToWalletMapping[srcId]) {
+            const w = wallets.find(w => w.id === srcId);
+            return `Select a destination wallet for transfers from "${w?.name ?? srcId}".`;
+          }
+        }
       } else {
         if (!colMap.transferToWalletFixed) return 'Select a destination wallet for transfers.';
       }
@@ -380,6 +405,8 @@ export default function ImportPage() {
       if (txType === 'transfer') {
         if (colMap.transferToWalletSource === 'fixed') {
           transferToWalletId = colMap.transferToWalletFixed || null;
+        } else if (colMap.transferToWalletSource === 'by-source') {
+          transferToWalletId = walletId ? (colMap.transferToWalletMapping[walletId] ?? null) : null;
         } else if (ttwI >= 0) {
           const raw = (row[ttwI] ?? '').trim();
           transferToWalletId = colMap.transferToWalletMapping[raw] ?? null;
@@ -829,13 +856,25 @@ export default function ImportPage() {
                 <div className={styles.mapControls}>
                   <div style={{ minWidth: 200 }}>
                     <ReactSelect<{ value: string; label: string }>
-                      options={[{ value: 'fixed', label: 'Fixed wallet' }, { value: 'column', label: 'From column…' }]}
-                      value={colMap.transferToWalletSource === 'fixed' ? { value: 'fixed', label: 'Fixed wallet' } : { value: 'column', label: 'From column…' }}
-                      onChange={opt => setColMap(m => ({ ...m, transferToWalletSource: (opt?.value ?? 'fixed') as WalletSource }))}
+                      options={[
+                        { value: 'fixed',     label: 'Fixed wallet' },
+                        { value: 'by-source', label: 'By source wallet' },
+                        { value: 'column',    label: 'From column…' },
+                      ]}
+                      value={
+                        colMap.transferToWalletSource === 'by-source' ? { value: 'by-source', label: 'By source wallet' } :
+                        colMap.transferToWalletSource === 'column'    ? { value: 'column',    label: 'From column…' } :
+                                                                        { value: 'fixed',     label: 'Fixed wallet' }
+                      }
+                      onChange={opt => setColMap(m => ({
+                        ...m,
+                        transferToWalletSource: (opt?.value ?? 'fixed') as TransferToWalletSource,
+                        transferToWalletMapping: {},
+                      }))}
                       isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
                     />
                   </div>
-                  {colMap.transferToWalletSource === 'fixed' ? (
+                  {colMap.transferToWalletSource === 'fixed' && (
                     <div style={{ minWidth: 200 }}>
                       <ReactSelect<{ value: string; label: string }>
                         options={walletOpts}
@@ -844,7 +883,8 @@ export default function ImportPage() {
                         isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
                       />
                     </div>
-                  ) : (
+                  )}
+                  {colMap.transferToWalletSource === 'column' && (
                     <div style={{ minWidth: 200 }}>
                       <ReactSelect<{ value: string; label: string }>
                         options={colOptionsWithBlank}
@@ -857,6 +897,40 @@ export default function ImportPage() {
                 </div>
               </div>
 
+              {/* By-source mapping: one destination picker per source wallet */}
+              {colMap.transferToWalletSource === 'by-source' && transferSourceWalletIds.length > 0 && (
+                <div className={styles.valueMapBlock}>
+                  <p className={styles.valueMapTitle}>Where does money go from each wallet?</p>
+                  {transferSourceWalletIds.map(srcId => {
+                    const srcWallet = wallets.find(w => w.id === srcId);
+                    const destId = colMap.transferToWalletMapping[srcId] ?? null;
+                    return (
+                      <div key={srcId} className={styles.valueMapRow}>
+                        <span className={styles.csvVal}>
+                          {srcWallet ? `${srcWallet.icon} ${srcWallet.name}` : srcId}
+                        </span>
+                        <span className={styles.arrow}>→</span>
+                        <div style={{ minWidth: 200 }}>
+                          <ReactSelect<{ value: string; label: string }>
+                            options={walletOpts}
+                            value={walletOpts.find(o => o.value === (destId ?? '')) ?? walletOpts[0]}
+                            onChange={opt => setColMap(m => ({
+                              ...m,
+                              transferToWalletMapping: { ...m.transferToWalletMapping, [srcId]: opt?.value || null },
+                            }))}
+                            isSearchable={false} styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {colMap.transferToWalletSource === 'by-source' && transferSourceWalletIds.length === 0 && (
+                <p className={styles.fieldHint}>Map the wallet and type columns first — source wallets will appear here.</p>
+              )}
+
+              {/* Column mapping */}
               {colMap.transferToWalletSource === 'column' && colMap.transferToWalletCol && Object.keys(colMap.transferToWalletMapping).length > 0 && (
                 <div className={styles.valueMapBlock}>
                   <p className={styles.valueMapTitle}>Match each destination wallet name:</p>
