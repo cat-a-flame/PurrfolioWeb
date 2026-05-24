@@ -336,59 +336,38 @@ export default function StatisticsPage() {
             <PeriodPicker value={period} onChange={setPeriod} />
           </div>
 
-          {/* ── Cash flow projection ── */}
-          {recurringPayments.length > 0 && (() => {
+          {/* ── Summary row (with optional projected line) ── */}
+          {(() => {
             const projIncome  = cashFlowProjection.actualIncome  + cashFlowProjection.plannedIncome;
             const projExpense = cashFlowProjection.actualExpense + cashFlowProjection.plannedExpense;
             const projNet     = projIncome - projExpense;
+            const hasPlanned  = recurringPayments.length > 0 && (cashFlowProjection.plannedIncome > 0 || cashFlowProjection.plannedExpense > 0);
             return (
-              <div className={styles.projectionSection}>
-                <h2 className={styles.projectionTitle}>Projected — {cashFlowProjection.monthLabel}</h2>
-                <div className={styles.projCard}>
-                  <div className={styles.projCardInner}>
-                    <div className={styles.projStat}>
-                      <p className={styles.projLabel}>Income</p>
-                      <p className={styles.projActual}>{formatHUF(projIncome)}</p>
-                    </div>
-                    <div className={styles.projDivider} />
-                    <div className={styles.projStat}>
-                      <p className={styles.projLabel}>Expenses</p>
-                      <p className={[styles.projActual, styles.projActualExpense].join(' ')}>{formatHUF(projExpense)}</p>
-                    </div>
-                    <div className={styles.projDivider} />
-                    <div className={styles.projStat}>
-                      <p className={styles.projLabel}>Net</p>
-                      <p className={[styles.projActual, projNet >= 0 ? styles.projNetPositive : styles.projNetExpense].join(' ')}>
-                        {projNet >= 0 ? '+' : ''}{formatHUF(projNet)}
-                      </p>
-                    </div>
-                  </div>
+              <div className={styles.summaryRow}>
+                <div className={styles.summaryCard}>
+                  <span className={styles.summaryLabel}>Income</span>
+                  <span className={[styles.summaryAmount, styles.summaryIncome].join(' ')}>{formatHUF(animatedIncome)}</span>
+                  {hasPlanned && <span className={styles.summaryProjected}>{formatHUF(projIncome)} projected</span>}
+                </div>
+                <div className={styles.summaryCard}>
+                  <span className={styles.summaryLabel}>Expenses</span>
+                  <span className={[styles.summaryAmount, styles.summaryExpense].join(' ')}>{formatHUF(animatedExpense)}</span>
+                  {hasPlanned && <span className={[styles.summaryProjected, styles.summaryProjectedExpense].join(' ')}>{formatHUF(projExpense)} projected</span>}
+                </div>
+                <div className={styles.summaryCard}>
+                  <span className={styles.summaryLabel}>Net</span>
+                  <span className={[styles.summaryAmount, income - expense >= 0 ? styles.summaryIncome : styles.summaryExpense].join(' ')}>
+                    {income - expense >= 0 ? '+' : ''}{formatHUF(animatedNet)}
+                  </span>
+                  {hasPlanned && <span className={[styles.summaryProjected, projNet >= 0 ? styles.summaryProjectedIncome : styles.summaryProjectedExpense].join(' ')}>{projNet >= 0 ? '+' : ''}{formatHUF(projNet)} projected</span>}
+                </div>
+                <div className={styles.summaryCard}>
+                  <span className={styles.summaryLabel}>Transactions</span>
+                  <span className={styles.summaryAmount}>{animatedTxCount}</span>
                 </div>
               </div>
             );
           })()}
-
-          {/* ── Summary row ── */}
-          <div className={styles.summaryRow}>
-            <div className={styles.summaryCard}>
-              <span className={styles.summaryLabel}>Income</span>
-              <span className={[styles.summaryAmount, styles.summaryIncome].join(' ')}>{formatHUF(animatedIncome)}</span>
-            </div>
-            <div className={styles.summaryCard}>
-              <span className={styles.summaryLabel}>Expenses</span>
-              <span className={[styles.summaryAmount, styles.summaryExpense].join(' ')}>{formatHUF(animatedExpense)}</span>
-            </div>
-            <div className={styles.summaryCard}>
-              <span className={styles.summaryLabel}>Net</span>
-              <span className={[styles.summaryAmount, income - expense >= 0 ? styles.summaryIncome : styles.summaryExpense].join(' ')}>
-                {income - expense >= 0 ? '+' : ''}{formatHUF(animatedNet)}
-              </span>
-            </div>
-            <div className={styles.summaryCard}>
-              <span className={styles.summaryLabel}>Transactions</span>
-              <span className={styles.summaryAmount}>{animatedTxCount}</span>
-            </div>
-          </div>
 
           {/* ── Main grid ── */}
           <div className={styles.grid}>
