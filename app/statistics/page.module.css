@@ -374,52 +374,21 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
-  padding: var(--space-6) var(--space-8);
+  padding: var(--space-5) var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
-.sectionTitle {
-  font-size: 1.0625rem;
+.projectionTitle {
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--color-text);
 }
 
-.projectionSubtitle {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  margin-top: var(--space-1);
-}
-
-.projectionHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
-  flex-wrap: wrap;
-}
-
-.projectionToggle {
-  padding: var(--space-2) var(--space-4);
-  background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-  white-space: nowrap;
-}
-.projectionToggleActive {
-  background: color-mix(in srgb, var(--color-primary, #f26e4d) 12%, transparent);
-  border-color: var(--color-primary, #f26e4d);
-  color: var(--color-primary, #f26e4d);
-}
-
 .projectionGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-4);
 }
 
@@ -447,29 +416,20 @@
   font-variant-numeric: tabular-nums;
   color: var(--color-text);
 }
-.projActualExpense  { color: var(--color-expense, #ef4444); }
-.projActualPositive { color: var(--color-income,  #22c55e); }
+.projActualExpense { color: var(--color-expense, #ef4444); }
 
-.projPlanned {
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-}
-.projPlannedExpense { color: color-mix(in srgb, var(--color-expense, #ef4444) 70%, var(--color-text-muted)); }
-
-.projTotal {
+.projNet {
   font-size: 0.9375rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--color-text);
   border-top: 1px dashed var(--color-border);
   padding-top: var(--space-1);
   margin-top: var(--space-1);
 }
-.projTotalExpense  { color: var(--color-expense, #ef4444); }
-.projTotalPositive { color: var(--color-income,  #22c55e); }
+.projNetPositive { color: var(--color-income,  #22c55e); }
+.projNetExpense  { color: var(--color-expense, #ef4444); }
 
 @media (max-width: 600px) {
-  .projectionGrid { grid-template-columns: 1fr; }
+  .projectionGrid    { grid-template-columns: 1fr; }
   .projectionSection { padding: var(--space-4); }
 }

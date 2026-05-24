@@ -409,7 +409,6 @@ export default function DashboardPage() {
                 <div className={styles.plannedWidget}>
                   <div className={styles.plannedWidgetHeader}>
                     <span className={styles.plannedWidgetTitle}>Planned this month</span>
-                    <Link href="/recurring" className={styles.plannedWidgetLink}>View all →</Link>
                   </div>
                   {dashboardDueItems.length === 0 && (
                     <p className={styles.plannedWidgetEmpty}>All handled ✓</p>
@@ -443,12 +442,6 @@ export default function DashboardPage() {
                       </div>
                     );
                   })}
-                  {plannedExpense > 0 && (
-                    <div className={styles.plannedFooter}>
-                      <span>Remaining to pay</span>
-                      <span className={styles.amtExpense}>{formatHUF(plannedExpense)}</span>
-                    </div>
-                  )}
                 </div>
               )}
             </div>

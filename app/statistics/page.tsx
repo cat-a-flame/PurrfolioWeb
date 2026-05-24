@@ -99,7 +99,6 @@ export default function StatisticsPage() {
   const [period, setPeriod]   = useState<PeriodValue>(defaultPeriod);
   const [todayRates, setTodayRates] = useState<Record<string, number>>({});
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
-  const [showPlanned, setShowPlanned] = useState(true);
   const [recurringPayments, setRecurringPayments]     = useState<RecurringPayment[]>([]);
   const [recurringOccurrences, setRecurringOccurrences] = useState<RecurringOccurrence[]>([]);
 
@@ -337,6 +336,31 @@ export default function StatisticsPage() {
             <PeriodPicker value={period} onChange={setPeriod} />
           </div>
 
+          {/* ── Cash flow projection ── */}
+          {recurringPayments.length > 0 && (() => {
+            const projIncome  = cashFlowProjection.actualIncome  + cashFlowProjection.plannedIncome;
+            const projExpense = cashFlowProjection.actualExpense + cashFlowProjection.plannedExpense;
+            const projNet     = projIncome - projExpense;
+            return (
+              <div className={styles.projectionSection}>
+                <h2 className={styles.projectionTitle}>Projected — {cashFlowProjection.monthLabel}</h2>
+                <div className={styles.projectionGrid}>
+                  <div className={styles.projCard}>
+                    <p className={styles.projLabel}>Income</p>
+                    <p className={styles.projActual}>{formatHUF(projIncome)}</p>
+                  </div>
+                  <div className={styles.projCard}>
+                    <p className={styles.projLabel}>Expenses &amp; Net</p>
+                    <p className={[styles.projActual, styles.projActualExpense].join(' ')}>{formatHUF(projExpense)}</p>
+                    <p className={[styles.projNet, projNet >= 0 ? styles.projNetPositive : styles.projNetExpense].join(' ')}>
+                      {projNet >= 0 ? '+' : ''}{formatHUF(projNet)} net
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* ── Summary row ── */}
           <div className={styles.summaryRow}>
             <div className={styles.summaryCard}>
@@ -545,65 +569,6 @@ export default function StatisticsPage() {
 
           </div>
 
-          {/* ── Cash flow projection ── */}
-          {recurringPayments.length > 0 && (
-            <div className={styles.projectionSection}>
-              <div className={styles.projectionHeader}>
-                <div>
-                  <h2 className={styles.sectionTitle}>Monthly cash flow — {cashFlowProjection.monthLabel}</h2>
-                  <p className={styles.projectionSubtitle}>Actual results plus your pending planned payments</p>
-                </div>
-                <button
-                  className={[styles.projectionToggle, showPlanned ? styles.projectionToggleActive : ''].join(' ')}
-                  onClick={() => setShowPlanned(v => !v)}
-                >
-                  {showPlanned ? '✓ Show planned' : 'Show planned'}
-                </button>
-              </div>
-
-              <div className={styles.projectionGrid}>
-                {/* Income */}
-                <div className={styles.projCard}>
-                  <p className={styles.projLabel}>Income</p>
-                  <p className={styles.projActual}>{formatHUF(cashFlowProjection.actualIncome)}</p>
-                  {showPlanned && cashFlowProjection.plannedIncome > 0 && (
-                    <p className={styles.projPlanned}>+ {formatHUF(cashFlowProjection.plannedIncome)} planned</p>
-                  )}
-                  {showPlanned && cashFlowProjection.plannedIncome > 0 && (
-                    <p className={styles.projTotal}>{formatHUF(cashFlowProjection.actualIncome + cashFlowProjection.plannedIncome)} projected</p>
-                  )}
-                </div>
-
-                {/* Expenses */}
-                <div className={styles.projCard}>
-                  <p className={styles.projLabel}>Expenses</p>
-                  <p className={[styles.projActual, styles.projActualExpense].join(' ')}>{formatHUF(cashFlowProjection.actualExpense)}</p>
-                  {showPlanned && cashFlowProjection.plannedExpense > 0 && (
-                    <p className={[styles.projPlanned, styles.projPlannedExpense].join(' ')}>+ {formatHUF(cashFlowProjection.plannedExpense)} planned</p>
-                  )}
-                  {showPlanned && cashFlowProjection.plannedExpense > 0 && (
-                    <p className={[styles.projTotal, styles.projTotalExpense].join(' ')}>{formatHUF(cashFlowProjection.actualExpense + cashFlowProjection.plannedExpense)} projected</p>
-                  )}
-                </div>
-
-                {/* Net */}
-                <div className={styles.projCard}>
-                  <p className={styles.projLabel}>Net</p>
-                  <p className={[styles.projActual, (cashFlowProjection.actualIncome - cashFlowProjection.actualExpense) >= 0 ? styles.projActualPositive : styles.projActualExpense].join(' ')}>
-                    {formatHUF(cashFlowProjection.actualIncome - cashFlowProjection.actualExpense)}
-                  </p>
-                  {showPlanned && (cashFlowProjection.plannedIncome > 0 || cashFlowProjection.plannedExpense > 0) && (() => {
-                    const projNet = cashFlowProjection.actualIncome + cashFlowProjection.plannedIncome - cashFlowProjection.actualExpense - cashFlowProjection.plannedExpense;
-                    return (
-                      <p className={[styles.projTotal, projNet >= 0 ? styles.projTotalPositive : styles.projTotalExpense].join(' ')}>
-                        {formatHUF(projNet)} projected
-                      </p>
-                    );
-                  })()}
-                </div>
-              </div>
-            </div>
-          )}
 
         </div>
       </main>
