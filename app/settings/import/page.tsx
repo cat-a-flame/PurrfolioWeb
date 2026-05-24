@@ -96,6 +96,8 @@ function uniqueColValues(rows: string[][], idx: number): string[] {
 
 // ─── Internal types ───────────────────────────────────────────────────────────
 
+const TRANSFER_SENTINEL = '__transfer__';
+
 type TypeSource = 'column' | 'fixed-income' | 'fixed-expense';
 type WalletSource = 'fixed' | 'column';
 type TransferToWalletSource = 'fixed' | 'column' | 'by-source';
@@ -287,26 +289,41 @@ export default function ImportPage() {
     const vals = idx >= 0 ? uniqueColValues(csv.rows, idx) : [];
     const mapping: Record<string, string | null> = {};
     for (const v of vals) {
-      const match = categories.find(c => c.name.toLowerCase() === v.toLowerCase());
-      mapping[v] = match?.id ?? null;
+      if (autoDetectType(v) === 'transfer') {
+        mapping[v] = TRANSFER_SENTINEL;
+      } else {
+        const match = categories.find(c => c.name.toLowerCase() === v.toLowerCase());
+        mapping[v] = match?.id ?? null;
+      }
     }
     setColMap(m => ({ ...m, categoryCol: col, categoryMapping: mapping }));
   }
 
   // ─── Derived flags ────────────────────────────────────────────────────────
 
-  const hasTransferType = colMap.typeSource === 'column' && Object.values(colMap.typeMapping).includes('transfer');
+  const hasTransferType =
+    (colMap.typeSource === 'column' && Object.values(colMap.typeMapping).includes('transfer')) ||
+    Object.values(colMap.categoryMapping).includes(TRANSFER_SENTINEL);
   const unmappedCategories = Object.entries(colMap.categoryMapping).filter(([, v]) => v === null);
 
   // Source wallet IDs that appear on transfer rows — used for 'by-source' mode
   const transferSourceWalletIds: string[] = (() => {
     if (!csv || !hasTransferType) return [];
-    const typIdx = colIdx(colMap.typeCol);
+    const typIdx = colMap.typeSource === 'column' ? colIdx(colMap.typeCol) : -1;
     const walIdx = colMap.walletSource === 'column' ? colIdx(colMap.walletCol) : -1;
+    const catIdx = colMap.categoryCol ? colIdx(colMap.categoryCol) : -1;
     const seen = new Set<string>();
     for (const row of csv.rows) {
-      const typeVal = typIdx >= 0 ? (row[typIdx] ?? '').trim() : '';
-      if (colMap.typeMapping[typeVal] !== 'transfer') continue;
+      let isTransfer = false;
+      if (typIdx >= 0) {
+        const typeVal = (row[typIdx] ?? '').trim();
+        if (colMap.typeMapping[typeVal] === 'transfer') isTransfer = true;
+      }
+      if (!isTransfer && catIdx >= 0) {
+        const catVal = (row[catIdx] ?? '').trim();
+        if (colMap.categoryMapping[catVal] === TRANSFER_SENTINEL) isTransfer = true;
+      }
+      if (!isTransfer) continue;
       const srcId = colMap.walletSource === 'fixed'
         ? (colMap.walletFixed || null)
         : (walIdx >= 0 ? (colMap.walletMapping[(row[walIdx] ?? '').trim()] ?? null) : null);
@@ -378,10 +395,18 @@ export default function ImportPage() {
       const parsedDate = parseDate(rawDate);
       if (!parsedDate) errors.push('Invalid date');
 
+      // Detect category-sentinel transfer before type determination so it can override
+      const catRawVal = catI >= 0 ? (row[catI] ?? '').trim() : '';
+      const isCategoryTransfer = catRawVal !== '' && colMap.categoryMapping[catRawVal] === TRANSFER_SENTINEL;
+
       let txType: ImportType | null = null;
-      if (colMap.typeSource === 'fixed-income') txType = 'income';
-      else if (colMap.typeSource === 'fixed-expense') txType = 'expense';
-      else if (typI >= 0) {
+      if (isCategoryTransfer) {
+        txType = 'transfer';
+      } else if (colMap.typeSource === 'fixed-income') {
+        txType = 'income';
+      } else if (colMap.typeSource === 'fixed-expense') {
+        txType = 'expense';
+      } else if (typI >= 0) {
         const raw = (row[typI] ?? '').trim();
         txType = (colMap.typeMapping[raw] as ImportType) || null;
         if (!txType) errors.push('Unknown type');
@@ -420,11 +445,10 @@ export default function ImportPage() {
         if (transferToAmount === null) transferToAmount = amount;
       }
 
-      // Category: use the explicit mapping built in Step 2
+      // Category: use the explicit mapping; sentinel rows get no category (they're transfers)
       let categoryId: string | null = null;
-      if (catI >= 0) {
-        const raw = (row[catI] ?? '').trim();
-        if (raw) categoryId = colMap.categoryMapping[raw] ?? null;
+      if (catI >= 0 && !isCategoryTransfer && catRawVal) {
+        categoryId = colMap.categoryMapping[catRawVal] ?? null;
       }
 
       const notes = notI >= 0 ? ((row[notI] ?? '').trim() || null) : null;
@@ -596,7 +620,11 @@ export default function ImportPage() {
 
   const hasAnyTransfer = previewRows.some(r => r.type === 'transfer');
   const walletOpts = [{ value: '', label: '— select wallet —' }, ...wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` }))];
-  const categoryOpts = [{ value: '', label: '— skip (no category) —' }, ...categories.map(c => ({ value: c.id, label: `${c.icon} ${c.name}` }))];
+  const categoryOpts = [
+    { value: '', label: '— skip (no category) —' },
+    { value: TRANSFER_SENTINEL, label: '↔ Transfer (mark as transfer)' },
+    ...categories.map(c => ({ value: c.id, label: `${c.icon} ${c.name}` })),
+  ];
 
   return (
     <div className={styles.container}>
@@ -1012,7 +1040,9 @@ export default function ImportPage() {
                         isSearchable styles={makeRsStyles('sm')} theme={rsTheme} menuPosition="fixed"
                       />
                     </div>
-                    {catId !== null && <span className={styles.autoMatched}>✓ matched</span>}
+                    {catId === TRANSFER_SENTINEL
+                      ? <span className={styles.tagTransfer}>↔ transfer</span>
+                      : catId !== null && <span className={styles.autoMatched}>✓ matched</span>}
                   </div>
                 ))}
                 {unmappedCategories.length > 0 && (
