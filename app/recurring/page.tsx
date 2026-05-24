@@ -590,7 +590,7 @@ export default function RecurringPage() {
         />
       )}
 
-      <Toast toast={toast} onDismiss={dismissToast} />
+      {toast && <Toast message={toast.message} variant={toast.variant} onDismiss={dismissToast} />}
     </div>
   );
 }
