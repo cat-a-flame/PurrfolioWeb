@@ -551,39 +551,44 @@ export default function RecurringPage() {
       <AppFooter />
 
       {/* Add dialog */}
-      <Dialog open={showAddDialog} onClose={() => setShowAddDialog(false)} title="Add recurring payment">
-        {paymentFormBody(addForm, setAddForm)}
-        {addError && <p className={styles.formError}>{addError}</p>}
-        <div className={styles.dialogActions}>
-          <Button variant="secondary" size="md" onClick={() => setShowAddDialog(false)}>Cancel</Button>
-          <Button variant="primary" size="md" onClick={handleAdd} disabled={addSaving}>
-            {addSaving ? 'Saving…' : 'Add'}
-          </Button>
-        </div>
-      </Dialog>
+      {showAddDialog && (
+        <Dialog onClose={() => setShowAddDialog(false)} title="Add recurring payment">
+          {paymentFormBody(addForm, setAddForm)}
+          {addError && <p className={styles.formError}>{addError}</p>}
+          <div className={styles.dialogActions}>
+            <Button variant="secondary" size="md" onClick={() => setShowAddDialog(false)}>Cancel</Button>
+            <Button variant="primary" size="md" onClick={handleAdd} disabled={addSaving}>
+              {addSaving ? 'Saving…' : 'Add'}
+            </Button>
+          </div>
+        </Dialog>
+      )}
 
       {/* Edit dialog */}
-      <Dialog open={!!editingPayment} onClose={() => setEditingPayment(null)} title="Edit recurring payment">
-        {paymentFormBody(editForm, setEditForm)}
-        {editError && <p className={styles.formError}>{editError}</p>}
-        <div className={styles.dialogActions}>
-          <Button variant="secondary" size="md" onClick={() => setEditingPayment(null)}>Cancel</Button>
-          <Button variant="primary" size="md" onClick={handleEdit} disabled={editSaving}>
-            {editSaving ? 'Saving…' : 'Save'}
-          </Button>
-        </div>
-      </Dialog>
+      {editingPayment && (
+        <Dialog onClose={() => setEditingPayment(null)} title="Edit recurring payment">
+          {paymentFormBody(editForm, setEditForm)}
+          {editError && <p className={styles.formError}>{editError}</p>}
+          <div className={styles.dialogActions}>
+            <Button variant="secondary" size="md" onClick={() => setEditingPayment(null)}>Cancel</Button>
+            <Button variant="primary" size="md" onClick={handleEdit} disabled={editSaving}>
+              {editSaving ? 'Saving…' : 'Save'}
+            </Button>
+          </div>
+        </Dialog>
+      )}
 
       {/* Delete confirm */}
-      <ConfirmDialog
-        open={!!deletingPayment}
-        title="Delete recurring payment"
-        message={`Delete "${deletingPayment?.name}"? This won't affect existing transactions.`}
-        confirmLabel="Delete"
-        onConfirm={handleDelete}
-        onCancel={() => setDeletingPayment(null)}
-        loading={deleteLoading}
-      />
+      {deletingPayment && (
+        <ConfirmDialog
+          title="Delete recurring payment"
+          message={`Delete "${deletingPayment.name}"? This won't affect existing transactions.`}
+          confirmLabel="Delete"
+          onConfirm={handleDelete}
+          onCancel={() => setDeletingPayment(null)}
+          loading={deleteLoading}
+        />
+      )}
 
       <Toast toast={toast} onDismiss={dismissToast} />
     </div>
