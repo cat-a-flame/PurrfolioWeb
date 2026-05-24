@@ -510,7 +510,7 @@ export default function RecurringPage() {
                           <button
                             className={styles.kebabTrigger}
                             onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === p.id ? null : p.id); }}
-                          >···</button>
+                          >⋮</button>
                           {openMenuId === p.id && (
                             <div className={styles.kebabMenu} onClick={e => e.stopPropagation()}>
                               <button className={styles.kebabItem} onClick={() => { handleToggleActive(p); setOpenMenuId(null); }}>

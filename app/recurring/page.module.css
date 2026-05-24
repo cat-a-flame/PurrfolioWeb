@@ -363,11 +363,18 @@
   color: var(--color-text);
   cursor: pointer;
   border-radius: calc(var(--radius-md) - 2px);
-  transition: background 0.12s;
+  transition: background 0.12s, color 0.12s;
+  font-family: var(--font-figtree);
 }
-.kebabItem:hover { background: var(--color-surface-alt); }
+.kebabItem:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}
 .kebabItemDanger { color: var(--color-error, #ef4444); }
-.kebabItemDanger:hover { background: color-mix(in srgb, var(--color-error, #ef4444) 10%, transparent); }
+.kebabItemDanger:hover {
+  background: color-mix(in srgb, var(--color-error, #ef4444) 12%, transparent);
+  color: var(--color-error, #ef4444);
+}
 
 /* ── Modal (matches TransactionForm style) ── */
 .overlay {
