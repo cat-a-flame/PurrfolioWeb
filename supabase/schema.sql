@@ -48,6 +48,7 @@ CREATE TABLE transactions (
   notes              TEXT,
   payer              TEXT,
   transfer_group_id  UUID,
+  exchange_rate_to_huf NUMERIC(15, 6),
   created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -198,6 +199,7 @@ CREATE TRIGGER templates_updated_at
 -- ─────────────────────────────────────────
 -- Migration: run these if upgrading an existing database
 -- ─────────────────────────────────────────
+-- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS exchange_rate_to_huf NUMERIC(15, 6);
 -- ALTER TABLE wallets ADD COLUMN IF NOT EXISTS starting_balance NUMERIC(15, 2) NOT NULL DEFAULT 0;
 -- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS payer TEXT;
 -- ALTER TABLE transactions ALTER COLUMN wallet_id SET NOT NULL;

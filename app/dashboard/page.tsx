@@ -11,7 +11,7 @@ import Toast from '@/components/ui/Toast';
 import { createClient } from '@/lib/supabase/client';
 import { fetchAllTransactions } from '@/lib/supabase/fetchAllTransactions';
 import { formatHUF, formatCurrency } from '@/lib/utils';
-import { getExchangeRates, toHUF } from '@/lib/exchangeRates';
+import { getExchangeRates, txToHUF } from '@/lib/exchangeRates';
 import type { Transaction, Wallet, Category, Label } from '@/lib/types';
 import styles from './page.module.css';
 
@@ -83,7 +83,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const dates = [...new Set(
       allTransactions
-        .filter(t => t.wallet?.currency && t.wallet.currency !== 'HUF')
+        .filter(t => t.wallet?.currency && t.wallet.currency !== 'HUF' && t.exchange_rate_to_huf == null)
         .map(t => t.date)
     )];
     if (!dates.length) return;
@@ -127,12 +127,12 @@ export default function DashboardPage() {
   const periodTxs = useMemo(() => filterByRange(allTransactions, period.from, period.to), [allTransactions, period]);
   const prevTxs = useMemo(() => filterByRange(allTransactions, prevRange.from, prevRange.to), [allTransactions, prevRange]);
 
-  const income = periodTxs.filter(t => t.type === 'income' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0);
-  const expense = periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0);
+  const income = periodTxs.filter(t => t.type === 'income' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
+  const expense = periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
   const balance = income - expense;
 
-  const prevBalance = prevTxs.filter(t => t.type === 'income' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0)
-    - prevTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, ratesByDate[t.date] ?? {}), 0);
+  const prevBalance = prevTxs.filter(t => t.type === 'income' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0)
+    - prevTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
 
   const vsPct = prevBalance === 0 ? null : Math.round(((balance - prevBalance) / Math.abs(prevBalance)) * 100);
 
@@ -184,9 +184,9 @@ export default function DashboardPage() {
           date,
           transactions: [...txs].sort((a, b) => b.created_at.localeCompare(a.created_at)),
           net: txs.filter(t => t.type === 'income' && !t.transfer_group_id)
-            .reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, rates), 0)
+            .reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, rates), 0)
             - txs.filter(t => t.type === 'expense' && !t.transfer_group_id)
-              .reduce((s, t) => s + toHUF(t.amount, t.wallet?.currency, rates), 0),
+              .reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, rates), 0),
         };
       });
   }, [visiblePeriodTxs, ratesByDate]);
@@ -214,6 +214,13 @@ export default function DashboardPage() {
 
     if (!editingTransaction) return;
 
+    const getWalletRate = async (walletId: string, date: string): Promise<number | null> => {
+      const wallet = wallets.find(w => w.id === walletId);
+      if (!wallet?.currency || wallet.currency === 'HUF') return null;
+      const rates = await getExchangeRates(date);
+      return rates[wallet.currency] ?? null;
+    };
+
     if (data.transfer) {
       // Delete original record(s) — both legs if it was already a transfer
       if (editingTransaction.transfer_group_id) {
@@ -223,9 +230,13 @@ export default function DashboardPage() {
       }
       const transferGroupId = crypto.randomUUID();
       const common = { user_id: user.id, date: data.date, notes: data.notes || null, transfer_group_id: transferGroupId };
+      const [expenseRate, incomeRate] = await Promise.all([
+        getWalletRate(data.wallet_id, data.date),
+        getWalletRate(data.transfer.to_wallet_id, data.date),
+      ]);
       const { error } = await supabase.from('transactions').insert([
-        { ...common, type: 'expense', amount: data.amount, wallet_id: data.wallet_id },
-        { ...common, type: 'income', amount: data.transfer.to_amount, wallet_id: data.transfer.to_wallet_id },
+        { ...common, type: 'expense', amount: data.amount,             wallet_id: data.wallet_id,             exchange_rate_to_huf: expenseRate },
+        { ...common, type: 'income',  amount: data.transfer.to_amount, wallet_id: data.transfer.to_wallet_id, exchange_rate_to_huf: incomeRate },
       ]);
       if (error) throw error;
     } else {
@@ -240,6 +251,10 @@ export default function DashboardPage() {
           await supabase.from('transactions').delete().in('id', paired.map((p: { id: string }) => p.id));
         }
       }
+      const needsNewRate = data.date !== editingTransaction.date || data.wallet_id !== editingTransaction.wallet_id;
+      const exchangeRate = needsNewRate
+        ? await getWalletRate(data.wallet_id, data.date)
+        : (editingTransaction.exchange_rate_to_huf ?? null);
       const { error } = await supabase
         .from('transactions')
         .update({
@@ -251,6 +266,7 @@ export default function DashboardPage() {
           notes: data.notes || null,
           payer: data.payer || null,
           transfer_group_id: null,
+          exchange_rate_to_huf: exchangeRate,
           updated_at: new Date().toISOString(),
         })
         .eq('id', editingTransaction.id);

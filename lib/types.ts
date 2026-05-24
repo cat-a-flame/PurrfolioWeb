@@ -45,6 +45,7 @@ export type Transaction = {
   notes: string | null;
   payer: string | null;
   transfer_group_id: string | null;
+  exchange_rate_to_huf: number | null;
   created_at: string;
   updated_at: string;
   wallet?: Wallet | null;
