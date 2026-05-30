@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Lora, Figtree } from 'next/font/google';
 import AddRecordProvider from '@/components/transactions/AddRecordProvider';
 import BottomNav from '@/components/layout/BottomNav';
@@ -11,6 +11,12 @@ const figtree = Figtree({ subsets: ['latin'], variable: '--font-figtree', displa
 export const metadata: Metadata = {
   title: 'PennyPuff',
   description: 'Your personal budget tracker',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
