@@ -231,12 +231,6 @@ export default function TransactionForm({
             <div className={styles.overlay} onClick={handleClose}>
                 <div className={styles.modal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
                     <div className={styles.modalHeader}>
-                        <button className={styles.backBtn} type="button" onClick={handleClose} aria-label="Go back">
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                                <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                            Back
-                        </button>
                         <h2 className={styles.title}>Add record</h2>
                         <button className={styles.closeBtn} type="button" onClick={handleClose} aria-label="Close">✕</button>
                     </div>
@@ -258,12 +252,6 @@ export default function TransactionForm({
                 aria-labelledby="form-title"
             >
                 <div className={styles.modalHeader}>
-                    <button className={styles.backBtn} type="button" onClick={handleClose} aria-label="Go back">
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                            <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        Back
-                    </button>
                     <h2 id="form-title" className={styles.title}>
                         {transaction ? 'Edit record' : 'Add record'}
                     </h2>
@@ -307,11 +295,17 @@ export default function TransactionForm({
                             {/* From wallet */}
                             <div className={styles.field}>
                                 <FormLabel htmlFor="from-wallet" required>From account</FormLabel>
-                                <select id="from-wallet" className={styles.select} value={walletId} onChange={e => handleFromWalletChange(e.target.value)} required>
-                                    {wallets.map(w => (
-                                        <option key={w.id} value={w.id}>{w.icon} {w.name} ({w.currency})</option>
-                                    ))}
-                                </select>
+                                <ReactSelect<{ value: string; label: string }>
+                                    inputId="from-wallet"
+                                    options={wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }))}
+                                    value={wallets.find(w => w.id === walletId) ? { value: walletId, label: `${wallets.find(w => w.id === walletId)!.icon} ${wallets.find(w => w.id === walletId)!.name} (${wallets.find(w => w.id === walletId)!.currency})` } : null}
+                                    onChange={(opt) => opt && handleFromWalletChange(opt.value)}
+                                    isSearchable
+                                    styles={makeRsStyles()}
+                                    theme={rsTheme}
+                                    menuPosition="fixed"
+                                    placeholder="Select wallet…"
+                                />
                             </div>
 
                             {/* Amount sent */}
@@ -331,12 +325,23 @@ export default function TransactionForm({
                             {/* To wallet */}
                             <div className={styles.field}>
                                 <FormLabel htmlFor="to-wallet" required>To account</FormLabel>
-                                <select id="to-wallet" className={styles.select} value={toWalletId} onChange={e => handleToWalletChange(e.target.value)} required>
-                                    <option value="">Select wallet…</option>
-                                    {wallets.filter(w => w.id !== walletId).map(w => (
-                                        <option key={w.id} value={w.id}>{w.icon} {w.name} ({w.currency})</option>
-                                    ))}
-                                </select>
+                                {(() => {
+                                    const toWalletOptions = wallets.filter(w => w.id !== walletId).map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }));
+                                    const toWalletValue = toWalletOptions.find(o => o.value === toWalletId) ?? null;
+                                    return (
+                                        <ReactSelect<{ value: string; label: string }>
+                                            inputId="to-wallet"
+                                            options={toWalletOptions}
+                                            value={toWalletValue}
+                                            onChange={(opt) => opt && handleToWalletChange(opt.value)}
+                                            isSearchable
+                                            styles={makeRsStyles()}
+                                            theme={rsTheme}
+                                            menuPosition="fixed"
+                                            placeholder="Select wallet…"
+                                        />
+                                    );
+                                })()}
                             </div>
 
                             {/* Amount received */}
@@ -385,11 +390,17 @@ export default function TransactionForm({
                                 {/* Account / Wallet */}
                                 <div className={styles.field}>
                                     <FormLabel htmlFor="wallet" required>Account</FormLabel>
-                                    <select id="wallet" className={styles.select} value={walletId} onChange={e => setWalletId(e.target.value)} required>
-                                        {wallets.map(w => (
-                                            <option key={w.id} value={w.id}>{w.icon} {w.name} ({w.currency})</option>
-                                        ))}
-                                    </select>
+                                    <ReactSelect<{ value: string; label: string }>
+                                        inputId="wallet"
+                                        options={wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }))}
+                                        value={wallets.find(w => w.id === walletId) ? { value: walletId, label: `${wallets.find(w => w.id === walletId)!.icon} ${wallets.find(w => w.id === walletId)!.name} (${wallets.find(w => w.id === walletId)!.currency})` } : null}
+                                        onChange={(opt) => opt && setWalletId(opt.value)}
+                                        isSearchable
+                                        styles={makeRsStyles()}
+                                        theme={rsTheme}
+                                        menuPosition="fixed"
+                                        placeholder="Select wallet…"
+                                    />
                                 </div>
 
                                 {/* Category */}
