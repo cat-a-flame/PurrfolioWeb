@@ -138,11 +138,14 @@ export default function RecurringPage() {
 
   useEffect(() => {
     fetchAll();
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchAll(); };
     window.addEventListener('transaction-added', fetchAll);
-    document.addEventListener('visibilitychange', fetchAll);
+    window.addEventListener('focus', fetchAll);
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       window.removeEventListener('transaction-added', fetchAll);
-      document.removeEventListener('visibilitychange', fetchAll);
+      window.removeEventListener('focus', fetchAll);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [fetchAll]);
 

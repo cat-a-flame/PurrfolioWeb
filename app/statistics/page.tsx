@@ -146,11 +146,14 @@ export default function StatisticsPage() {
 
   useEffect(() => {
     fetchData();
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchData(); };
     window.addEventListener('transaction-added', fetchData);
-    document.addEventListener('visibilitychange', fetchData);
+    window.addEventListener('focus', fetchData);
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       window.removeEventListener('transaction-added', fetchData);
-      document.removeEventListener('visibilitychange', fetchData);
+      window.removeEventListener('focus', fetchData);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [fetchData]);
 
