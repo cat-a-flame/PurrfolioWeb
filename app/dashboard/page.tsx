@@ -134,7 +134,23 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData();
     window.addEventListener('transaction-added', fetchData);
-    return () => window.removeEventListener('transaction-added', fetchData);
+
+    const supabase = createClient();
+    let mounted = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!mounted || !user) return;
+      channel = supabase
+        .channel('dashboard-recurring-sync')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'recurring_occurrences', filter: `user_id=eq.${user.id}` }, () => fetchData())
+        .subscribe();
+    });
+
+    return () => {
+      mounted = false;
+      window.removeEventListener('transaction-added', fetchData);
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [fetchData]);
 
   const prevRange = useMemo(() => getPrevRange(period), [period]);
@@ -177,7 +193,7 @@ export default function DashboardPage() {
   const dashboardDueItems = useMemo(() => {
     const now = new Date();
     const [from, to] = monthBounds(now.getFullYear(), now.getMonth());
-    const actionedKeys = new Set(recurringOccurrences.map(o => `${o.recurring_payment_id}|${o.due_date}`));
+    const actionedKeys = new Set(recurringOccurrences.map(o => `${o.recurring_payment_id}|${o.due_date.slice(0, 10)}`));
     const items: { payment: RecurringPayment; dueDate: Date }[] = [];
     for (const p of recurringPayments) {
       for (const date of generateDueDates(p, from, to)) {
@@ -191,7 +207,7 @@ export default function DashboardPage() {
   const plannedExpense = useMemo(() => {
     const now = new Date();
     const [from, to] = monthBounds(now.getFullYear(), now.getMonth());
-    const actionedKeys = new Set(recurringOccurrences.map(o => `${o.recurring_payment_id}|${o.due_date}`));
+    const actionedKeys = new Set(recurringOccurrences.map(o => `${o.recurring_payment_id}|${o.due_date.slice(0, 10)}`));
     let total = 0;
     for (const p of recurringPayments) {
       if (p.type !== 'expense') continue;
@@ -234,7 +250,7 @@ export default function DashboardPage() {
       due_date: recurringIsoDate(item.dueDate), status: 'skipped', transaction_id: null,
     });
     setPayActionLoading(null);
-    fetchData();
+    window.dispatchEvent(new Event('transaction-added'));
   }
 
   useEffect(() => {

@@ -136,7 +136,27 @@ export default function RecurringPage() {
     setLoading(false);
   }, [viewYear, viewMonth]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    fetchAll();
+    window.addEventListener('transaction-added', fetchAll);
+
+    const supabase = createClient();
+    let mounted = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!mounted || !user) return;
+      channel = supabase
+        .channel('recurring-page-sync')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'recurring_occurrences', filter: `user_id=eq.${user.id}` }, () => fetchAll())
+        .subscribe();
+    });
+
+    return () => {
+      mounted = false;
+      window.removeEventListener('transaction-added', fetchAll);
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [fetchAll]);
 
   useEffect(() => {
     if (!openMenuId) return;
@@ -148,7 +168,7 @@ export default function RecurringPage() {
   // Compute pending due items for the viewed month
   const dueItems: DueItem[] = (() => {
     const [from, to] = monthBounds(viewYear, viewMonth);
-    const actionedKeys = new Set(occurrences.map(o => `${o.recurring_payment_id}|${o.due_date}`));
+    const actionedKeys = new Set(occurrences.map(o => `${o.recurring_payment_id}|${o.due_date.slice(0, 10)}`));
     const items: DueItem[] = [];
     for (const p of payments) {
       for (const date of generateDueDates(p, from, to)) {
@@ -247,8 +267,12 @@ export default function RecurringPage() {
       transaction_id: null,
     });
 
-    if (error) setToast({ message: 'Failed to skip.', variant: 'error' });
-    else setToast({ message: `${item.payment.name} skipped.`, variant: 'success' });
+    if (error) {
+      setToast({ message: 'Failed to skip.', variant: 'error' });
+    } else {
+      setToast({ message: `${item.payment.name} skipped.`, variant: 'success' });
+      window.dispatchEvent(new Event('transaction-added'));
+    }
     setActionLoading(null);
     fetchAll();
   }

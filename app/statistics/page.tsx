@@ -144,7 +144,27 @@ export default function StatisticsPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchData(); window.addEventListener('transaction-added', fetchData); return () => window.removeEventListener('transaction-added', fetchData); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+    window.addEventListener('transaction-added', fetchData);
+
+    const supabase = createClient();
+    let mounted = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!mounted || !user) return;
+      channel = supabase
+        .channel('stats-recurring-sync')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'recurring_occurrences', filter: `user_id=eq.${user.id}` }, () => fetchData())
+        .subscribe();
+    });
+
+    return () => {
+      mounted = false;
+      window.removeEventListener('transaction-added', fetchData);
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [fetchData]);
 
   const prevRange  = useMemo(() => getPrevRange(period), [period]);
   const periodTxs  = useMemo(() => filterRange(allTxs, period.from, period.to), [allTxs, period]);
@@ -172,19 +192,22 @@ export default function StatisticsPage() {
     const actualIncome  = monthTxs.filter(t => t.type === 'income').reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
     const actualExpense = monthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
 
-    // Pending planned payments
-    const actionedKeys = new Set(recurringOccurrences.map(o => `${o.recurring_payment_id}|${o.due_date}`));
+    // Pending planned payments — convert to HUF using today's rates
+    const actionedKeys = new Set(recurringOccurrences.map(o => `${o.recurring_payment_id}|${o.due_date.slice(0, 10)}`));
+    let plannedIncome  = 0;
     let plannedExpense = 0;
     for (const p of recurringPayments) {
       for (const date of generateDueDates(p, from, to)) {
         const key = `${p.id}|${recurringIsoDate(date)}`;
         if (actionedKeys.has(key)) continue;
-        if (p.type === 'expense') plannedExpense += p.amount;
+        const hufAmount = toHUF(p.amount, p.wallet?.currency, todayRates);
+        if (p.type === 'income')  plannedIncome  += hufAmount;
+        if (p.type === 'expense') plannedExpense += hufAmount;
       }
     }
 
-    return { actualIncome, actualExpense, plannedExpense, monthLabel: from.toLocaleString('default', { month: 'long', year: 'numeric' }) };
-  }, [allTxs, recurringPayments, recurringOccurrences, ratesByDate]);
+    return { actualIncome, actualExpense, plannedIncome, plannedExpense, monthLabel: from.toLocaleString('default', { month: 'long', year: 'numeric' }) };
+  }, [allTxs, recurringPayments, recurringOccurrences, ratesByDate, todayRates]);
 
   // ── 1. Balance by currency ──────────────────────────────────────────────
   const currencyBalances = useMemo(() => {
@@ -336,15 +359,16 @@ export default function StatisticsPage() {
 
           {/* ── Summary row (with optional projected line) ── */}
           {(() => {
-            const projIncome  = cashFlowProjection.actualIncome;
+            const projIncome  = cashFlowProjection.actualIncome  + cashFlowProjection.plannedIncome;
             const projExpense = cashFlowProjection.actualExpense + cashFlowProjection.plannedExpense;
             const projNet     = projIncome - projExpense;
-            const hasPlanned  = recurringPayments.length > 0 && (cashFlowProjection.plannedExpense > 0);
+            const hasPlanned  = recurringPayments.length > 0 && (cashFlowProjection.plannedIncome > 0 || cashFlowProjection.plannedExpense > 0);
             return (
               <div className={styles.summaryRow}>
                 <div className={styles.summaryCard}>
                   <span className={styles.summaryLabel}>Income</span>
                   <span className={[styles.summaryAmount, styles.summaryIncome].join(' ')}>{formatHUF(animatedIncome)}</span>
+                  {hasPlanned && cashFlowProjection.plannedIncome > 0 && <span className={[styles.summaryProjected, styles.summaryProjectedIncome].join(' ')}>{formatHUF(projIncome)} projected</span>}
                 </div>
                 <div className={styles.summaryCard}>
                   <span className={styles.summaryLabel}>Expenses</span>

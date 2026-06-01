@@ -218,6 +218,23 @@ CREATE TABLE recurring_payments (
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE recurring_payment_labels (
+  recurring_payment_id UUID NOT NULL REFERENCES recurring_payments(id) ON DELETE CASCADE,
+  label_id             UUID NOT NULL REFERENCES labels(id) ON DELETE CASCADE,
+  PRIMARY KEY (recurring_payment_id, label_id)
+);
+
+ALTER TABLE recurring_payment_labels ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "recurring_payment_labels: own rows" ON recurring_payment_labels
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM recurring_payments p WHERE p.id = recurring_payment_labels.recurring_payment_id AND p.user_id = auth.uid())
+  ) WITH CHECK (
+    EXISTS (SELECT 1 FROM recurring_payments p WHERE p.id = recurring_payment_labels.recurring_payment_id AND p.user_id = auth.uid())
+  );
+
+CREATE INDEX idx_recurring_payment_labels_payment ON recurring_payment_labels(recurring_payment_id);
+
 -- Stores only actioned occurrences (paid or skipped); pending ones are computed from the rule.
 CREATE TABLE recurring_occurrences (
   id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -247,6 +264,9 @@ CREATE TRIGGER recurring_payments_updated_at
   BEFORE UPDATE ON recurring_payments
   FOR EACH ROW EXECUTE PROCEDURE update_updated_at();
 
+-- Enable Supabase Realtime so clients receive live change events
+ALTER PUBLICATION supabase_realtime ADD TABLE recurring_occurrences;
+
 -- ─────────────────────────────────────────
 -- Migration: run these if upgrading an existing database
 -- ─────────────────────────────────────────
@@ -255,6 +275,15 @@ CREATE TRIGGER recurring_payments_updated_at
 -- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS payer TEXT;
 -- ALTER TABLE transactions ALTER COLUMN wallet_id SET NOT NULL;
 -- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS transfer_group_id UUID;
+-- CREATE TABLE recurring_payment_labels ( recurring_payment_id UUID NOT NULL REFERENCES recurring_payments(id) ON DELETE CASCADE, label_id UUID NOT NULL REFERENCES labels(id) ON DELETE CASCADE, PRIMARY KEY (recurring_payment_id, label_id) );
+-- ALTER TABLE recurring_payment_labels ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "recurring_payment_labels: own rows" ON recurring_payment_labels FOR ALL USING ( EXISTS (SELECT 1 FROM recurring_payments p WHERE p.id = recurring_payment_labels.recurring_payment_id AND p.user_id = auth.uid()) ) WITH CHECK ( EXISTS (SELECT 1 FROM recurring_payments p WHERE p.id = recurring_payment_labels.recurring_payment_id AND p.user_id = auth.uid()) );
+-- CREATE INDEX idx_recurring_payment_labels_payment ON recurring_payment_labels(recurring_payment_id);
+-- CREATE TABLE recurring_occurrences ( id UUID PRIMARY KEY DEFAULT gen_random_uuid(), recurring_payment_id UUID NOT NULL REFERENCES recurring_payments(id) ON DELETE CASCADE, user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, due_date DATE NOT NULL, status TEXT NOT NULL CHECK (status IN ('paid', 'skipped')), transaction_id UUID REFERENCES transactions(id) ON DELETE SET NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE (recurring_payment_id, due_date) );
+-- CREATE INDEX idx_recurring_occurrences_payment ON recurring_occurrences(recurring_payment_id);
+-- CREATE INDEX idx_recurring_occurrences_user ON recurring_occurrences(user_id);
+-- ALTER TABLE recurring_occurrences ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "recurring_occurrences: own rows" ON recurring_occurrences FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 -- CREATE TABLE templates ( id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, name TEXT NOT NULL, type TEXT NOT NULL CHECK (type IN ('income', 'expense')), wallet_id UUID REFERENCES wallets(id) ON DELETE SET NULL, amount NUMERIC(15,2) NOT NULL CHECK (amount > 0), category_id UUID REFERENCES categories(id) ON DELETE SET NULL, payer TEXT, notes TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now() );
 -- CREATE TABLE template_labels ( template_id UUID NOT NULL REFERENCES templates(id) ON DELETE CASCADE, label_id UUID NOT NULL REFERENCES labels(id) ON DELETE CASCADE, PRIMARY KEY (template_id, label_id) );
 -- ALTER TABLE templates ENABLE ROW LEVEL SECURITY;
