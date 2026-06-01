@@ -134,7 +134,11 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData();
     window.addEventListener('transaction-added', fetchData);
-    return () => window.removeEventListener('transaction-added', fetchData);
+    document.addEventListener('visibilitychange', fetchData);
+    return () => {
+      window.removeEventListener('transaction-added', fetchData);
+      document.removeEventListener('visibilitychange', fetchData);
+    };
   }, [fetchData]);
 
   const prevRange = useMemo(() => getPrevRange(period), [period]);

@@ -136,7 +136,15 @@ export default function RecurringPage() {
     setLoading(false);
   }, [viewYear, viewMonth]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    fetchAll();
+    window.addEventListener('transaction-added', fetchAll);
+    document.addEventListener('visibilitychange', fetchAll);
+    return () => {
+      window.removeEventListener('transaction-added', fetchAll);
+      document.removeEventListener('visibilitychange', fetchAll);
+    };
+  }, [fetchAll]);
 
   useEffect(() => {
     if (!openMenuId) return;

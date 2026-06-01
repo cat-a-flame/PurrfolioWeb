@@ -144,7 +144,15 @@ export default function StatisticsPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchData(); window.addEventListener('transaction-added', fetchData); return () => window.removeEventListener('transaction-added', fetchData); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+    window.addEventListener('transaction-added', fetchData);
+    document.addEventListener('visibilitychange', fetchData);
+    return () => {
+      window.removeEventListener('transaction-added', fetchData);
+      document.removeEventListener('visibilitychange', fetchData);
+    };
+  }, [fetchData]);
 
   const prevRange  = useMemo(() => getPrevRange(period), [period]);
   const periodTxs  = useMemo(() => filterRange(allTxs, period.from, period.to), [allTxs, period]);
