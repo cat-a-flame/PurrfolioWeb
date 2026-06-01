@@ -146,14 +146,23 @@ export default function StatisticsPage() {
 
   useEffect(() => {
     fetchData();
-    const onVisible = () => { if (document.visibilityState === 'visible') fetchData(); };
     window.addEventListener('transaction-added', fetchData);
-    window.addEventListener('focus', fetchData);
-    document.addEventListener('visibilitychange', onVisible);
+
+    const supabase = createClient();
+    let mounted = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!mounted || !user) return;
+      channel = supabase
+        .channel('stats-recurring-sync')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'recurring_occurrences', filter: `user_id=eq.${user.id}` }, () => fetchData())
+        .subscribe();
+    });
+
     return () => {
+      mounted = false;
       window.removeEventListener('transaction-added', fetchData);
-      window.removeEventListener('focus', fetchData);
-      document.removeEventListener('visibilitychange', onVisible);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [fetchData]);
 

@@ -138,14 +138,23 @@ export default function RecurringPage() {
 
   useEffect(() => {
     fetchAll();
-    const onVisible = () => { if (document.visibilityState === 'visible') fetchAll(); };
     window.addEventListener('transaction-added', fetchAll);
-    window.addEventListener('focus', fetchAll);
-    document.addEventListener('visibilitychange', onVisible);
+
+    const supabase = createClient();
+    let mounted = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!mounted || !user) return;
+      channel = supabase
+        .channel('recurring-page-sync')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'recurring_occurrences', filter: `user_id=eq.${user.id}` }, () => fetchAll())
+        .subscribe();
+    });
+
     return () => {
+      mounted = false;
       window.removeEventListener('transaction-added', fetchAll);
-      window.removeEventListener('focus', fetchAll);
-      document.removeEventListener('visibilitychange', onVisible);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [fetchAll]);
 

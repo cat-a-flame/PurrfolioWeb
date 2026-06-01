@@ -264,6 +264,9 @@ CREATE TRIGGER recurring_payments_updated_at
   BEFORE UPDATE ON recurring_payments
   FOR EACH ROW EXECUTE PROCEDURE update_updated_at();
 
+-- Enable Supabase Realtime so clients receive live change events
+ALTER PUBLICATION supabase_realtime ADD TABLE recurring_occurrences;
+
 -- ─────────────────────────────────────────
 -- Migration: run these if upgrading an existing database
 -- ─────────────────────────────────────────
