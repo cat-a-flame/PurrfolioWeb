@@ -148,7 +148,7 @@ export default function RecurringPage() {
   // Compute pending due items for the viewed month
   const dueItems: DueItem[] = (() => {
     const [from, to] = monthBounds(viewYear, viewMonth);
-    const actionedKeys = new Set(occurrences.map(o => `${o.recurring_payment_id}|${o.due_date}`));
+    const actionedKeys = new Set(occurrences.map(o => `${o.recurring_payment_id}|${o.due_date.slice(0, 10)}`));
     const items: DueItem[] = [];
     for (const p of payments) {
       for (const date of generateDueDates(p, from, to)) {
@@ -247,8 +247,12 @@ export default function RecurringPage() {
       transaction_id: null,
     });
 
-    if (error) setToast({ message: 'Failed to skip.', variant: 'error' });
-    else setToast({ message: `${item.payment.name} skipped.`, variant: 'success' });
+    if (error) {
+      setToast({ message: 'Failed to skip.', variant: 'error' });
+    } else {
+      setToast({ message: `${item.payment.name} skipped.`, variant: 'success' });
+      window.dispatchEvent(new Event('transaction-added'));
+    }
     setActionLoading(null);
     fetchAll();
   }

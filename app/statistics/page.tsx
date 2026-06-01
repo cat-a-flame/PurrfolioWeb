@@ -173,7 +173,7 @@ export default function StatisticsPage() {
     const actualExpense = monthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
 
     // Pending planned payments — convert to HUF using today's rates
-    const actionedKeys = new Set(recurringOccurrences.map(o => `${o.recurring_payment_id}|${o.due_date}`));
+    const actionedKeys = new Set(recurringOccurrences.map(o => `${o.recurring_payment_id}|${o.due_date.slice(0, 10)}`));
     let plannedIncome  = 0;
     let plannedExpense = 0;
     for (const p of recurringPayments) {

@@ -177,7 +177,7 @@ export default function DashboardPage() {
   const dashboardDueItems = useMemo(() => {
     const now = new Date();
     const [from, to] = monthBounds(now.getFullYear(), now.getMonth());
-    const actionedKeys = new Set(recurringOccurrences.map(o => `${o.recurring_payment_id}|${o.due_date}`));
+    const actionedKeys = new Set(recurringOccurrences.map(o => `${o.recurring_payment_id}|${o.due_date.slice(0, 10)}`));
     const items: { payment: RecurringPayment; dueDate: Date }[] = [];
     for (const p of recurringPayments) {
       for (const date of generateDueDates(p, from, to)) {
@@ -191,7 +191,7 @@ export default function DashboardPage() {
   const plannedExpense = useMemo(() => {
     const now = new Date();
     const [from, to] = monthBounds(now.getFullYear(), now.getMonth());
-    const actionedKeys = new Set(recurringOccurrences.map(o => `${o.recurring_payment_id}|${o.due_date}`));
+    const actionedKeys = new Set(recurringOccurrences.map(o => `${o.recurring_payment_id}|${o.due_date.slice(0, 10)}`));
     let total = 0;
     for (const p of recurringPayments) {
       if (p.type !== 'expense') continue;
@@ -234,7 +234,7 @@ export default function DashboardPage() {
       due_date: recurringIsoDate(item.dueDate), status: 'skipped', transaction_id: null,
     });
     setPayActionLoading(null);
-    fetchData();
+    window.dispatchEvent(new Event('transaction-added'));
   }
 
   useEffect(() => {
