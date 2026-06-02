@@ -413,8 +413,11 @@ export default function RecurringPage() {
 
   function dueDateLabel(date: Date): string {
     const d = isoDate(date);
-    if (d === isoDate(today)) return 'Today';
-    const diff = Math.round((date.getTime() - today.getTime()) / 86400000);
+    const todayIso = isoDate(today);
+    if (d === todayIso) return 'Today';
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const diff = Math.round((date.getTime() - todayMidnight.getTime()) / 86400000);
+    if (diff === 0) return 'Today';
     if (diff < 0) return `${Math.abs(diff)}d overdue`;
     if (diff === 1) return 'Tomorrow';
     if (diff < 7) return `In ${diff} days`;
