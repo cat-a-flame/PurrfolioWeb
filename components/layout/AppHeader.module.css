@@ -62,6 +62,22 @@
   font-weight: 600;
 }
 
+.navLinkWithDot {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.alertDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-danger, #ef4444);
+  flex-shrink: 0;
+  margin-bottom: 6px;
+}
+
 .navLinkActive:hover {
   background: var(--color-accent-light);
   color: var(--color-accent);

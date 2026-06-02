@@ -19,7 +19,7 @@ export function formatNumber(amount: number): string {
 }
 
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('hu-HU', {
+  return new Date(iso + 'T00:00:00').toLocaleDateString('hu-HU', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -27,5 +27,8 @@ export function formatDate(iso: string): string {
 }
 
 export function todayInputDate(): string {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
 }

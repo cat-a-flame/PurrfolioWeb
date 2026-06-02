@@ -3,6 +3,7 @@ import { Lora, Figtree } from 'next/font/google';
 import AddRecordProvider from '@/components/transactions/AddRecordProvider';
 import BottomNav from '@/components/layout/BottomNav';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { RecurringAlertProvider } from '@/contexts/RecurringAlertContext';
 import './globals.css';
 
 const lora = Lora({ subsets: ['latin'], variable: '--font-lora', display: 'swap' });
@@ -25,10 +26,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <ThemeProvider>
-          <AddRecordProvider>
-            {children}
-            <BottomNav />
-          </AddRecordProvider>
+          <RecurringAlertProvider>
+            <AddRecordProvider>
+              {children}
+              <BottomNav />
+            </AddRecordProvider>
+          </RecurringAlertProvider>
         </ThemeProvider>
       </body>
     </html>

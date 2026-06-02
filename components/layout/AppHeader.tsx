@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAddRecord } from '@/components/transactions/AddRecordProvider';
+import { useRecurringAlert } from '@/contexts/RecurringAlertContext';
 import styles from './AppHeader.module.css';
 
 const navItems = [
@@ -18,6 +19,7 @@ export default function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { openAddDialog } = useAddRecord();
+  const hasUrgentPlanned = useRecurringAlert();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -50,7 +52,9 @@ export default function AppHeader() {
                 .filter(Boolean)
                 .join(' ')}
             >
-              {item.label}
+              {item.href === '/recurring' && hasUrgentPlanned
+                ? <span className={styles.navLinkWithDot}>{item.label}<span className={styles.alertDot} aria-hidden /></span>
+                : item.label}
             </Link>
           ))}
         </nav>
