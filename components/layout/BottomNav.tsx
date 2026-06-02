@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAddRecord } from '@/components/transactions/AddRecordProvider';
+import { useRecurringAlert } from '@/contexts/RecurringAlertContext';
 import styles from './BottomNav.module.css';
 
 const tabs = [
@@ -57,6 +58,7 @@ const tabs = [
 export default function BottomNav() {
   const pathname = usePathname();
   const { openAddDialog } = useAddRecord();
+  const hasUrgentPlanned = useRecurringAlert();
 
   return (
     <nav className={styles.nav} aria-label="Mobile navigation">
@@ -87,7 +89,12 @@ export default function BottomNav() {
             pathname === tab.href || pathname.startsWith(tab.href + '/') ? styles.tabActive : '',
           ].filter(Boolean).join(' ')}
         >
-          {tab.icon}
+          <span className={styles.iconWrap}>
+            {tab.icon}
+            {tab.href === '/recurring' && hasUrgentPlanned && (
+              <span className={styles.alertDot} aria-hidden />
+            )}
+          </span>
           <span className={styles.label}>{tab.label}</span>
         </Link>
       ))}

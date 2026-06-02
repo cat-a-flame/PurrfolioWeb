@@ -179,8 +179,10 @@ export default function RecurringPage() {
     return items.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
   })();
 
-  const overdueItems  = dueItems.filter(i => i.dueDate < today && isoDate(i.dueDate) !== isoDate(today));
-  const upcomingItems = dueItems.filter(i => i.dueDate >= today || isoDate(i.dueDate) === isoDate(today));
+  const todayIsoStr   = isoDate(today);
+  const overdueItems  = dueItems.filter(i => isoDate(i.dueDate) < todayIsoStr);
+  const todayItems    = dueItems.filter(i => isoDate(i.dueDate) === todayIsoStr);
+  const upcomingItems = dueItems.filter(i => isoDate(i.dueDate) > todayIsoStr);
 
   // Month navigation
   function prevMonth() {
@@ -479,9 +481,21 @@ export default function RecurringPage() {
               </div>
             )}
 
+            {todayItems.length > 0 && (
+              <div className={styles.dueGroup}>
+                <p className={styles.dueGroupLabel}>Due today</p>
+                {todayItems.map(item => (
+                  <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
+                    item={item} loading={actionLoading === `${item.payment.id}|${isoDate(item.dueDate)}`}
+                    onPay={handlePay} onSkip={handleSkip}
+                    currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
+                ))}
+              </div>
+            )}
+
             {upcomingItems.length > 0 && (
               <div className={styles.dueGroup}>
-                {overdueItems.length > 0 && <p className={styles.dueGroupLabel}>Upcoming</p>}
+                {(overdueItems.length > 0 || todayItems.length > 0) && <p className={styles.dueGroupLabel}>Upcoming</p>}
                 {upcomingItems.map(item => (
                   <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
                     item={item} loading={actionLoading === `${item.payment.id}|${isoDate(item.dueDate)}`}

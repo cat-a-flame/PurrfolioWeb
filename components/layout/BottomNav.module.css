@@ -77,4 +77,22 @@
     opacity: 0.85;
     transform: scale(0.95);
   }
+
+  .iconWrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .alertDot {
+    position: absolute;
+    top: -2px;
+    right: -4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-danger, #ef4444);
+    border: 1.5px solid var(--color-surface);
+  }
 }
