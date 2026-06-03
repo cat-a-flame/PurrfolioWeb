@@ -71,7 +71,13 @@ export default function DashboardPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [labels, setLabels] = useState<Label[]>([]);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<PeriodValue>(defaultPeriod);
+  const [period, setPeriod] = useState<PeriodValue>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('pennypuff_period');
+      if (saved) try { return JSON.parse(saved) as PeriodValue; } catch {}
+    }
+    return defaultPeriod();
+  });
 
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
   const [editingTransferPair, setEditingTransferPair] = useState<Transaction | undefined>();
@@ -95,6 +101,10 @@ export default function DashboardPage() {
         return next;
       }));
   }, [allTransactions]);
+
+  useEffect(() => {
+    sessionStorage.setItem('pennypuff_period', JSON.stringify(period));
+  }, [period]);
 
   // Lazy load
   const [displayCount, setDisplayCount] = useState(15);

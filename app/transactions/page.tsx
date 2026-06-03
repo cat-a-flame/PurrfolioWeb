@@ -36,13 +36,68 @@ export default function TransactionsPage() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters
-  const [filterType, setFilterType] = useState<FilterType>('');
-  const [filterCategoryId, setFilterCategoryId] = useState('');
-  const [filterLabelId, setFilterLabelId] = useState('');
-  const [filterWalletId, setFilterWalletId] = useState('');
-  const [filterPeriod, setFilterPeriod] = useState<PeriodValue | null>(null);
-  const [filterSearch, setFilterSearch] = useState('');
+  // Filters — initialised from sessionStorage so state persists across navigation
+  const [filterType, setFilterType] = useState<FilterType>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('pennypuff_tx_filters');
+      if (saved) try { return (JSON.parse(saved).type ?? '') as FilterType; } catch {}
+    }
+    return '';
+  });
+  const [filterCategoryId, setFilterCategoryId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('pennypuff_tx_filters');
+      if (saved) try { return JSON.parse(saved).categoryId ?? ''; } catch {}
+    }
+    return '';
+  });
+  const [filterLabelId, setFilterLabelId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('pennypuff_tx_filters');
+      if (saved) try { return JSON.parse(saved).labelId ?? ''; } catch {}
+    }
+    return '';
+  });
+  const [filterWalletId, setFilterWalletId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('pennypuff_tx_filters');
+      if (saved) try { return JSON.parse(saved).walletId ?? ''; } catch {}
+    }
+    return '';
+  });
+  const [filterPeriod, setFilterPeriod] = useState<PeriodValue | null>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('pennypuff_period');
+      if (saved) try { return JSON.parse(saved) as PeriodValue; } catch {}
+    }
+    return null;
+  });
+  const [filterSearch, setFilterSearch] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('pennypuff_tx_filters');
+      if (saved) try { return JSON.parse(saved).search ?? ''; } catch {}
+    }
+    return '';
+  });
+
+  // Persist filters to sessionStorage whenever they change
+  useEffect(() => {
+    sessionStorage.setItem('pennypuff_tx_filters', JSON.stringify({
+      type: filterType,
+      categoryId: filterCategoryId,
+      labelId: filterLabelId,
+      walletId: filterWalletId,
+      search: filterSearch,
+    }));
+  }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterSearch]);
+
+  useEffect(() => {
+    if (filterPeriod) {
+      sessionStorage.setItem('pennypuff_period', JSON.stringify(filterPeriod));
+    } else {
+      sessionStorage.removeItem('pennypuff_period');
+    }
+  }, [filterPeriod]);
 
   // Brief loading indicator whenever a filter changes
   const [isFiltering, setIsFiltering] = useState(false);
@@ -177,6 +232,8 @@ export default function TransactionsPage() {
     setFilterWalletId('');
     setFilterPeriod(null);
     setFilterSearch('');
+    sessionStorage.removeItem('pennypuff_tx_filters');
+    sessionStorage.removeItem('pennypuff_period');
   }
 
   const hasMore = filteredTransactions.length > displayCount;
