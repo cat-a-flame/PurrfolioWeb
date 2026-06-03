@@ -135,6 +135,24 @@ export default function WalletsSettingsPage() {
     await fetchWallets();
   }
 
+  async function handleToggleArchive(wallet: Wallet) {
+    if (!wallet.is_archived && wallet.is_default) {
+      setToast({ message: 'The default wallet cannot be archived.', variant: 'error' });
+      return;
+    }
+    const supabase = createClient();
+    const { error } = await supabase.from('wallets')
+      .update({ is_archived: !wallet.is_archived })
+      .eq('id', wallet.id);
+    if (error) {
+      setToast({ message: 'Failed to update wallet.', variant: 'error' });
+    } else {
+      handleCloseEdit();
+      setToast({ message: wallet.is_archived ? `"${wallet.name}" unarchived.` : `"${wallet.name}" archived.`, variant: 'success' });
+      await fetchWallets();
+    }
+  }
+
   async function handleDelete() {
     if (!deletingWallet) return;
     if (deletingWallet.is_default) {
@@ -165,11 +183,11 @@ export default function WalletsSettingsPage() {
         <h2 className={styles.sectionTitle}>Your wallets</h2>
         {loading ? (
           <p className={styles.emptyState}>Loading…</p>
-        ) : wallets.length === 0 ? (
+        ) : wallets.filter(w => !w.is_archived).length === 0 ? (
           <p className={styles.emptyState}>No wallets yet. Click &quot;+ Add wallet&quot; to create one.</p>
         ) : (
           <div className={styles.list}>
-            {wallets.map(wallet => (
+            {wallets.filter(w => !w.is_archived).map(wallet => (
               <div key={wallet.id} className={styles.walletItem}>
                 <div className={styles.walletIcon} style={{ backgroundColor: wallet.color + '22' }}>
                   <span>{wallet.icon}</span>
@@ -194,6 +212,29 @@ export default function WalletsSettingsPage() {
           </div>
         )}
       </section>
+
+      {wallets.some(w => w.is_archived) && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Archived wallets</h2>
+          <div className={styles.list}>
+            {wallets.filter(w => w.is_archived).map(wallet => (
+              <div key={wallet.id} className={`${styles.walletItem} ${styles.walletItemArchived}`}>
+                <div className={styles.walletIcon} style={{ backgroundColor: wallet.color + '22', opacity: 0.5 }}>
+                  <span>{wallet.icon}</span>
+                </div>
+                <div className={styles.walletInfo}>
+                  <span className={styles.walletName}>{wallet.name}</span>
+                  <span className={styles.walletCurrency}>{wallet.currency}</span>
+                </div>
+                <span className={styles.archivedBadge}>Archived</span>
+                <div className={styles.walletActions}>
+                  <Button variant="ghost" size="sm" onClick={() => startEdit(wallet)}>Edit</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {showAddDialog && (
         <Dialog title="Add wallet" onClose={handleCloseAdd}>
@@ -273,9 +314,18 @@ export default function WalletsSettingsPage() {
                 disabled={editingWallet.is_default}
               />
             </div>
+            <div className={styles.field}>
+              <Switch
+                id="ew-archived"
+                label="Archived — cannot be selected for new records"
+                checked={editingWallet.is_archived}
+                onChange={() => handleToggleArchive(editingWallet)}
+                disabled={editingWallet.is_default}
+              />
+            </div>
             {editError && <p className={styles.formError}>{editError}</p>}
             <div className={styles.dialogActions}>
-              {!editingWallet.is_default && wallets.length > 1 && (
+              {!editingWallet.is_default && !editingWallet.is_archived && wallets.length > 1 && (
                 <Button variant="danger" size="md" type="button" style={{ marginRight: 'auto' }} onClick={() => { setDeletingWallet(editingWallet); handleCloseEdit(); }}>Delete</Button>
               )}
               <Button variant="secondary" size="md" type="button" onClick={handleCloseEdit}>Cancel</Button>

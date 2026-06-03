@@ -71,7 +71,13 @@ export default function DashboardPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [labels, setLabels] = useState<Label[]>([]);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<PeriodValue>(defaultPeriod);
+  const [period, setPeriod] = useState<PeriodValue>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('pennypuff_period');
+      if (saved) try { return JSON.parse(saved) as PeriodValue; } catch {}
+    }
+    return defaultPeriod();
+  });
 
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
   const [editingTransferPair, setEditingTransferPair] = useState<Transaction | undefined>();
@@ -95,6 +101,10 @@ export default function DashboardPage() {
         return next;
       }));
   }, [allTransactions]);
+
+  useEffect(() => {
+    sessionStorage.setItem('pennypuff_period', JSON.stringify(period));
+  }, [period]);
 
   // Lazy load
   const [displayCount, setDisplayCount] = useState(15);
@@ -223,7 +233,29 @@ export default function DashboardPage() {
       return rates[wallet.currency] ?? null;
     };
 
-    if (data.transfer) {
+    if (data.externalTransfer) {
+      // Delete original record(s)
+      if (editingTransaction.transfer_group_id) {
+        await supabase.from('transactions').delete().eq('transfer_group_id', editingTransaction.transfer_group_id);
+      } else {
+        await supabase.from('transactions').delete().eq('id', editingTransaction.id);
+      }
+      const transferGroupId = crypto.randomUUID();
+      const exchangeRate = await getWalletRate(data.wallet_id, data.date);
+      const { error } = await supabase.from('transactions').insert({
+        user_id: user.id,
+        type: data.type,
+        amount: data.amount,
+        wallet_id: data.wallet_id,
+        category_id: null,
+        date: data.date,
+        notes: data.notes || null,
+        payer: data.externalTransfer.account_name,
+        transfer_group_id: transferGroupId,
+        exchange_rate_to_huf: exchangeRate,
+      });
+      if (error) throw error;
+    } else if (data.transfer) {
       // Delete original record(s) — both legs if it was already a transfer
       if (editingTransaction.transfer_group_id) {
         await supabase.from('transactions').delete().eq('transfer_group_id', editingTransaction.transfer_group_id);
@@ -409,11 +441,13 @@ export default function DashboardPage() {
                                     className={styles.txIcon}
                                     style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
                                   >
-                                    {isTransfer ? '↔' : (t.category?.icon ?? '?')}
+                                    {isTransfer ? (t.payer ? (t.type === 'expense' ? '↑' : '↓') : '↔') : (t.category?.icon ?? '?')}
                                   </div>
                                   <div className={styles.txMain}>
                                     <span className={styles.txCategory}>
-                                      {isTransfer ? 'Transfer' : (t.category?.name ?? 'Uncategorised')}
+                                      {isTransfer
+                                        ? (t.payer ? t.payer : 'Transfer')
+                                        : (t.category?.name ?? 'Uncategorised')}
                                     </span>
                                     {t.wallet && (
                                       <span className={styles.txWallet}>

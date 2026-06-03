@@ -66,6 +66,30 @@ export default function AddRecordProvider({ children }: { children: React.ReactN
       return rates[wallet.currency] ?? null;
     };
 
+    if (data.externalTransfer) {
+      const transferGroupId = crypto.randomUUID();
+      const exchangeRate = await getWalletRate(data.wallet_id, data.date);
+      const { error } = await supabase.from('transactions').insert({
+        user_id: user.id,
+        type: data.type,
+        amount: data.amount,
+        wallet_id: data.wallet_id,
+        category_id: null,
+        date: data.date,
+        notes: data.notes || null,
+        payer: data.externalTransfer.account_name,
+        transfer_group_id: transferGroupId,
+        exchange_rate_to_huf: exchangeRate,
+      });
+      if (error) throw error;
+
+      setOpen(false);
+      setToast({ message: 'Transfer recorded.', variant: 'success' });
+      window.dispatchEvent(new Event('transaction-added'));
+      router.refresh();
+      return;
+    }
+
     if (data.transfer) {
       // Generate a shared UUID to link both legs
       const transferGroupId = crypto.randomUUID();

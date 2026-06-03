@@ -102,7 +102,7 @@ export default function TemplatesSettingsPage() {
   }
 
   function handleOpenAdd() {
-    const defaultWallet = wallets.find(w => w.is_default) ?? wallets[0];
+    const defaultWallet = wallets.find(w => w.is_default && !w.is_archived) ?? wallets.find(w => !w.is_archived) ?? wallets[0];
     setAddForm({ ...EMPTY_FORM, walletId: defaultWallet?.id ?? '' });
     setAddError('');
     setShowAddDialog(true);
@@ -203,7 +203,7 @@ export default function TemplatesSettingsPage() {
         <div className={styles.field}>
           <FormLabel htmlFor="tpl-wallet" required>Account</FormLabel>
           {(() => {
-            const walletOptions = wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }));
+            const walletOptions = wallets.filter(w => !w.is_archived || w.id === form.walletId).map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }));
             return (
               <ReactSelect<{ value: string; label: string }>
                 inputId="tpl-wallet"

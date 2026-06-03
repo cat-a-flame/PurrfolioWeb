@@ -36,13 +36,68 @@ export default function TransactionsPage() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters
-  const [filterType, setFilterType] = useState<FilterType>('');
-  const [filterCategoryId, setFilterCategoryId] = useState('');
-  const [filterLabelId, setFilterLabelId] = useState('');
-  const [filterWalletId, setFilterWalletId] = useState('');
-  const [filterPeriod, setFilterPeriod] = useState<PeriodValue | null>(null);
-  const [filterSearch, setFilterSearch] = useState('');
+  // Filters — initialised from sessionStorage so state persists across navigation
+  const [filterType, setFilterType] = useState<FilterType>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('pennypuff_tx_filters');
+      if (saved) try { return (JSON.parse(saved).type ?? '') as FilterType; } catch {}
+    }
+    return '';
+  });
+  const [filterCategoryId, setFilterCategoryId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('pennypuff_tx_filters');
+      if (saved) try { return JSON.parse(saved).categoryId ?? ''; } catch {}
+    }
+    return '';
+  });
+  const [filterLabelId, setFilterLabelId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('pennypuff_tx_filters');
+      if (saved) try { return JSON.parse(saved).labelId ?? ''; } catch {}
+    }
+    return '';
+  });
+  const [filterWalletId, setFilterWalletId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('pennypuff_tx_filters');
+      if (saved) try { return JSON.parse(saved).walletId ?? ''; } catch {}
+    }
+    return '';
+  });
+  const [filterPeriod, setFilterPeriod] = useState<PeriodValue | null>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('pennypuff_period');
+      if (saved) try { return JSON.parse(saved) as PeriodValue; } catch {}
+    }
+    return null;
+  });
+  const [filterSearch, setFilterSearch] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('pennypuff_tx_filters');
+      if (saved) try { return JSON.parse(saved).search ?? ''; } catch {}
+    }
+    return '';
+  });
+
+  // Persist filters to sessionStorage whenever they change
+  useEffect(() => {
+    sessionStorage.setItem('pennypuff_tx_filters', JSON.stringify({
+      type: filterType,
+      categoryId: filterCategoryId,
+      labelId: filterLabelId,
+      walletId: filterWalletId,
+      search: filterSearch,
+    }));
+  }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterSearch]);
+
+  useEffect(() => {
+    if (filterPeriod) {
+      sessionStorage.setItem('pennypuff_period', JSON.stringify(filterPeriod));
+    } else {
+      sessionStorage.removeItem('pennypuff_period');
+    }
+  }, [filterPeriod]);
 
   // Brief loading indicator whenever a filter changes
   const [isFiltering, setIsFiltering] = useState(false);
@@ -165,6 +220,21 @@ export default function TransactionsPage() {
 
   const hasActiveFilters = !!(filterType || filterCategoryId || filterLabelId || filterWalletId || filterPeriod || filterSearch);
 
+  const summaryIncome = filteredTransactions
+    .filter(t => t.type === 'income' && !t.transfer_group_id)
+    .reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
+  const summaryExpense = filteredTransactions
+    .filter(t => t.type === 'expense' && !t.transfer_group_id)
+    .reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
+  const summaryBalance = summaryIncome - summaryExpense;
+  const summaryTotal = summaryIncome + summaryExpense;
+  const summaryIncomePct = summaryTotal > 0 ? (summaryIncome / summaryTotal) * 100 : 0;
+  const summaryExpensePct = summaryTotal > 0 ? (summaryExpense / summaryTotal) * 100 : 0;
+
+  const showIncome = filterType !== 'expense' && filterType !== 'transfer';
+  const showExpense = filterType !== 'income' && filterType !== 'transfer';
+  const showBalance = filterType === '' || filterType === undefined;
+
   useEffect(() => {
     setDisplayCount(15);
     setSelectedIds(new Set());
@@ -177,6 +247,8 @@ export default function TransactionsPage() {
     setFilterWalletId('');
     setFilterPeriod(null);
     setFilterSearch('');
+    sessionStorage.removeItem('pennypuff_tx_filters');
+    sessionStorage.removeItem('pennypuff_period');
   }
 
   const hasMore = filteredTransactions.length > displayCount;
@@ -297,7 +369,28 @@ export default function TransactionsPage() {
     };
 
     if (editingTransaction) {
-      if (data.transfer) {
+      if (data.externalTransfer) {
+        if (editingTransaction.transfer_group_id) {
+          await supabase.from('transactions').delete().eq('transfer_group_id', editingTransaction.transfer_group_id);
+        } else {
+          await supabase.from('transactions').delete().eq('id', editingTransaction.id);
+        }
+        const transferGroupId = crypto.randomUUID();
+        const exchangeRate = await getWalletRate(data.wallet_id, data.date);
+        const { error } = await supabase.from('transactions').insert({
+          user_id: user.id,
+          type: data.type,
+          amount: data.amount,
+          wallet_id: data.wallet_id,
+          category_id: null,
+          date: data.date,
+          notes: data.notes || null,
+          payer: data.externalTransfer.account_name,
+          transfer_group_id: transferGroupId,
+          exchange_rate_to_huf: exchangeRate,
+        });
+        if (error) throw error;
+      } else if (data.transfer) {
         if (editingTransaction.transfer_group_id) {
           await supabase.from('transactions').delete().eq('transfer_group_id', editingTransaction.transfer_group_id);
         } else {
@@ -355,7 +448,23 @@ export default function TransactionsPage() {
       }
       setToast({ message: 'Transaction updated.', variant: 'success' });
     } else {
-      if (data.transfer) {
+      if (data.externalTransfer) {
+        const transferGroupId = crypto.randomUUID();
+        const exchangeRate = await getWalletRate(data.wallet_id, data.date);
+        const { error } = await supabase.from('transactions').insert({
+          user_id: user.id,
+          type: data.type,
+          amount: data.amount,
+          wallet_id: data.wallet_id,
+          category_id: null,
+          date: data.date,
+          notes: data.notes || null,
+          payer: data.externalTransfer.account_name,
+          transfer_group_id: transferGroupId,
+          exchange_rate_to_huf: exchangeRate,
+        });
+        if (error) throw error;
+      } else if (data.transfer) {
         const transferGroupId = crypto.randomUUID();
         const common = { user_id: user.id, date: data.date, notes: data.notes || null, transfer_group_id: transferGroupId };
         const [expenseRate, incomeRate] = await Promise.all([
@@ -557,6 +666,48 @@ export default function TransactionsPage() {
 
             {/* ── Content ── */}
             <div className={styles.contentArea}>
+              {/* ── Cash flow summary ── */}
+              {!loading && filteredTransactions.length > 0 && filterType !== 'transfer' && (
+                <div className={styles.summaryCard}>
+                  {showBalance && (
+                    <div className={styles.summaryBalance}>
+                      <span className={styles.summaryBalanceLabel}>Balance</span>
+                      <span className={[styles.summaryBalanceAmount, summaryBalance >= 0 ? styles.summaryPos : styles.summaryNeg].join(' ')}>
+                        {summaryBalance < 0 ? '−' : ''}{formatHUF(Math.abs(summaryBalance))}
+                      </span>
+                    </div>
+                  )}
+                  <div className={styles.summaryBars}>
+                    {showIncome && (
+                      <div className={styles.summaryBarRow}>
+                        <div className={styles.summaryBarMeta}>
+                          <span className={styles.summaryBarLabel}>Income</span>
+                          <span className={[styles.summaryBarAmount, styles.summaryIncomeAmount].join(' ')}>{formatHUF(summaryIncome)}</span>
+                        </div>
+                        {showBalance && (
+                          <div className={styles.summaryBarTrack}>
+                            <div className={[styles.summaryBarFill, styles.summaryBarFillIncome].join(' ')} style={{ width: `${summaryIncomePct}%` }} />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {showExpense && (
+                      <div className={styles.summaryBarRow}>
+                        <div className={styles.summaryBarMeta}>
+                          <span className={styles.summaryBarLabel}>Expense</span>
+                          <span className={[styles.summaryBarAmount, styles.summaryExpenseAmount].join(' ')}>−{formatHUF(summaryExpense)}</span>
+                        </div>
+                        {showBalance && (
+                          <div className={styles.summaryBarTrack}>
+                            <div className={[styles.summaryBarFill, styles.summaryBarFillExpense].join(' ')} style={{ width: `${summaryExpensePct}%` }} />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* ── Selection bar ── */}
               {selectedIds.size > 0 && (
                 <div className={styles.selectionBar}>
@@ -641,11 +792,13 @@ export default function TransactionsPage() {
                                   className={styles.txIcon}
                                   style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
                                 >
-                                  {isTransfer ? '↔' : (t.category?.icon ?? '?')}
+                                  {isTransfer ? (t.payer ? (t.type === 'expense' ? '↑' : '↓') : '↔') : (t.category?.icon ?? '?')}
                                 </div>
                                 <div className={styles.txMain}>
                                   <span className={styles.txCategory}>
-                                    {isTransfer ? 'Transfer' : (t.category?.name ?? 'Uncategorised')}
+                                    {isTransfer
+                                      ? (t.payer ? t.payer : 'Transfer')
+                                      : (t.category?.name ?? 'Uncategorised')}
                                   </span>
                                   {t.wallet && (
                                     <span className={styles.txWallet}>

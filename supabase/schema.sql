@@ -272,6 +272,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE recurring_occurrences;
 -- ─────────────────────────────────────────
 -- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS exchange_rate_to_huf NUMERIC(15, 6);
 -- ALTER TABLE wallets ADD COLUMN IF NOT EXISTS starting_balance NUMERIC(15, 2) NOT NULL DEFAULT 0;
+-- ALTER TABLE wallets ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT false;
 -- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS payer TEXT;
 -- ALTER TABLE transactions ALTER COLUMN wallet_id SET NOT NULL;
 -- ALTER TABLE transactions ADD COLUMN IF NOT EXISTS transfer_group_id UUID;
