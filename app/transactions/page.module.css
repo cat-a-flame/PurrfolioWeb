@@ -616,3 +616,104 @@
     gap: var(--space-4);
   }
 }
+
+/* ── Cash flow summary card ── */
+.summaryCard {
+  background: rgba(98, 44, 143, 0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(98, 44, 143, 0.3);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(98, 44, 143, 0.5),
+    inset 0 -1px 0 rgba(98, 44, 143, 0.1),
+    inset 0 0 10px 5px rgba(98, 44, 143, 0.3);
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  }
+}
+
+.summaryBalance {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.summaryBalanceLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.summaryBalanceAmount {
+  font-family: var(--font-figtree);
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.summaryPos { color: var(--color-income); }
+.summaryNeg { color: var(--color-expense); }
+
+.summaryBars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.summaryBarRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.summaryBarMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.summaryBarLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.summaryBarAmount {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-family: var(--font-figtree);
+}
+
+.summaryIncomeAmount { color: var(--color-income); }
+.summaryExpenseAmount { color: var(--color-expense); }
+
+.summaryBarTrack {
+  width: 100%;
+  height: 8px;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.summaryBarFill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.4s ease;
+}
+
+.summaryBarFillIncome { background: var(--color-income); }
+.summaryBarFillExpense { background: var(--color-expense); }

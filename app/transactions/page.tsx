@@ -220,6 +220,21 @@ export default function TransactionsPage() {
 
   const hasActiveFilters = !!(filterType || filterCategoryId || filterLabelId || filterWalletId || filterPeriod || filterSearch);
 
+  const summaryIncome = filteredTransactions
+    .filter(t => t.type === 'income' && !t.transfer_group_id)
+    .reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
+  const summaryExpense = filteredTransactions
+    .filter(t => t.type === 'expense' && !t.transfer_group_id)
+    .reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
+  const summaryBalance = summaryIncome - summaryExpense;
+  const summaryTotal = summaryIncome + summaryExpense;
+  const summaryIncomePct = summaryTotal > 0 ? (summaryIncome / summaryTotal) * 100 : 0;
+  const summaryExpensePct = summaryTotal > 0 ? (summaryExpense / summaryTotal) * 100 : 0;
+
+  const showIncome = filterType !== 'expense' && filterType !== 'transfer';
+  const showExpense = filterType !== 'income' && filterType !== 'transfer';
+  const showBalance = filterType === '' || filterType === undefined;
+
   useEffect(() => {
     setDisplayCount(15);
     setSelectedIds(new Set());
@@ -614,6 +629,48 @@ export default function TransactionsPage() {
 
             {/* ── Content ── */}
             <div className={styles.contentArea}>
+              {/* ── Cash flow summary ── */}
+              {!loading && filteredTransactions.length > 0 && filterType !== 'transfer' && (
+                <div className={styles.summaryCard}>
+                  {showBalance && (
+                    <div className={styles.summaryBalance}>
+                      <span className={styles.summaryBalanceLabel}>Balance</span>
+                      <span className={[styles.summaryBalanceAmount, summaryBalance >= 0 ? styles.summaryPos : styles.summaryNeg].join(' ')}>
+                        {summaryBalance < 0 ? '−' : ''}{formatHUF(Math.abs(summaryBalance))}
+                      </span>
+                    </div>
+                  )}
+                  <div className={styles.summaryBars}>
+                    {showIncome && (
+                      <div className={styles.summaryBarRow}>
+                        <div className={styles.summaryBarMeta}>
+                          <span className={styles.summaryBarLabel}>Income</span>
+                          <span className={[styles.summaryBarAmount, styles.summaryIncomeAmount].join(' ')}>{formatHUF(summaryIncome)}</span>
+                        </div>
+                        {showBalance && (
+                          <div className={styles.summaryBarTrack}>
+                            <div className={[styles.summaryBarFill, styles.summaryBarFillIncome].join(' ')} style={{ width: `${summaryIncomePct}%` }} />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {showExpense && (
+                      <div className={styles.summaryBarRow}>
+                        <div className={styles.summaryBarMeta}>
+                          <span className={styles.summaryBarLabel}>Expense</span>
+                          <span className={[styles.summaryBarAmount, styles.summaryExpenseAmount].join(' ')}>−{formatHUF(summaryExpense)}</span>
+                        </div>
+                        {showBalance && (
+                          <div className={styles.summaryBarTrack}>
+                            <div className={[styles.summaryBarFill, styles.summaryBarFillExpense].join(' ')} style={{ width: `${summaryExpensePct}%` }} />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* ── Selection bar ── */}
               {selectedIds.size > 0 && (
                 <div className={styles.selectionBar}>
