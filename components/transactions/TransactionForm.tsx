@@ -58,7 +58,7 @@ export default function TransactionForm({
     onDelete,
     onClose,
 }: TransactionFormProps) {
-    const defaultWallet = wallets.find(w => w.is_default) ?? wallets[0];
+    const defaultWallet = wallets.find(w => w.is_default && !w.is_archived) ?? wallets.find(w => !w.is_archived) ?? wallets[0];
 
     const [mode, setMode] = useState<FormMode>(transaction?.transfer_group_id ? 'transfer' : (transaction?.type ?? 'expense'));
     const [walletId, setWalletId] = useState<string>(transaction?.wallet_id ?? defaultWallet?.id ?? '');
@@ -141,6 +141,10 @@ export default function TransactionForm({
     const selectedWallet = wallets.find(w => w.id === walletId);
     const toWallet = wallets.find(w => w.id === toWalletId);
     const sameCurrency = selectedWallet && toWallet && selectedWallet.currency === toWallet.currency;
+
+    // For dropdowns: hide archived wallets but keep the currently selected one visible
+    const activeWallets = wallets.filter(w => !w.is_archived || w.id === walletId);
+    const activeToWallets = wallets.filter(w => !w.is_archived || w.id === toWalletId);
 
     // Auto-fill to-amount when same currency
     function handleFromAmountChange(val: string) {
@@ -379,8 +383,8 @@ export default function TransactionForm({
                                         </FormLabel>
                                         <ReactSelect<{ value: string; label: string }>
                                             inputId="ext-wallet"
-                                            options={wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }))}
-                                            value={wallets.find(w => w.id === walletId) ? { value: walletId, label: `${wallets.find(w => w.id === walletId)!.icon} ${wallets.find(w => w.id === walletId)!.name} (${wallets.find(w => w.id === walletId)!.currency})` } : null}
+                                            options={activeWallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }))}
+                                            value={selectedWallet ? { value: walletId, label: `${selectedWallet.icon} ${selectedWallet.name} (${selectedWallet.currency})` } : null}
                                             onChange={(opt) => opt && setWalletId(opt.value)}
                                             isSearchable
                                             styles={makeRsStyles()}
@@ -430,8 +434,8 @@ export default function TransactionForm({
                                         <FormLabel htmlFor="from-wallet" required>From account</FormLabel>
                                         <ReactSelect<{ value: string; label: string }>
                                             inputId="from-wallet"
-                                            options={wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }))}
-                                            value={wallets.find(w => w.id === walletId) ? { value: walletId, label: `${wallets.find(w => w.id === walletId)!.icon} ${wallets.find(w => w.id === walletId)!.name} (${wallets.find(w => w.id === walletId)!.currency})` } : null}
+                                            options={activeWallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }))}
+                                            value={selectedWallet ? { value: walletId, label: `${selectedWallet.icon} ${selectedWallet.name} (${selectedWallet.currency})` } : null}
                                             onChange={(opt) => opt && handleFromWalletChange(opt.value)}
                                             isSearchable
                                             styles={makeRsStyles()}
@@ -459,7 +463,7 @@ export default function TransactionForm({
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="to-wallet" required>To account</FormLabel>
                                         {(() => {
-                                            const toWalletOptions = wallets.filter(w => w.id !== walletId).map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }));
+                                            const toWalletOptions = activeToWallets.filter(w => w.id !== walletId).map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }));
                                             const toWalletValue = toWalletOptions.find(o => o.value === toWalletId) ?? null;
                                             return (
                                                 <ReactSelect<{ value: string; label: string }>
@@ -527,8 +531,8 @@ export default function TransactionForm({
                                     <FormLabel htmlFor="wallet" required>Account</FormLabel>
                                     <ReactSelect<{ value: string; label: string }>
                                         inputId="wallet"
-                                        options={wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }))}
-                                        value={wallets.find(w => w.id === walletId) ? { value: walletId, label: `${wallets.find(w => w.id === walletId)!.icon} ${wallets.find(w => w.id === walletId)!.name} (${wallets.find(w => w.id === walletId)!.currency})` } : null}
+                                        options={activeWallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }))}
+                                        value={selectedWallet ? { value: walletId, label: `${selectedWallet.icon} ${selectedWallet.name} (${selectedWallet.currency})` } : null}
                                         onChange={(opt) => opt && setWalletId(opt.value)}
                                         isSearchable
                                         styles={makeRsStyles()}

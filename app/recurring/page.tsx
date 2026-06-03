@@ -445,7 +445,7 @@ export default function RecurringPage() {
             <div>
               <h1 className={styles.pageTitle}>Planned payments</h1>
             </div>
-            <Button variant="primary" size="md" onClick={() => { setAddForm({ ...EMPTY_FORM, walletId: wallets.find(w => w.is_default)?.id ?? '' }); setShowAddDialog(true); setAddError(''); }}>
+            <Button variant="primary" size="md" onClick={() => { setAddForm({ ...EMPTY_FORM, walletId: wallets.find(w => w.is_default && !w.is_archived)?.id ?? wallets.find(w => !w.is_archived)?.id ?? '' }); setShowAddDialog(true); setAddError(''); }}>
               + Add
             </Button>
           </div>
@@ -634,7 +634,7 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
   labels: Label[];
 }) {
   const rsStyles = makeRsStyles<{ value: string; label: string }>();
-  const walletOptions = wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }));
+  const walletOptions = wallets.filter(w => !w.is_archived || w.id === form.walletId).map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }));
   const selectedWallet = walletOptions.find(o => o.value === form.walletId) ?? null;
   const freqOptions = FREQUENCIES.map(f => ({ value: f.value, label: f.label }));
   const selectedFreq = freqOptions.find(o => o.value === form.frequency) ?? null;
