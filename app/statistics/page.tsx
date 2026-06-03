@@ -12,7 +12,8 @@ import AppHeader from '@/components/layout/AppHeader';
 import AppFooter from '@/components/layout/AppFooter';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import { createClient } from '@/lib/supabase/client';
-import { fetchAllTransactions } from '@/lib/supabase/fetchAllTransactions';
+import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
+import { fetchWalletBalanceSums } from '@/lib/supabase/fetchWalletBalanceSums';
 import { getExchangeRates, toHUF, txToHUF } from '@/lib/exchangeRates';
 import { formatCurrency, formatHUF, formatNumber } from '@/lib/utils';
 import { generateDueDates, isoDate as recurringIsoDate, monthBounds } from '@/lib/recurringUtils';
@@ -93,6 +94,8 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
 // ─── page ────────────────────────────────────────────────────────────────────
 export default function StatisticsPage() {
   const [allTxs, setAllTxs]   = useState<Transaction[]>([]);
+  const [prevTxsData, setPrevTxsData] = useState<Transaction[]>([]);
+  const [walletBalanceSums, setWalletBalanceSums] = useState<Map<string, { income: number; expense: number }>>(new Map());
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -110,8 +113,9 @@ export default function StatisticsPage() {
   }, []);
 
   useEffect(() => {
+    const combined = [...allTxs, ...prevTxsData];
     const dates = [...new Set(
-      allTxs
+      combined
         .filter(t => t.wallet?.currency && t.wallet.currency !== 'HUF' && t.exchange_rate_to_huf == null)
         .map(t => t.date)
     )];
@@ -122,7 +126,7 @@ export default function StatisticsPage() {
         for (const [d, rates] of entries) next[d] = rates;
         return next;
       }));
-  }, [allTxs]);
+  }, [allTxs, prevTxsData]);
 
   const fetchData = useCallback(async () => {
     const supabase = createClient();
@@ -130,19 +134,24 @@ export default function StatisticsPage() {
     if (!user) return;
     const today = new Date();
     const [from, to] = monthBounds(today.getFullYear(), today.getMonth());
-    const [transactions, wRes, pmtRes, occRes] = await Promise.all([
-      fetchAllTransactions(user.id),
+    const prev = getPrevRange(period);
+    const [transactions, prevTransactions, walletSums, wRes, pmtRes, occRes] = await Promise.all([
+      fetchTransactions(user.id, period.from, period.to),
+      fetchTransactions(user.id, prev.from, prev.to),
+      fetchWalletBalanceSums(user.id),
       supabase.from('wallets').select('*').eq('user_id', user.id),
       supabase.from('recurring_payments').select('*, wallet:wallets(*), category:categories(*)').eq('user_id', user.id).eq('is_active', true),
       supabase.from('recurring_occurrences').select('*').eq('user_id', user.id)
         .gte('due_date', recurringIsoDate(from)).lte('due_date', recurringIsoDate(to)),
     ]);
     setAllTxs(transactions);
+    setPrevTxsData(prevTransactions);
+    setWalletBalanceSums(walletSums);
     if (wRes.data) setWallets(wRes.data);
     if (pmtRes.data) setRecurringPayments(pmtRes.data as RecurringPayment[]);
     if (occRes.data) setRecurringOccurrences(occRes.data);
     setLoading(false);
-  }, []);
+  }, [period]);
 
   useEffect(() => {
     fetchData();
@@ -166,9 +175,8 @@ export default function StatisticsPage() {
     };
   }, [fetchData]);
 
-  const prevRange  = useMemo(() => getPrevRange(period), [period]);
-  const periodTxs  = useMemo(() => filterRange(allTxs, period.from, period.to), [allTxs, period]);
-  const prevTxs    = useMemo(() => filterRange(allTxs, prevRange.from, prevRange.to), [allTxs, prevRange]);
+  const periodTxs = allTxs;
+  const prevTxs   = prevTxsData;
 
   // ── summary numbers ────────────────────────────────────────────────────
   const income  = useMemo(() => periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
@@ -213,10 +221,8 @@ export default function StatisticsPage() {
   const currencyBalances = useMemo(() => {
     const map = new Map<Currency, number>();
     for (const w of wallets) {
-      const wTxs = allTxs.filter(t => t.wallet_id === w.id && !t.transfer_group_id);
-      const bal  = w.starting_balance
-        + wTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-        - wTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+      const sums = walletBalanceSums.get(w.id) ?? { income: 0, expense: 0 };
+      const bal = w.starting_balance + sums.income - sums.expense;
       map.set(w.currency, (map.get(w.currency) ?? 0) + bal);
     }
     return Array.from(map.entries()).map(([currency, balance], i) => ({
@@ -225,7 +231,7 @@ export default function StatisticsPage() {
       balanceHUF: toHUF(balance, currency, todayRates),
       fill: PALETTE[i % PALETTE.length],
     }));
-  }, [allTxs, wallets, todayRates]);
+  }, [walletBalanceSums, wallets, todayRates]);
 
   // ── 2. Expenses structure (doughnut) ──────────────────────────────────
   const [otherExpanded, setOtherExpanded] = useState(false);
