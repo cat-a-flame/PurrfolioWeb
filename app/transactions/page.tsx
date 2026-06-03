@@ -15,7 +15,7 @@ import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import { createClient } from '@/lib/supabase/client';
-import { fetchAllTransactions } from '@/lib/supabase/fetchAllTransactions';
+import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
 import { formatCurrency, formatHUF } from '@/lib/utils';
 import { getExchangeRates, txToHUF } from '@/lib/exchangeRates';
 import type { Transaction, Category, Label, TransactionType, Wallet } from '@/lib/types';
@@ -155,8 +155,13 @@ export default function TransactionsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    const now = new Date();
+    const defaultFrom = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+    const from = filterPeriod?.from ?? `${defaultFrom.getFullYear()}-${String(defaultFrom.getMonth() + 1).padStart(2, '0')}-${String(defaultFrom.getDate()).padStart(2, '0')}`;
+    const to   = filterPeriod?.to   ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
     const [transactions, catRes, lblRes, walletRes] = await Promise.all([
-      fetchAllTransactions(user.id),
+      fetchTransactions(user.id, from, to),
       supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
       supabase.from('labels').select('*').eq('user_id', user.id).order('name'),
       supabase.from('wallets').select('*').eq('user_id', user.id).order('name'),
@@ -167,7 +172,7 @@ export default function TransactionsPage() {
     if (lblRes.data) setLabels(lblRes.data);
     if (walletRes.data) setWallets(walletRes.data);
     setLoading(false);
-  }, []);
+  }, [filterPeriod]);
 
   useEffect(() => {
     fetchAll();
