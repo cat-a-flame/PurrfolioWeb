@@ -369,7 +369,28 @@ export default function TransactionsPage() {
     };
 
     if (editingTransaction) {
-      if (data.transfer) {
+      if (data.externalTransfer) {
+        if (editingTransaction.transfer_group_id) {
+          await supabase.from('transactions').delete().eq('transfer_group_id', editingTransaction.transfer_group_id);
+        } else {
+          await supabase.from('transactions').delete().eq('id', editingTransaction.id);
+        }
+        const transferGroupId = crypto.randomUUID();
+        const exchangeRate = await getWalletRate(data.wallet_id, data.date);
+        const { error } = await supabase.from('transactions').insert({
+          user_id: user.id,
+          type: data.type,
+          amount: data.amount,
+          wallet_id: data.wallet_id,
+          category_id: null,
+          date: data.date,
+          notes: data.notes || null,
+          payer: data.externalTransfer.account_name,
+          transfer_group_id: transferGroupId,
+          exchange_rate_to_huf: exchangeRate,
+        });
+        if (error) throw error;
+      } else if (data.transfer) {
         if (editingTransaction.transfer_group_id) {
           await supabase.from('transactions').delete().eq('transfer_group_id', editingTransaction.transfer_group_id);
         } else {
@@ -427,7 +448,23 @@ export default function TransactionsPage() {
       }
       setToast({ message: 'Transaction updated.', variant: 'success' });
     } else {
-      if (data.transfer) {
+      if (data.externalTransfer) {
+        const transferGroupId = crypto.randomUUID();
+        const exchangeRate = await getWalletRate(data.wallet_id, data.date);
+        const { error } = await supabase.from('transactions').insert({
+          user_id: user.id,
+          type: data.type,
+          amount: data.amount,
+          wallet_id: data.wallet_id,
+          category_id: null,
+          date: data.date,
+          notes: data.notes || null,
+          payer: data.externalTransfer.account_name,
+          transfer_group_id: transferGroupId,
+          exchange_rate_to_huf: exchangeRate,
+        });
+        if (error) throw error;
+      } else if (data.transfer) {
         const transferGroupId = crypto.randomUUID();
         const common = { user_id: user.id, date: data.date, notes: data.notes || null, transfer_group_id: transferGroupId };
         const [expenseRate, incomeRate] = await Promise.all([
@@ -755,11 +792,13 @@ export default function TransactionsPage() {
                                   className={styles.txIcon}
                                   style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
                                 >
-                                  {isTransfer ? '↔' : (t.category?.icon ?? '?')}
+                                  {isTransfer ? (t.payer ? (t.type === 'expense' ? '↑' : '↓') : '↔') : (t.category?.icon ?? '?')}
                                 </div>
                                 <div className={styles.txMain}>
                                   <span className={styles.txCategory}>
-                                    {isTransfer ? 'Transfer' : (t.category?.name ?? 'Uncategorised')}
+                                    {isTransfer
+                                      ? (t.payer ? t.payer : 'Transfer')
+                                      : (t.category?.name ?? 'Uncategorised')}
                                   </span>
                                   {t.wallet && (
                                     <span className={styles.txWallet}>
