@@ -513,7 +513,6 @@ export default function DashboardPage() {
           wallets={wallets}
           categories={categories}
           labels={labels}
-          templates={[]}
           transaction={editingTransaction}
           transferPair={editingTransferPair}
           onSave={handleSave}
