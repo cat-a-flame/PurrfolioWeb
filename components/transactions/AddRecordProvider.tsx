@@ -6,10 +6,7 @@ import TransactionForm, { TransactionFormData } from './TransactionForm';
 import Toast from '@/components/ui/Toast';
 import { createClient } from '@/lib/supabase/client';
 import { getExchangeRates } from '@/lib/exchangeRates';
-import type { Category, Label, Template, Wallet } from '@/lib/types';
-
-type RawTemplateLabel = { label: Label | null };
-type RawTemplate = Omit<Template, 'labels'> & { labels: RawTemplateLabel[] };
+import type { Category, Label, Wallet } from '@/lib/types';
 
 type AddRecordContextType = {
   openAddDialog: () => void;
@@ -27,7 +24,6 @@ export default function AddRecordProvider({ children }: { children: React.ReactN
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [labels, setLabels] = useState<Label[]>([]);
-  const [templates, setTemplates] = useState<Template[]>([]);
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
 
   const openAddDialog = useCallback(async () => {
@@ -35,22 +31,15 @@ export default function AddRecordProvider({ children }: { children: React.ReactN
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const [catRes, lblRes, walletRes, tplRes] = await Promise.all([
+    const [catRes, lblRes, walletRes] = await Promise.all([
       supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
       supabase.from('labels').select('*').eq('user_id', user.id).order('name'),
       supabase.from('wallets').select('*').eq('user_id', user.id).order('name'),
-      supabase.from('templates').select(`*, labels:template_labels(label:labels(*))`).eq('user_id', user.id).order('name'),
     ]);
 
     if (catRes.data) setCategories(catRes.data);
     if (lblRes.data) setLabels(lblRes.data);
     if (walletRes.data) setWallets(walletRes.data);
-    if (tplRes.data) {
-      setTemplates((tplRes.data as RawTemplate[]).map(t => ({
-        ...t,
-        labels: t.labels.map(l => l.label).filter((l): l is Label => l !== null),
-      })));
-    }
     setOpen(true);
   }, []);
 
@@ -153,7 +142,6 @@ export default function AddRecordProvider({ children }: { children: React.ReactN
           wallets={wallets}
           categories={categories}
           labels={labels}
-          templates={templates}
           onSave={handleSave}
           onClose={() => setOpen(false)}
         />

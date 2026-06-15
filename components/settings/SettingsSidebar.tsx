@@ -17,7 +17,6 @@ const groups = [
     items: [
       { href: '/settings/categories', icon: '📁', label: 'Categories' },
       { href: '/settings/labels',     icon: '🏷️', label: 'Labels' },
-      { href: '/settings/templates',  icon: '📋', label: 'Templates' },
     ],
   },
   {
