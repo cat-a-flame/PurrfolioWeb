@@ -1,34 +1,34 @@
 /* Design tokens */
 :root {
   /* Colors */
-  --color-bg: #f7f4ef;
+  --color-bg: #f5f3f7;
   --color-surface: #ffffff;
-  --color-surface-2: #f0ede7;
-  --color-surface-3: #e8e4dc;
+  --color-surface-2: #ede9f2;
+  --color-surface-3: #e5dff0;
 
-  --color-accent: #f26e4d;
-  --color-accent-hover: #e05a38;
-  --color-accent-light: #fde8e2;
+  --color-accent: #692f7c;
+  --color-accent-hover: #561268;
+  --color-accent-light: #f0e4f7;
 
-  --color-text: #1c1a17;
-  --color-text-muted: #6b6760;
-  --color-text-faint: #a09d99;
+  --color-text: #523e5c;
+  --color-text-muted: #8972a4;
+  --color-text-faint: #b0aba4;
 
-  --color-border: #d9d5ce;
-  --color-border-focus: #f26e4d;
-  --color-accent-glow: rgba(242, 110, 77, 0.4);
-  --color-accent-border: rgba(242, 110, 77, 0.2);
-  --color-overlay: rgba(28, 26, 23, 0.5);
+  --color-border: #e5e2dd;
+  --color-border-focus: #692f7c;
+  --color-accent-glow: rgba(105, 47, 124, 0.4);
+  --color-accent-border: rgba(105, 47, 124, 0.2);
+  --color-overlay: rgba(0, 0, 0, 0.4);
 
-  --color-danger: #dc2626;
-  --color-danger-hover: #b91c1c;
-  --color-danger-light: #fee2e2;
+  --color-danger: #ef573c;
+  --color-danger-hover: #d44429;
+  --color-danger-light: #fde8e2;
 
   /* Budget-specific tokens */
-  --color-income: #16a34a;
-  --color-income-light: #dcfce7;
-  --color-expense: #dc2626;
-  --color-expense-light: #fee2e2;
+  --color-income: #149a83;
+  --color-income-light: #d0f5ef;
+  --color-expense: #ef573c;
+  --color-expense-light: #fde8e2;
 
   /* Typography */
   --font-lora: 'Lora', serif;
@@ -54,10 +54,10 @@
   --radius-full: 9999px;
 
   /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(28, 26, 23, 0.06);
-  --shadow-md: 0 4px 12px rgba(28, 26, 23, 0.08);
-  --shadow-lg: 0 8px 24px rgba(28, 26, 23, 0.12);
-  --shadow-nav: 0 -2px 12px rgba(28, 26, 23, 0.08);
+  --shadow-sm: 0 1px 2px rgba(82, 62, 92, 0.06);
+  --shadow-md: 0 4px 12px rgba(82, 62, 92, 0.08);
+  --shadow-lg: 0 8px 24px rgba(82, 62, 92, 0.12);
+  --shadow-nav: 0 -2px 12px rgba(82, 62, 92, 0.08);
 
   /* Transitions */
   --transition-fast: 120ms ease;
