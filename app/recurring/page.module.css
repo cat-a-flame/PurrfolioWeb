@@ -206,7 +206,7 @@
 }
 
 .payBtn {
-  background: var(--color-primary, #93359365);
+  background: var(--color-accent);
   color: #fff;
   border: none;
   border-radius: var(--radius-md);

@@ -122,7 +122,7 @@
 
 html[data-theme="dark"] {
   .avatar {
-    background: #321c52;
+    background: var(--color-surface-3);
   }
 }
 

@@ -20,7 +20,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-surface-2);
+  background: var(--color-accent-light);
   border-radius: var(--radius-md);
 }
 

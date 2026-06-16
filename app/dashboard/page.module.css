@@ -122,24 +122,17 @@
 
 /* ── Cash Flow card ── */
 .cashFlowCard {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: var(--space-6) var(--space-8);
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
-  box-shadow: var(--shadow-sm);
   position: relative;
-  background: rgba(98, 44, 143, 0.15);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(98, 44, 143, 0.3);
+  background: linear-gradient(135deg, #3d1a5c 0%, #692f7c 55%, #9b4f8e 100%);
+  border: 1px solid rgba(105, 47, 124, 0.4);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(98, 44, 143, 0.5),
-    inset 0 -1px 0 rgba(98, 44, 143, 0.1),
-    inset 0 0 10px 5px rgba(98, 44, 143, 0.3);
+    0 8px 32px rgba(105, 47, 124, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 
   &::before {
     content: '';
@@ -150,7 +143,7 @@
     height: 1px;
     background: linear-gradient(90deg,
         transparent,
-        rgba(255, 255, 255, 0.4),
+        rgba(255, 255, 255, 0.5),
         transparent);
   }
 }
@@ -158,7 +151,7 @@
 .cashFlowTitle {
   font-size: 1rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .cashFlowTop {
@@ -176,7 +169,7 @@
 
 .cashFlowPeriodLabel {
   font-size: 0.875rem;
-  color: var(--color-text-muted);
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
 }
 
@@ -184,7 +177,7 @@
   font-family: var(--font-figtree);
   font-size: 2rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: #fff;
   line-height: 1.1;
 }
 
@@ -198,7 +191,7 @@
 
 .vsLabel {
   font-size: 0.8125rem;
-  color: var(--color-text-muted);
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
 }
 
@@ -243,20 +236,20 @@
 .barLabel {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-text-muted);
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .barAmount {
   font-size: 0.9375rem;
   font-weight: 600;
-  color: var(--color-text);
+  color: #fff;
   font-family: var(--font-figtree);
 }
 
 .barTrack {
   width: 100%;
   height: 10px;
-  background: var(--color-surface-2);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-full);
   overflow: hidden;
 }
@@ -420,18 +413,11 @@
 .dayTxList {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  background: rgba(98, 44, 143, 0.15);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(98, 44, 143, 0.3);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(98, 44, 143, 0.5),
-    inset 0 -1px 0 rgba(98, 44, 143, 0.1),
-    inset 0 0 10px 5px rgba(98, 44, 143, 0.3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
   position: relative;
 }
 
@@ -463,7 +449,7 @@
 }
 
 .txRow:hover {
-  background: rgba(98, 44, 143, 0.15);
+  background: var(--color-accent-light);
 }
 
 .txIcon {
@@ -475,6 +461,7 @@
   justify-content: center;
   font-size: 1.125rem;
   flex-shrink: 0;
+  background: var(--color-accent-light);
 }
 
 .txCategory {
@@ -612,7 +599,7 @@
 
 .periodRow [class*="labelBtn"] {
   border-radius: var(--radius-md);
-  border-color: #321c52;
+  border-color: var(--color-accent);
 }
 
 
@@ -723,7 +710,7 @@
 .plannedPayBtn {
   width: 26px;
   height: 26px;
-  background: var(--color-primary, #93359365);
+  background: var(--color-accent);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
