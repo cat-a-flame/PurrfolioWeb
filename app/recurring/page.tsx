@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import ReactSelect from 'react-select';
-import AppHeader from '@/components/layout/AppHeader';
-import AppFooter from '@/components/layout/AppFooter';
+import AppShell from '@/components/layout/AppShell';
 import Button from '@/components/ui/Button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import FormLabel from '@/components/ui/FormLabel';
@@ -427,17 +426,11 @@ export default function RecurringPage() {
   }
 
   if (loading) return (
-    <div className={styles.page}>
-      <AppHeader />
-      <main className={styles.main}><p className={styles.loading}>Loading…</p></main>
-      <AppFooter />
-    </div>
+    <AppShell><p className={styles.loading}>Loading…</p></AppShell>
   );
 
   return (
-    <div className={styles.page}>
-      <AppHeader />
-      <main className={styles.main}>
+    <AppShell>
         <div className={styles.container}>
 
           {/* ── Page header ── */}
@@ -445,7 +438,7 @@ export default function RecurringPage() {
             <div>
               <h1 className={styles.pageTitle}>Planned payments</h1>
             </div>
-            <Button variant="primary" size="md" onClick={() => { setAddForm({ ...EMPTY_FORM, walletId: wallets.find(w => w.is_default && !w.is_archived)?.id ?? wallets.find(w => !w.is_archived)?.id ?? '' }); setShowAddDialog(true); setAddError(''); }}>
+            <Button variant="primary" size="lg" onClick={() => { setAddForm({ ...EMPTY_FORM, walletId: wallets.find(w => w.is_default && !w.is_archived)?.id ?? wallets.find(w => !w.is_archived)?.id ?? '' }); setShowAddDialog(true); setAddError(''); }}>
               + Add
             </Button>
           </div>
@@ -567,8 +560,6 @@ export default function RecurringPage() {
             ))}
           </section>
         </div>
-      </main>
-      <AppFooter />
 
       {showAddDialog && (
         <PaymentModal form={addForm} set={setAddForm} title="Add recurring payment"
@@ -595,7 +586,7 @@ export default function RecurringPage() {
       )}
 
       {toast && <Toast message={toast.message} variant={toast.variant} onDismiss={dismissToast} />}
-    </div>
+    </AppShell>
   );
 }
 

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Lora, Figtree } from 'next/font/google';
+import { Lora, Nunito } from 'next/font/google';
 import AddRecordProvider from '@/components/transactions/AddRecordProvider';
 import BottomNav from '@/components/layout/BottomNav';
 import { ThemeProvider } from '@/contexts/ThemeContext';
@@ -7,7 +7,7 @@ import { RecurringAlertProvider } from '@/contexts/RecurringAlertContext';
 import './globals.css';
 
 const lora = Lora({ subsets: ['latin'], variable: '--font-lora', display: 'swap' });
-const figtree = Figtree({ subsets: ['latin'], variable: '--font-figtree', display: 'swap' });
+const nunito = Nunito({ subsets: ['latin'], variable: '--font-nunito', display: 'swap' });
 
 export const metadata: Metadata = {
   title: 'Purrfolio',
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${lora.variable} ${figtree.variable}`}>
+    <html lang="en" className={`${lora.variable} ${nunito.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{

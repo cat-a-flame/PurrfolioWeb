@@ -8,8 +8,7 @@ import {
   AreaChart, Area,
   type PieLabelRenderProps,
 } from 'recharts';
-import AppHeader from '@/components/layout/AppHeader';
-import AppFooter from '@/components/layout/AppFooter';
+import AppShell from '@/components/layout/AppShell';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import { createClient } from '@/lib/supabase/client';
 import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
@@ -346,15 +345,13 @@ export default function StatisticsPage() {
   const topCategories = useMemo(() => expenseSlices.slice(0, 5), [expenseSlices]);
 
   if (loading) return (
-    <div className={styles.layout}><AppHeader /><main className={styles.main}><p className={styles.loading}>Loading…</p></main><AppFooter /></div>
+    <AppShell><p className={styles.loading}>Loading…</p></AppShell>
   );
 
   const prevLabel = period.tab === 'months' ? 'prev month' : period.tab === 'years' ? 'prev year' : period.tab === 'weeks' ? 'prev week' : 'prev period';
 
   return (
-    <div className={styles.layout}>
-      <AppHeader />
-      <main className={styles.main}>
+    <AppShell>
         <div className={styles.container}>
 
           {/* ── Page header ── */}
@@ -582,10 +579,7 @@ export default function StatisticsPage() {
 
           </div>
 
-
         </div>
-      </main>
-      <AppFooter />
-    </div>
+    </AppShell>
   );
 }

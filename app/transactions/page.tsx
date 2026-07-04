@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import ReactSelect from 'react-select';
-import AppHeader from '@/components/layout/AppHeader';
-import AppFooter from '@/components/layout/AppFooter';
+import AppShell from '@/components/layout/AppShell';
 import Button from '@/components/ui/Button';
 import Dialog from '@/components/ui/Dialog';
 import Input from '@/components/ui/Input';
@@ -551,9 +550,7 @@ export default function TransactionsPage() {
   ];
 
   return (
-    <div className={styles.layout}>
-      <AppHeader />
-      <main className={styles.main}>
+    <AppShell>
         <div className={styles.container}>
           <div className={styles.pageHeader}>
             <h1 className={styles.pageTitle}>Transactions</h1>
@@ -677,7 +674,7 @@ export default function TransactionsPage() {
                   {showBalance && (
                     <div className={styles.summaryBalance}>
                       <span className={styles.summaryBalanceLabel}>Balance</span>
-                      <span className={[styles.summaryBalanceAmount, summaryBalance >= 0 ? styles.summaryPos : styles.summaryNeg].join(' ')}>
+                      <span className={styles.summaryBalanceAmount}>
                         {summaryBalance < 0 ? '−' : ''}{formatHUF(Math.abs(summaryBalance))}
                       </span>
                     </div>
@@ -857,8 +854,6 @@ export default function TransactionsPage() {
             </div>
           </div>
         </div>
-      </main>
-      <AppFooter />
 
       {editingTransaction && (
         <TransactionForm
@@ -946,6 +941,6 @@ export default function TransactionsPage() {
       )}
 
       {toast && <Toast message={toast.message} variant={toast.variant} onDismiss={dismissToast} />}
-    </div>
+    </AppShell>
   );
 }

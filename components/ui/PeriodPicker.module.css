@@ -2,23 +2,24 @@
   position: relative;
 }
 
-/* ── Trigger row ── */
+/* ── Trigger row: single pill ── */
 .trigger {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
+  display: inline-flex;
+  align-items: stretch;
+  height: 38px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
 }
 
 .navBtn {
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  flex-shrink: 0;
   border: none;
   background: transparent;
   color: var(--color-text-muted);
-  font-size: 1.375rem;
-  line-height: 1;
   cursor: pointer;
-  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -30,44 +31,42 @@
   color: var(--color-text);
 }
 
+.navBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
+}
+
 .labelBtn {
-  height: 36px;
-  padding: 0 var(--space-4);
-  background: var(--color-surface);
-  border: 1.5px solid var(--color-accent);
-  border-radius: var(--radius-full);
-  font-family: var(--font-figtree);
+  height: 100%;
+  padding: 0 var(--space-3);
+  background: transparent;
+  border: none;
+  font-family: var(--font-nunito);
   font-size: 0.9375rem;
-  font-weight: 500;
+  font-weight: 800;
   color: var(--color-text);
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: center;
   white-space: nowrap;
-  transition: box-shadow var(--transition-fast);
+  transition: background var(--transition-fast);
 }
 
 .labelBtn:hover {
-  box-shadow: 0 0 0 3px var(--color-accent-light);
-}
-
-.caret {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  transform: translateY(1px);
+  background: var(--color-surface-2);
 }
 
 .clearBtn {
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  flex-shrink: 0;
   border: none;
   background: transparent;
   color: var(--color-text-muted);
   font-size: 1.125rem;
   line-height: 1;
   cursor: pointer;
-  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -79,18 +78,9 @@
   color: var(--color-text);
 }
 
-.navBtn:disabled {
-  opacity: 0.3;
-  cursor: default;
-  pointer-events: none;
-}
-
-/* ── Dropdown ── */
+/* ── Dropdown (portaled to document.body, positioned via inline style) ── */
 .dropdown {
-  position: absolute;
-  top: calc(100% + var(--space-2));
-  left: 50%;
-  transform: translateX(-50%);
+  position: fixed;
   z-index: 300;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -112,7 +102,7 @@
   border: none;
   background: transparent;
   border-radius: var(--radius-md);
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--color-text-muted);
@@ -191,7 +181,7 @@
   border: none;
   background: transparent;
   border-radius: var(--radius-md);
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   font-size: 0.9375rem;
   font-weight: 500;
   color: var(--color-text);
@@ -310,7 +300,7 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   font-size: 0.9375rem;
   color: var(--color-text);
   outline: none;
@@ -329,7 +319,7 @@
   color: #fff;
   border: none;
   border-radius: var(--radius-md);
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   font-size: 0.9375rem;
   font-weight: 600;
   cursor: pointer;

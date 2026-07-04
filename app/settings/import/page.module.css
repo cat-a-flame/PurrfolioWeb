@@ -1,6 +1,7 @@
 /* ── Layout ── */
 .container {
   max-width: 820px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
@@ -288,7 +289,7 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   font-size: 0.875rem;
   color: var(--color-text);
   outline: none;
@@ -420,7 +421,7 @@
   padding: 0 var(--space-4);
   background: transparent;
   border: none;
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--color-text-muted);
@@ -684,7 +685,7 @@
   height: 40px;
   padding: 0 var(--space-5);
   border-radius: var(--radius-md);
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   font-size: 0.9375rem;
   font-weight: 600;
   text-decoration: none;

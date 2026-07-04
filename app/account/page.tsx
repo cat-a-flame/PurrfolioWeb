@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import AppHeader from '@/components/layout/AppHeader';
-import AppFooter from '@/components/layout/AppFooter';
+import AppShell from '@/components/layout/AppShell';
 import Button from '@/components/ui/Button';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
@@ -90,11 +89,9 @@ export default function AccountPage() {
   }
 
   return (
-    <div className={styles.layout}>
-      <AppHeader />
-      <main className={styles.main}>
-        <div className={styles.container}>
-          <h1 className={styles.pageTitle}>Account</h1>
+    <AppShell>
+      <div className={styles.container}>
+        <h1 className={styles.pageTitle}>Account</h1>
 
           {/* Profile section */}
           <section className={styles.section}>
@@ -164,9 +161,7 @@ export default function AccountPage() {
               </div>
             </form>
           </section>
-        </div>
-      </main>
-      <AppFooter />
+      </div>
 
       {toast && (
         <Toast
@@ -175,6 +170,6 @@ export default function AccountPage() {
           onDismiss={dismissToast}
         />
       )}
-    </div>
+    </AppShell>
   );
 }

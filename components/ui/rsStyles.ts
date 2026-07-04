@@ -14,7 +14,7 @@ export function makeRsStyles<
       borderColor: state.isFocused ? 'var(--color-border-focus)' : 'var(--color-border)',
       borderRadius: 'var(--radius-md)',
       boxShadow: state.isFocused ? '0 0 0 3px var(--color-accent-light)' : 'none',
-      fontFamily: 'var(--font-figtree)',
+      fontFamily: 'var(--font-nunito)',
       fontSize: fs,
       cursor: 'pointer',
       '&:hover': { borderColor: 'var(--color-border-focus)' },
@@ -22,7 +22,7 @@ export function makeRsStyles<
     valueContainer: (base) => ({ ...base, padding: '0 12px' }),
     singleValue: (base) => ({ ...base, color: 'var(--color-text)' }),
     placeholder: (base) => ({ ...base, color: 'var(--color-text-faint)' }),
-    input: (base) => ({ ...base, color: 'var(--color-text)', fontFamily: 'var(--font-figtree)', margin: 0, padding: 0 }),
+    input: (base) => ({ ...base, color: 'var(--color-text)', fontFamily: 'var(--font-nunito)', margin: 0, padding: 0 }),
     menu: (base) => ({
       ...base,
       background: 'var(--color-surface)',
@@ -40,7 +40,7 @@ export function makeRsStyles<
         ? 'var(--color-surface-2)'
         : 'transparent',
       color: state.isSelected ? 'var(--color-accent)' : 'var(--color-text)',
-      fontFamily: 'var(--font-figtree)',
+      fontFamily: 'var(--font-nunito)',
       fontSize: fs,
       fontWeight: state.isSelected ? 600 : 400,
       cursor: 'pointer',
@@ -49,7 +49,7 @@ export function makeRsStyles<
     groupHeading: (base) => ({
       ...base,
       color: 'var(--color-text-faint)',
-      fontFamily: 'var(--font-figtree)',
+      fontFamily: 'var(--font-nunito)',
       fontSize: '0.75rem',
       fontWeight: 700,
       textTransform: 'uppercase',
@@ -60,7 +60,7 @@ export function makeRsStyles<
     dropdownIndicator: (base) => ({ ...base, color: 'var(--color-text-muted)', padding: '0 8px' }),
     clearIndicator: (base) => ({ ...base, color: 'var(--color-text-muted)' }),
     multiValue: (base) => ({ ...base, background: 'var(--color-surface-2)', borderRadius: '4px' }),
-    multiValueLabel: (base) => ({ ...base, color: 'var(--color-text)', fontFamily: 'var(--font-figtree)', fontSize: '0.8125rem' }),
+    multiValueLabel: (base) => ({ ...base, color: 'var(--color-text)', fontFamily: 'var(--font-nunito)', fontSize: '0.8125rem' }),
     multiValueRemove: (base) => ({
       ...base,
       color: 'var(--color-text-muted)',

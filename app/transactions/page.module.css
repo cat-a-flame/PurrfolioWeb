@@ -1,14 +1,3 @@
-.layout {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.main {
-  flex: 1;
-  padding: var(--space-8) var(--space-6);
-}
-
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -93,7 +82,7 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   font-size: 0.875rem;
   color: var(--color-text);
   outline: none;
@@ -227,7 +216,7 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   font-size: 0.9375rem;
   color: var(--color-text);
   resize: vertical;
@@ -289,7 +278,7 @@
   background: transparent;
   border: none;
   outline: none;
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   font-size: 0.875rem;
   color: var(--color-text);
 }
@@ -419,7 +408,7 @@
 .dayNet {
   font-size: 0.875rem;
   font-weight: 700;
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
 }
 
 .dayNetPos { color: var(--color-income); }
@@ -514,7 +503,7 @@
 .txAmount {
   font-size: 0.9375rem;
   font-weight: 700;
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
 }
 
 .txIncome { color: var(--color-income); }
@@ -550,7 +539,7 @@
   padding: 0;
   opacity: 0;
   transition: opacity var(--transition-fast);
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
 }
 
 .txRow:hover .txEditBtn {
@@ -600,55 +589,42 @@
 
 /* ── Cash flow summary card ── */
 .summaryCard {
-  border-radius: var(--radius-xl);
-  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6) var(--space-8);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
   position: relative;
-  background: linear-gradient(135deg, #3d1a5c 0%, #692f7c 55%, #9b4f8e 100%);
-  border: 1px solid rgba(105, 47, 124, 0.4);
-  box-shadow:
-    0 8px 32px rgba(105, 47, 124, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
-  }
+  overflow: hidden;
+  background: var(--gradient-cashflow);
+  color: #fff;
+  box-shadow: 0 26px 40px -28px rgba(90, 45, 140, 0.72);
 }
 
 .summaryBalance {
   display: flex;
-  align-items: baseline;
-  gap: var(--space-3);
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
 .summaryBalanceLabel {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.84375rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .summaryBalanceAmount {
-  font-family: var(--font-figtree);
-  font-size: 1.75rem;
-  font-weight: 700;
+  font-family: var(--font-nunito);
+  font-size: 2.25rem;
+  font-weight: 900;
   line-height: 1.1;
+  color: #fff;
 }
-
-.summaryPos { color: var(--color-income); }
-.summaryNeg { color: var(--color-expense); }
 
 .summaryBars {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .summaryBarRow {
@@ -661,18 +637,17 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  font-size: 0.875rem;
 }
 
 .summaryBarLabel {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.75);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .summaryBarAmount {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  font-family: var(--font-figtree);
+  font-weight: 800;
+  font-family: var(--font-nunito);
   color: #fff;
 }
 
@@ -682,7 +657,7 @@
 .summaryBarTrack {
   width: 100%;
   height: 8px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.22);
   border-radius: var(--radius-full);
   overflow: hidden;
 }
@@ -693,5 +668,5 @@
   transition: width 0.4s ease;
 }
 
-.summaryBarFillIncome { background: var(--color-income); }
-.summaryBarFillExpense { background: var(--color-expense); }
+.summaryBarFillIncome { background: #2fb894; }
+.summaryBarFillExpense { background: #f0603e; }

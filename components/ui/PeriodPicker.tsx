@@ -1,7 +1,19 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import styles from './PeriodPicker.module.css';
+
+const DROPDOWN_WIDTH = 300;
+const DROPDOWN_MARGIN = 8;
+
+function Chevron({ direction }: { direction: 'left' | 'right' }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d={direction === 'left' ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6'} />
+    </svg>
+  );
+}
 
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MONTH_LONG  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -70,14 +82,41 @@ export default function PeriodPicker({ value, onChange, onClear, hideNav }: Prop
   const [cfrom, setCfrom]             = useState(value.from);
   const [cto, setCto]                 = useState(value.to);
 
-  const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
   useEffect(() => {
     const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (triggerRef.current?.contains(target) || dropdownRef.current?.contains(target)) return;
+      setOpen(false);
     };
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
   }, []);
+
+  // Position the dropdown against the trigger via a portal so it can't be
+  // clipped by a scrollable/overflow-hidden ancestor (e.g. the transactions
+  // page's filter sidebar).
+  useLayoutEffect(() => {
+    if (!open) return;
+    const update = () => {
+      const el = triggerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      let left = rect.left + rect.width / 2 - DROPDOWN_WIDTH / 2;
+      left = Math.max(DROPDOWN_MARGIN, Math.min(left, window.innerWidth - DROPDOWN_WIDTH - DROPDOWN_MARGIN));
+      setPos({ top: rect.bottom + DROPDOWN_MARGIN, left });
+    };
+    update();
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+  }, [open]);
 
   function emit(from: string, to: string, label: string, t: PeriodTab) {
     onChange({ from, to, label, tab: t });
@@ -138,22 +177,29 @@ export default function PeriodPicker({ value, onChange, onClear, hideNav }: Prop
   const years       = Array.from({ length: 12 }, (_, i) => decadeStart + i);
 
   return (
-    <div className={styles.container} ref={ref}>
+    <div className={styles.container} ref={triggerRef}>
       <div className={styles.trigger}>
-        {!hideNav && <button className={styles.navBtn} onClick={() => navigate(-1)} aria-label="Previous" disabled={!value.from}>‹</button>}
+        {!hideNav && (
+          <button className={styles.navBtn} onClick={() => navigate(-1)} aria-label="Previous" disabled={!value.from}>
+            <Chevron direction="left" />
+          </button>
+        )}
         <button className={styles.labelBtn} onClick={() => setOpen(o => !o)}>
           {value.label}
-          <span className={styles.caret} aria-hidden>⌄</span>
         </button>
         {onClear && value.from ? (
           <button className={styles.clearBtn} onClick={onClear} aria-label="Clear date filter">×</button>
         ) : (
-          !hideNav && <button className={styles.navBtn} onClick={() => navigate(1)} aria-label="Next" disabled={!value.from}>›</button>
+          !hideNav && (
+            <button className={styles.navBtn} onClick={() => navigate(1)} aria-label="Next" disabled={!value.from}>
+              <Chevron direction="right" />
+            </button>
+          )
         )}
       </div>
 
-      {open && (
-        <div className={styles.dropdown}>
+      {open && pos && createPortal(
+        <div className={styles.dropdown} ref={dropdownRef} style={{ top: pos.top, left: pos.left }}>
           <div className={styles.tabs}>
             {(['custom', 'weeks', 'months', 'years'] as PeriodTab[]).map(t => (
               <button
@@ -283,7 +329,8 @@ export default function PeriodPicker({ value, onChange, onClear, hideNav }: Prop
               </button>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

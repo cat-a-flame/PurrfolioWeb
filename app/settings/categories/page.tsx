@@ -189,7 +189,7 @@ export default function CategoriesSettingsPage() {
     <div className={styles.container}>
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>Categories</h1>
-        <Button variant="primary" size="md" onClick={() => setShowAddDialog(true)}>+ Add category</Button>
+        <Button variant="primary" size="lg" onClick={() => setShowAddDialog(true)}>+ Add category</Button>
       </div>
 
       <section className={styles.section}>

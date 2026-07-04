@@ -104,7 +104,7 @@ export default function LabelsSettingsPage() {
     <div className={styles.container}>
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>Labels</h1>
-        <Button variant="primary" size="md" onClick={() => setShowAddDialog(true)}>+ Add label</Button>
+        <Button variant="primary" size="lg" onClick={() => setShowAddDialog(true)}>+ Add label</Button>
       </div>
 
       <section className={styles.section}>

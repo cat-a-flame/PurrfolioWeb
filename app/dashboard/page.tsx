@@ -1,24 +1,23 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useCountUp } from '@/lib/useCountUp';
 import Link from 'next/link';
-import AppHeader from '@/components/layout/AppHeader';
-import AppFooter from '@/components/layout/AppFooter';
+import AppShell from '@/components/layout/AppShell';
+import Button from '@/components/ui/Button';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import TransactionForm, { TransactionFormData } from '@/components/transactions/TransactionForm';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Toast from '@/components/ui/Toast';
+import { useAddRecord } from '@/components/transactions/AddRecordProvider';
 import { createClient } from '@/lib/supabase/client';
 import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
 import { fetchWalletBalanceSums } from '@/lib/supabase/fetchWalletBalanceSums';
 import { formatHUF, formatCurrency } from '@/lib/utils';
 import { getExchangeRates, txToHUF } from '@/lib/exchangeRates';
-import type { Transaction, Wallet, Category, Label } from '@/lib/types';
+import { generateDueDates, frequencyLabel, isoDate } from '@/lib/recurringUtils';
+import type { Transaction, Wallet, Category, Label, RecurringPayment, RecurringOccurrence } from '@/lib/types';
 import styles from './page.module.css';
-
-function isoDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 function defaultPeriod(): PeriodValue {
   const now = new Date();
@@ -56,23 +55,21 @@ function getPrevRange(v: PeriodValue): { from: string; to: string } {
   };
 }
 
-function filterByRange(txs: Transaction[], from: string, to: string) {
-  return txs.filter(t => t.date >= from && t.date <= to);
-}
-
-function formatDayHeader(dateStr: string): string {
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
-    month: 'long', day: 'numeric', year: 'numeric',
-  });
+function formatDayLabel(dateStr: string): string {
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 export default function DashboardPage() {
+  const { openAddDialog } = useAddRecord();
+
   const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>([]);
   const [prevTransactions, setPrevTransactions] = useState<Transaction[]>([]);
   const [walletBalanceSums, setWalletBalanceSums] = useState<Map<string, { income: number; expense: number }>>(new Map());
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [labels, setLabels] = useState<Label[]>([]);
+  const [recurringPayments, setRecurringPayments] = useState<RecurringPayment[]>([]);
+  const [recurringOccurrences, setRecurringOccurrences] = useState<RecurringOccurrence[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<PeriodValue>(() => {
     if (typeof window !== 'undefined') {
@@ -86,6 +83,29 @@ export default function DashboardPage() {
   const [editingTransferPair, setEditingTransferPair] = useState<Transaction | undefined>();
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
 
+  const [plannedDialogItem, setPlannedDialogItem] = useState<{ payment: RecurringPayment; dueDate: Date } | undefined>();
+  const [plannedActionLoading, setPlannedActionLoading] = useState(false);
+
+  // Cash Flow card's own content sets the row height; the side cards are
+  // clamped to match it (with internal scrolling) rather than the reverse.
+  const cashFlowRef = useRef<HTMLDivElement>(null);
+  const [sideCardHeight, setSideCardHeight] = useState<number | undefined>(undefined);
+
+  useLayoutEffect(() => {
+    const el = cashFlowRef.current;
+    if (!el) return;
+    const update = () => {
+      setSideCardHeight(window.innerWidth <= 768 ? undefined : el.getBoundingClientRect().height);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener('resize', update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, []);
 
   // Exchange rates: date → { EUR: number, USD: number, … } (HUF per 1 unit)
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
@@ -110,23 +130,20 @@ export default function DashboardPage() {
     sessionStorage.setItem('purrfolio_period', JSON.stringify(period));
   }, [period]);
 
-  // Lazy load
-  const [displayCount, setDisplayCount] = useState(15);
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { setDisplayCount(15); }, [period]);
-
   const fetchData = useCallback(async () => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const prev = getPrevRange(period);
-    const [txs, prevTxs, walletSums, walletRes, catRes, lblRes] = await Promise.all([
+    const [txs, prevTxs, walletSums, walletRes, catRes, lblRes, rpRes, occRes] = await Promise.all([
       fetchTransactions(user.id, period.from, period.to),
       fetchTransactions(user.id, prev.from, prev.to),
       fetchWalletBalanceSums(user.id),
       supabase.from('wallets').select('*').eq('user_id', user.id).order('name'),
       supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
       supabase.from('labels').select('*').eq('user_id', user.id).order('name'),
+      supabase.from('recurring_payments').select('*, wallet:wallets(*), category:categories(*), labels:recurring_payment_labels(label:labels(*))').eq('user_id', user.id).eq('is_active', true),
+      supabase.from('recurring_occurrences').select('*').eq('user_id', user.id).gte('due_date', period.from).lte('due_date', period.to),
     ]);
     setPeriodTransactions(txs);
     setPrevTransactions(prevTxs);
@@ -134,6 +151,14 @@ export default function DashboardPage() {
     if (walletRes.data) setWallets(walletRes.data);
     if (catRes.data) setCategories(catRes.data);
     if (lblRes.data) setLabels(lblRes.data);
+    if (rpRes.data) {
+      type RawPayment = Omit<RecurringPayment, 'labels'> & { labels: { label: Label | null }[] };
+      setRecurringPayments((rpRes.data as RawPayment[]).map(p => ({
+        ...p,
+        labels: p.labels.map(l => l.label).filter((l): l is Label => l !== null),
+      })));
+    }
+    if (occRes.data) setRecurringOccurrences(occRes.data as RecurringOccurrence[]);
     setLoading(false);
   }, [period]);
 
@@ -159,7 +184,7 @@ export default function DashboardPage() {
   const expensePct = total > 0 ? (expense / total) * 100 : 0;
 
   const walletSummaries = wallets
-    .slice()
+    .filter(w => !w.is_archived)
     .sort((a, b) => {
       if (a.is_default !== b.is_default) return a.is_default ? -1 : 1;
       return a.name.localeCompare(b.name);
@@ -169,41 +194,125 @@ export default function DashboardPage() {
       return { wallet, balance: wallet.starting_balance + sums.income - sums.expense };
     });
 
-  const hasMore = periodTransactions.length > displayCount;
-  const visiblePeriodTxs = periodTransactions.slice(0, displayCount);
-
-
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el || !hasMore) return;
-    const io = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) setDisplayCount(c => c + 20);
-    }, { rootMargin: '200px' });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [hasMore]);
-
-  const groupedDays = useMemo(() => {
-    const map = new Map<string, Transaction[]>();
-    for (const t of visiblePeriodTxs) {
-      const arr = map.get(t.date) ?? [];
-      arr.push(t);
-      map.set(t.date, arr);
+  // Top expense categories in the selected period, by total spend
+  const topCategories = useMemo(() => {
+    const totals = new Map<string, { category: Category | null; total: number }>();
+    for (const t of periodTransactions) {
+      if (t.type !== 'expense' || t.transfer_group_id) continue;
+      const key = t.category_id ?? 'uncategorised';
+      const amt = txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
+      const entry = totals.get(key) ?? { category: t.category ?? null, total: 0 };
+      entry.total += amt;
+      totals.set(key, entry);
     }
-    return Array.from(map.entries())
-      .sort(([a], [b]) => b.localeCompare(a))
-      .map(([date, txs]) => {
-        const rates = ratesByDate[date] ?? {};
-        return {
-          date,
-          transactions: [...txs].sort((a, b) => b.created_at.localeCompare(a.created_at)),
-          net: txs.filter(t => t.type === 'income' && !t.transfer_group_id)
-            .reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, rates), 0)
-            - txs.filter(t => t.type === 'expense' && !t.transfer_group_id)
-              .reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, rates), 0),
-        };
-      });
-  }, [visiblePeriodTxs, ratesByDate]);
+    return Array.from(totals.values()).sort((a, b) => b.total - a.total).slice(0, 5);
+  }, [periodTransactions, ratesByDate]);
+
+  // Planned payments due within the selected period that haven't been paid/skipped yet
+  const plannedDue = useMemo(() => {
+    const actioned = new Set(
+      recurringOccurrences
+        .filter(o => o.status === 'paid' || o.status === 'skipped')
+        .map(o => `${o.recurring_payment_id}|${o.due_date.slice(0, 10)}`)
+    );
+    const from = new Date(period.from + 'T00:00:00');
+    const to = new Date(period.to + 'T00:00:00');
+    const items: { payment: RecurringPayment; dueDate: Date }[] = [];
+    for (const p of recurringPayments) {
+      for (const date of generateDueDates(p, from, to)) {
+        const key = `${p.id}|${isoDate(date)}`;
+        if (!actioned.has(key)) items.push({ payment: p, dueDate: date });
+      }
+    }
+    return items.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+  }, [recurringPayments, recurringOccurrences, period]);
+
+  // Latest 10 transactions in the selected period
+  const recentTransactions = useMemo(() => {
+    return [...periodTransactions]
+      .sort((a, b) => (a.date === b.date ? b.created_at.localeCompare(a.created_at) : b.date.localeCompare(a.date)))
+      .slice(0, 10);
+  }, [periodTransactions]);
+
+  async function handlePlannedAdd() {
+    if (!plannedDialogItem) return;
+    const { payment, dueDate } = plannedDialogItem;
+    setPlannedActionLoading(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setPlannedActionLoading(false); return; }
+
+    const { data: txData, error: txErr } = await supabase
+      .from('transactions')
+      .insert({
+        user_id: user.id,
+        type: payment.type,
+        amount: payment.amount,
+        wallet_id: payment.wallet_id,
+        category_id: payment.category_id,
+        date: isoDate(dueDate),
+        notes: payment.notes,
+        payer: payment.payer,
+      })
+      .select('id')
+      .single();
+
+    if (txErr || !txData) {
+      setToast({ message: 'Failed to create transaction.', variant: 'error' });
+      setPlannedActionLoading(false);
+      return;
+    }
+
+    const { error: occErr } = await supabase.from('recurring_occurrences').insert({
+      recurring_payment_id: payment.id,
+      user_id: user.id,
+      due_date: isoDate(dueDate),
+      status: 'paid',
+      transaction_id: txData.id,
+    });
+
+    if (occErr) {
+      setToast({ message: 'Transaction created but occurrence record failed.', variant: 'error' });
+    } else {
+      if (payment.labels && payment.labels.length > 0) {
+        await supabase.from('transaction_labels').insert(
+          payment.labels.map(l => ({ transaction_id: txData.id, label_id: l.id }))
+        );
+      }
+      setToast({ message: `${payment.name} added.`, variant: 'success' });
+      window.dispatchEvent(new Event('transaction-added'));
+    }
+    setPlannedActionLoading(false);
+    setPlannedDialogItem(undefined);
+    await fetchData();
+  }
+
+  async function handlePlannedSkip() {
+    if (!plannedDialogItem) return;
+    const { payment, dueDate } = plannedDialogItem;
+    setPlannedActionLoading(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setPlannedActionLoading(false); return; }
+
+    const { error } = await supabase.from('recurring_occurrences').insert({
+      recurring_payment_id: payment.id,
+      user_id: user.id,
+      due_date: isoDate(dueDate),
+      status: 'skipped',
+      transaction_id: null,
+    });
+
+    if (error) {
+      setToast({ message: 'Failed to skip.', variant: 'error' });
+    } else {
+      setToast({ message: `${payment.name} skipped.`, variant: 'success' });
+      window.dispatchEvent(new Event('transaction-added'));
+    }
+    setPlannedActionLoading(false);
+    setPlannedDialogItem(undefined);
+    await fetchData();
+  }
 
   async function handleDelete() {
     if (!editingTransaction) return;
@@ -337,176 +446,179 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className={styles.layout}>
-      <AppHeader />
-      <main className={styles.main}>
-        <div className={styles.container}>
+    <AppShell>
+      <div className={styles.container}>
 
-          <div className={styles.pageHeader}>
-            <h1 className={styles.pageTitle}>Dashboard</h1>
+        <div className={styles.pageHeader}>
+          <h1 className={styles.pageTitle}>Dashboard</h1>
+          <Button variant="primary" size="lg" onClick={openAddDialog}>+ Add transaction</Button>
+        </div>
+
+        {walletSummaries.length > 0 && (
+          <div className={styles.accountsStrip}>
+            {walletSummaries.map(({ wallet, balance: wb }) => (
+              <div key={wallet.id} className={styles.accountTile}>
+                <div className={styles.accountIcon} style={{ backgroundColor: wallet.color + '22' }}>{wallet.icon}</div>
+                <div className={styles.accountInfo}>
+                  <span className={styles.accountName}>{wallet.name}</span>
+                  <span className={styles.accountBalance}>{formatCurrency(wb, wallet.currency)}</span>
+                </div>
+              </div>
+            ))}
           </div>
+        )}
 
-          <div className={styles.twoCol}>
-            {/* Left column: Wallets */}
-            <div className={styles.leftCol}>
+        <div className={styles.periodRow}>
+          <PeriodPicker value={period} onChange={setPeriod} />
+        </div>
 
-              {walletSummaries.length > 0 && (
-                <div className={styles.walletList}>
-                  {walletSummaries.map(({ wallet, balance: wb }) => (
-                    <div key={wallet.id} className={styles.walletCard} style={{ borderLeftColor: wallet.color }}>
-                      <div className={styles.walletCardHeader}>
-                        <span className={styles.walletCardIcon}>{wallet.icon}</span>
-                        <span className={styles.walletCardName}>{wallet.name}</span>
-                        <span className={styles.walletCardCurrency}>{wallet.currency}</span>
-                      </div>
-                      <div className={styles.walletCardBalance}>{formatCurrency(wb, wallet.currency)}</div>
-                    </div>
-                  ))}
+        <div className={styles.topRow}>
+          {/* Cash Flow card */}
+          <div className={styles.cashFlowCard} ref={cashFlowRef}>
+            <p className={styles.cashFlowTitle}>Cash Flow</p>
+            <div className={styles.cashFlowTop}>
+              <div className={styles.cashFlowLeft}>
+                <span className={styles.cashFlowPeriodLabel}>{period.label}</span>
+                <div className={styles.cashFlowBalance}>{formatHUF(animatedBalance)}</div>
+              </div>
+              {vsPct !== null && (
+                <div className={styles.cashFlowRight}>
+                  <span className={styles.vsLabel}>vs previous period</span>
+                  <span className={[styles.vsTag, vsPct >= 0 ? styles.vsTagPos : styles.vsTagNeg].join(' ')}>
+                    {vsPct >= 0 ? '↑' : '↓'} {Math.abs(vsPct)}%
+                  </span>
                 </div>
               )}
             </div>
-
-            {/* Right column: Cash Flow + Transactions */}
-            <div className={styles.rightCol}>
-
-              {/* Cash Flow card */}
-              <div className={styles.cashFlowCard}>
-                <p className={styles.cashFlowTitle}>Cash Flow</p>
-                <div className={styles.cashFlowTop}>
-                  <div className={styles.cashFlowLeft}>
-                    <span className={styles.cashFlowPeriodLabel}>{period.label}</span>
-                    <div className={styles.cashFlowBalance}>{formatHUF(animatedBalance)}</div>
-                  </div>
-                  {vsPct !== null && (
-                    <div className={styles.cashFlowRight}>
-                      <span className={styles.vsLabel}>VS Previous Period</span>
-                      <span className={[styles.vsTag, vsPct >= 0 ? styles.vsTagPos : styles.vsTagNeg].join(' ')}>
-                        {vsPct >= 0 ? '↑' : '↓'} {Math.abs(vsPct)}%
-                      </span>
-                    </div>
-                  )}
+            <div className={styles.cashFlowBars}>
+              <div className={styles.barRow}>
+                <div className={styles.barMeta}>
+                  <span className={styles.barLabel}>Income</span>
+                  <span className={styles.barAmount}>{formatHUF(income)}</span>
                 </div>
-                <div className={styles.cashFlowBars}>
-                  <div className={styles.barRow}>
-                    <div className={styles.barMeta}>
-                      <span className={styles.barLabel}>Income</span>
-                      <span className={styles.barAmount}>{formatHUF(income)}</span>
-                    </div>
-                    <div className={styles.barTrack}>
-                      <div className={[styles.barFill, styles.barFillIncome].join(' ')} style={{ width: `${incomePct}%` }} />
-                    </div>
-                  </div>
-                  <div className={styles.barRow}>
-                    <div className={styles.barMeta}>
-                      <span className={styles.barLabel}>Expense</span>
-                      <span className={styles.barAmount}>-{formatHUF(expense)}</span>
-                    </div>
-                    <div className={styles.barTrack}>
-                      <div className={[styles.barFill, styles.barFillExpense].join(' ')} style={{ width: `${expensePct}%` }} />
-                    </div>
-                  </div>
+                <div className={styles.barTrack}>
+                  <div className={[styles.barFill, styles.barFillIncome].join(' ')} style={{ width: `${incomePct}%` }} />
                 </div>
               </div>
-
-              {/* Period picker — below Cash Flow */}
-              <div className={styles.periodRow}>
-                <PeriodPicker value={period} onChange={setPeriod} />
-              </div>
-
-              {/* Transactions grouped by day */}
-              <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                  <h2 className={styles.sectionTitle}>Transactions</h2>
-                  <Link href="/transactions" className={styles.viewAll}>View all →</Link>
+              <div className={styles.barRow}>
+                <div className={styles.barMeta}>
+                  <span className={styles.barLabel}>Expense</span>
+                  <span className={styles.barAmount}>-{formatHUF(expense)}</span>
                 </div>
-                {loading ? (
-                  <p className={styles.emptyState}>Loading…</p>
-                ) : groupedDays.length === 0 ? (
-                  <p className={styles.emptyState}>No transactions in this period.</p>
-                ) : (
-                  <div className={styles.groupedList}>
-                    {groupedDays.map(({ date, transactions: dayTxs, net }) => (
-                      <div key={date} className={styles.dayGroup}>
-                        <div className={styles.dayHeader}>
-                          <span className={styles.dayDate}>{formatDayHeader(date)}</span>
-                          <span className={[styles.dayNet, net >= 0 ? styles.dayNetPos : styles.dayNetNeg].join(' ')}>
-                            {net < 0 ? '−' : ''}{formatHUF(Math.abs(net))}
-                          </span>
-                        </div>
-                        <div className={styles.dayTxList}>
-                          {dayTxs.map(t => {
-                            const isTransfer = !!t.transfer_group_id;
-                            return (
-                              <div key={t.id} className={styles.txRow}>
-                                <div className={styles.txLeft}>
-                                  <div
-                                    className={styles.txIcon}
-                                    style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
-                                  >
-                                    {isTransfer ? (t.payer ? (t.type === 'expense' ? '↑' : '↓') : '↔') : (t.category?.icon ?? '?')}
-                                  </div>
-                                  <div className={styles.txMain}>
-                                    <span className={styles.txCategory}>
-                                      {isTransfer
-                                        ? (t.payer ? t.payer : 'Transfer')
-                                        : (t.category?.name ?? 'Uncategorised')}
-                                    </span>
-                                    {t.wallet && (
-                                      <span className={styles.txWallet}>
-                                        <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
-                                        {t.wallet.name}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {t.labels && t.labels.length > 0 && (
-                                    <div className={styles.txLabels}>
-                                      {t.labels.map(l => (
-                                        <span key={l.id} className={styles.txLabel}>
-                                          <span className={styles.txWalletDot} style={{ backgroundColor: l.color }} />
-                                          {l.name}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className={styles.txRight}>
-                                  <button
-                                    className={styles.txEditBtn}
-                                    onClick={() => openEdit(t)}
-                                    aria-label="Edit transaction"
-                                  >
-                                    Edit
-                                  </button>
-
-                                  <span className={[
-                                    styles.txAmount,
-                                    isTransfer ? styles.txTransfer : t.type === 'income' ? styles.txIncome : styles.txExpense,
-                                  ].join(' ')}>
-                                    {isTransfer
-                                      ? (t.type === 'expense' ? '−' : '')
-                                      : (t.type === 'income' ? '' : '−')
-                                    }{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
-                                  </span>
-
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {hasMore && <div ref={sentinelRef} className={styles.sentinel} />}
-              </section>
-
+                <div className={styles.barTrack}>
+                  <div className={[styles.barFill, styles.barFillExpense].join(' ')} style={{ width: `${expensePct}%` }} />
+                </div>
+              </div>
             </div>
           </div>
 
+          {/* Planned payments card */}
+          <div className={styles.sideCard} style={sideCardHeight ? { height: sideCardHeight } : undefined}>
+            <div className={styles.sideCardHeader}>
+              <h2 className={styles.sideCardTitle}>Planned payments</h2>
+              <Link href="/recurring" className={styles.sideCardLink}>All</Link>
+            </div>
+            {plannedDue.length === 0 ? (
+              <p className={styles.sideCardEmpty}>Nothing due this period.</p>
+            ) : (
+              <div className={styles.sideCardList}>
+                {plannedDue.map(({ payment, dueDate }, i) => (
+                  <div
+                    key={`${payment.id}-${i}`}
+                    className={styles.plannedRow}
+                    onClick={() => setPlannedDialogItem({ payment, dueDate })}
+                  >
+                    <div className={styles.plannedTile}>
+                      <span className={styles.plannedTileMon}>{dueDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}</span>
+                      <span className={styles.plannedTileDay}>{dueDate.getDate()}</span>
+                    </div>
+                    <div className={styles.plannedInfo}>
+                      <span className={styles.plannedName}>{payment.name}</span>
+                      <span className={styles.plannedFreq}>{frequencyLabel(payment.frequency)}</span>
+                    </div>
+                    <span className={[styles.plannedAmount, payment.type === 'income' ? styles.amtIncome : styles.amtExpense].join(' ')}>
+                      {payment.type === 'income' ? '+' : '−'}{formatCurrency(payment.amount, payment.wallet?.currency ?? 'HUF')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Top categories card */}
+          <div className={styles.sideCard} style={sideCardHeight ? { height: sideCardHeight } : undefined}>
+            <div className={styles.sideCardHeader}>
+              <h2 className={styles.sideCardTitle}>Top categories</h2>
+              <Link href="/statistics" className={styles.sideCardLink}>All</Link>
+            </div>
+            {topCategories.length === 0 ? (
+              <p className={styles.sideCardEmpty}>No expenses in this period.</p>
+            ) : (
+              <div className={styles.sideCardList}>
+                {topCategories.map(({ category, total }) => (
+                  <div key={category?.id ?? 'uncategorised'} className={styles.catRow}>
+                    <div className={styles.catIcon} style={{ backgroundColor: (category?.color ?? '#94a3b8') + '22' }}>
+                      {category?.icon ?? '?'}
+                    </div>
+                    <div className={styles.catInfo}>
+                      <span className={styles.catName}>{category?.name ?? 'Uncategorised'}</span>
+                    </div>
+                    <span className={styles.catAmount}>−{formatHUF(total)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </main>
-      <AppFooter />
+
+        {/* Recent transactions */}
+        <section className={styles.recentCard}>
+          <div className={styles.recentHeader}>
+            <h2 className={styles.recentTitle}>Recent transactions</h2>
+            <Link href="/transactions" className={styles.recentSeeAll}>See all ›</Link>
+          </div>
+          {loading ? (
+            <p className={styles.emptyState}>Loading…</p>
+          ) : recentTransactions.length === 0 ? (
+            <p className={styles.emptyState}>No transactions in this period.</p>
+          ) : (
+            <div className={styles.recentList}>
+              {recentTransactions.map(t => {
+                const isTransfer = !!t.transfer_group_id;
+                return (
+                  <div key={t.id} className={styles.txRow} onClick={() => openEdit(t)}>
+                    <div
+                      className={styles.txIcon}
+                      style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
+                    >
+                      {isTransfer ? (t.payer ? (t.type === 'expense' ? '↑' : '↓') : '↔') : (t.category?.icon ?? '?')}
+                    </div>
+                    <div className={styles.txMain}>
+                      <span className={styles.txName}>
+                        {isTransfer ? (t.payer ? t.payer : 'Transfer') : (t.category?.name ?? 'Uncategorised')}
+                      </span>
+                      {t.wallet && <span className={styles.txMeta}>{t.wallet.name}</span>}
+                    </div>
+                    <div className={styles.txRight}>
+                      <span className={[
+                        styles.txAmount,
+                        isTransfer ? styles.txTransfer : t.type === 'income' ? styles.amtIncome : styles.amtExpense,
+                      ].join(' ')}>
+                        {isTransfer
+                          ? (t.type === 'expense' ? '−' : '')
+                          : (t.type === 'income' ? '' : '−')
+                        }{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
+                      </span>
+                      <span className={styles.txDate}>{formatDayLabel(t.date)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+      </div>
 
       {editingTransaction && (
         <TransactionForm
@@ -521,7 +633,33 @@ export default function DashboardPage() {
         />
       )}
 
+      {plannedDialogItem && (
+        <ConfirmDialog
+          title={plannedDialogItem.payment.name}
+          message={
+            <>
+              <span className={[
+                styles.plannedDialogAmount,
+                plannedDialogItem.payment.type === 'income' ? styles.amtIncome : styles.amtExpense,
+              ].join(' ')}>
+                {plannedDialogItem.payment.type === 'income' ? '+' : '−'}
+                {formatCurrency(plannedDialogItem.payment.amount, plannedDialogItem.payment.wallet?.currency ?? 'HUF')}
+              </span>
+              {`Due ${plannedDialogItem.dueDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}. Add this as a transaction, or skip this occurrence?`}
+            </>
+          }
+          confirmLabel="Add transaction"
+          cancelLabel="Skip"
+          confirmVariant="primary"
+          cancelVariant="ghost"
+          onConfirm={handlePlannedAdd}
+          onCancel={handlePlannedSkip}
+          onDismiss={() => setPlannedDialogItem(undefined)}
+          loading={plannedActionLoading}
+        />
+      )}
+
       {toast && <Toast message={toast.message} variant={toast.variant} onDismiss={() => setToast(null)} />}
-    </div>
+    </AppShell>
   );
 }

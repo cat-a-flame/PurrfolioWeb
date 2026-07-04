@@ -89,7 +89,7 @@ export default function WalletsSettingsPage() {
     setSaving(false);
     if (error) { setFormError(error.message); } else {
       handleCloseAdd();
-      setToast({ message: 'Wallet added.', variant: 'success' });
+      setToast({ message: 'Account added.', variant: 'success' });
       await fetchWallets();
     }
   }
@@ -119,7 +119,7 @@ export default function WalletsSettingsPage() {
     setEditSaving(false);
     if (error) { setEditError(error.message); } else {
       handleCloseEdit();
-      setToast({ message: 'Wallet updated.', variant: 'success' });
+      setToast({ message: 'Account updated.', variant: 'success' });
       await fetchWallets();
     }
   }
@@ -137,7 +137,7 @@ export default function WalletsSettingsPage() {
 
   async function handleToggleArchive(wallet: Wallet) {
     if (!wallet.is_archived && wallet.is_default) {
-      setToast({ message: 'The default wallet cannot be archived.', variant: 'error' });
+      setToast({ message: 'The default account cannot be archived.', variant: 'error' });
       return;
     }
     const supabase = createClient();
@@ -145,7 +145,7 @@ export default function WalletsSettingsPage() {
       .update({ is_archived: !wallet.is_archived })
       .eq('id', wallet.id);
     if (error) {
-      setToast({ message: 'Failed to update wallet.', variant: 'error' });
+      setToast({ message: 'Failed to update account.', variant: 'error' });
     } else {
       handleCloseEdit();
       setToast({ message: wallet.is_archived ? `"${wallet.name}" unarchived.` : `"${wallet.name}" archived.`, variant: 'success' });
@@ -156,11 +156,11 @@ export default function WalletsSettingsPage() {
   async function handleDelete() {
     if (!deletingWallet) return;
     if (deletingWallet.is_default) {
-      setToast({ message: 'The default wallet cannot be deleted.', variant: 'error' });
+      setToast({ message: 'The default account cannot be deleted.', variant: 'error' });
       setDeletingWallet(null); return;
     }
     if (wallets.length <= 1) {
-      setToast({ message: 'You must have at least one wallet.', variant: 'error' });
+      setToast({ message: 'You must have at least one account.', variant: 'error' });
       setDeletingWallet(null); return;
     }
     setDeleteLoading(true);
@@ -168,23 +168,23 @@ export default function WalletsSettingsPage() {
     const { error } = await supabase.from('wallets').delete().eq('id', deletingWallet.id);
     setDeleteLoading(false);
     setDeletingWallet(null);
-    if (error) { setToast({ message: 'Failed to delete wallet.', variant: 'error' }); }
-    else { setToast({ message: 'Wallet deleted.', variant: 'success' }); await fetchWallets(); }
+    if (error) { setToast({ message: 'Failed to delete account.', variant: 'error' }); }
+    else { setToast({ message: 'Account deleted.', variant: 'success' }); await fetchWallets(); }
   }
 
   return (
     <div className={styles.container}>
       <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>Wallets</h1>
-        <Button variant="primary" size="md" onClick={() => setShowAddDialog(true)}>+ Add wallet</Button>
+        <h1 className={styles.pageTitle}>Accounts</h1>
+        <Button variant="primary" size="lg" onClick={() => setShowAddDialog(true)}>+ Add account</Button>
       </div>
 
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Your wallets</h2>
+        <h2 className={styles.sectionTitle}>Your accounts</h2>
         {loading ? (
           <p className={styles.emptyState}>Loading…</p>
         ) : wallets.filter(w => !w.is_archived).length === 0 ? (
-          <p className={styles.emptyState}>No wallets yet. Click &quot;+ Add wallet&quot; to create one.</p>
+          <p className={styles.emptyState}>No accounts yet. Click &quot;+ Add account&quot; to create one.</p>
         ) : (
           <div className={styles.list}>
             {wallets.filter(w => !w.is_archived).map(wallet => (
@@ -215,7 +215,7 @@ export default function WalletsSettingsPage() {
 
       {wallets.some(w => w.is_archived) && (
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Archived wallets</h2>
+          <h2 className={styles.sectionTitle}>Archived accounts</h2>
           <div className={styles.list}>
             {wallets.filter(w => w.is_archived).map(wallet => (
               <div key={wallet.id} className={`${styles.walletItem} ${styles.walletItemArchived}`}>
@@ -237,7 +237,7 @@ export default function WalletsSettingsPage() {
       )}
 
       {showAddDialog && (
-        <Dialog title="Add wallet" onClose={handleCloseAdd}>
+        <Dialog title="Add account" onClose={handleCloseAdd}>
           <form onSubmit={handleAdd} className={styles.form}>
             <div className={styles.field}>
               <FormLabel htmlFor="w-name" required>Name</FormLabel>
@@ -278,14 +278,14 @@ export default function WalletsSettingsPage() {
             {formError && <p className={styles.formError}>{formError}</p>}
             <div className={styles.dialogActions}>
               <Button variant="secondary" size="md" type="button" onClick={handleCloseAdd}>Cancel</Button>
-              <Button type="submit" variant="primary" size="md" loading={saving}>Add wallet</Button>
+              <Button type="submit" variant="primary" size="md" loading={saving}>Add account</Button>
             </div>
           </form>
         </Dialog>
       )}
 
       {editingWallet && (
-        <Dialog title="Edit wallet" onClose={handleCloseEdit}>
+        <Dialog title="Edit account" onClose={handleCloseEdit}>
           <form onSubmit={handleEditSave} className={styles.form}>
             <div className={styles.field}>
               <FormLabel htmlFor="ew-name" required>Name</FormLabel>
@@ -308,7 +308,7 @@ export default function WalletsSettingsPage() {
             <div className={styles.field}>
               <Switch
                 id="ew-default"
-                label="Default wallet"
+                label="Default account"
                 checked={editingWallet.is_default}
                 onChange={() => handleSetDefault(editingWallet)}
                 disabled={editingWallet.is_default}
@@ -337,8 +337,8 @@ export default function WalletsSettingsPage() {
 
       {deletingWallet && (
         <ConfirmDialog
-          title="Delete wallet"
-          message={`Delete "${deletingWallet.name}"? Transactions linked to it cannot be deleted while this wallet exists.`}
+          title="Delete account"
+          message={`Delete "${deletingWallet.name}"? Transactions linked to it cannot be deleted while this account exists.`}
           onConfirm={handleDelete}
           onCancel={() => setDeletingWallet(null)}
           loading={deleteLoading}

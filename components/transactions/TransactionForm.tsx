@@ -264,7 +264,7 @@ export default function TransactionForm({
                         <button className={styles.closeBtn} type="button" onClick={handleClose} aria-label="Close">✕</button>
                     </div>
                     <p className={styles.noWalletMsg}>
-                        You need at least one wallet before adding records. Go to <strong>Wallets</strong> to create one.
+                        You need at least one account before adding records. Go to <strong>Accounts</strong> to create one.
                     </p>
                 </div>
             </div>
