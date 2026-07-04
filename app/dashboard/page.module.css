@@ -88,7 +88,7 @@
 .topRow {
   display: flex;
   gap: var(--space-6);
-  align-items: stretch;
+  align-items: flex-start;
   flex-wrap: wrap;
 }
 

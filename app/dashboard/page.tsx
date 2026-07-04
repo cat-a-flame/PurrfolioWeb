@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useCountUp } from '@/lib/useCountUp';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
@@ -81,6 +81,27 @@ export default function DashboardPage() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
   const [editingTransferPair, setEditingTransferPair] = useState<Transaction | undefined>();
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
+
+  // Cash Flow card's own content sets the row height; the side cards are
+  // clamped to match it (with internal scrolling) rather than the reverse.
+  const cashFlowRef = useRef<HTMLDivElement>(null);
+  const [sideCardHeight, setSideCardHeight] = useState<number | undefined>(undefined);
+
+  useLayoutEffect(() => {
+    const el = cashFlowRef.current;
+    if (!el) return;
+    const update = () => {
+      setSideCardHeight(window.innerWidth <= 768 ? undefined : el.getBoundingClientRect().height);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener('resize', update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, []);
 
   // Exchange rates: date → { EUR: number, USD: number, … } (HUF per 1 unit)
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
@@ -363,7 +384,7 @@ export default function DashboardPage() {
 
         <div className={styles.topRow}>
           {/* Cash Flow card */}
-          <div className={styles.cashFlowCard}>
+          <div className={styles.cashFlowCard} ref={cashFlowRef}>
             <p className={styles.cashFlowTitle}>Cash Flow</p>
             <div className={styles.cashFlowTop}>
               <div className={styles.cashFlowLeft}>
@@ -402,7 +423,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Planned payments card */}
-          <div className={styles.sideCard}>
+          <div className={styles.sideCard} style={sideCardHeight ? { height: sideCardHeight } : undefined}>
             <div className={styles.sideCardHeader}>
               <h2 className={styles.sideCardTitle}>Planned payments</h2>
               <Link href="/recurring" className={styles.sideCardLink}>All</Link>
@@ -431,7 +452,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Top categories card */}
-          <div className={styles.sideCard}>
+          <div className={styles.sideCard} style={sideCardHeight ? { height: sideCardHeight } : undefined}>
             <div className={styles.sideCardHeader}>
               <h2 className={styles.sideCardTitle}>Top categories</h2>
               <Link href="/statistics" className={styles.sideCardLink}>All</Link>
