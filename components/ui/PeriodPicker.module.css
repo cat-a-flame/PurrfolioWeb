@@ -78,12 +78,9 @@
   color: var(--color-text);
 }
 
-/* ── Dropdown ── */
+/* ── Dropdown (portaled to document.body, positioned via inline style) ── */
 .dropdown {
-  position: absolute;
-  top: calc(100% + var(--space-2));
-  left: 50%;
-  transform: translateX(-50%);
+  position: fixed;
   z-index: 300;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
