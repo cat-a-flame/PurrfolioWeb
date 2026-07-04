@@ -7,6 +7,7 @@ import AppShell from '@/components/layout/AppShell';
 import Button from '@/components/ui/Button';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import TransactionForm, { TransactionFormData } from '@/components/transactions/TransactionForm';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Toast from '@/components/ui/Toast';
 import { useAddRecord } from '@/components/transactions/AddRecordProvider';
 import { createClient } from '@/lib/supabase/client';
@@ -82,6 +83,9 @@ export default function DashboardPage() {
   const [editingTransferPair, setEditingTransferPair] = useState<Transaction | undefined>();
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
 
+  const [plannedDialogItem, setPlannedDialogItem] = useState<{ payment: RecurringPayment; dueDate: Date } | undefined>();
+  const [plannedActionLoading, setPlannedActionLoading] = useState(false);
+
   // Cash Flow card's own content sets the row height; the side cards are
   // clamped to match it (with internal scrolling) rather than the reverse.
   const cashFlowRef = useRef<HTMLDivElement>(null);
@@ -138,7 +142,7 @@ export default function DashboardPage() {
       supabase.from('wallets').select('*').eq('user_id', user.id).order('name'),
       supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
       supabase.from('labels').select('*').eq('user_id', user.id).order('name'),
-      supabase.from('recurring_payments').select('*, wallet:wallets(*), category:categories(*)').eq('user_id', user.id).eq('is_active', true),
+      supabase.from('recurring_payments').select('*, wallet:wallets(*), category:categories(*), labels:recurring_payment_labels(label:labels(*))').eq('user_id', user.id).eq('is_active', true),
       supabase.from('recurring_occurrences').select('*').eq('user_id', user.id).gte('due_date', period.from).lte('due_date', period.to),
     ]);
     setPeriodTransactions(txs);
@@ -147,7 +151,13 @@ export default function DashboardPage() {
     if (walletRes.data) setWallets(walletRes.data);
     if (catRes.data) setCategories(catRes.data);
     if (lblRes.data) setLabels(lblRes.data);
-    if (rpRes.data) setRecurringPayments(rpRes.data as RecurringPayment[]);
+    if (rpRes.data) {
+      type RawPayment = Omit<RecurringPayment, 'labels'> & { labels: { label: Label | null }[] };
+      setRecurringPayments((rpRes.data as RawPayment[]).map(p => ({
+        ...p,
+        labels: p.labels.map(l => l.label).filter((l): l is Label => l !== null),
+      })));
+    }
     if (occRes.data) setRecurringOccurrences(occRes.data as RecurringOccurrence[]);
     setLoading(false);
   }, [period]);
@@ -223,6 +233,86 @@ export default function DashboardPage() {
       .sort((a, b) => (a.date === b.date ? b.created_at.localeCompare(a.created_at) : b.date.localeCompare(a.date)))
       .slice(0, 10);
   }, [periodTransactions]);
+
+  async function handlePlannedAdd() {
+    if (!plannedDialogItem) return;
+    const { payment, dueDate } = plannedDialogItem;
+    setPlannedActionLoading(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setPlannedActionLoading(false); return; }
+
+    const { data: txData, error: txErr } = await supabase
+      .from('transactions')
+      .insert({
+        user_id: user.id,
+        type: payment.type,
+        amount: payment.amount,
+        wallet_id: payment.wallet_id,
+        category_id: payment.category_id,
+        date: isoDate(dueDate),
+        notes: payment.notes,
+        payer: payment.payer,
+      })
+      .select('id')
+      .single();
+
+    if (txErr || !txData) {
+      setToast({ message: 'Failed to create transaction.', variant: 'error' });
+      setPlannedActionLoading(false);
+      return;
+    }
+
+    const { error: occErr } = await supabase.from('recurring_occurrences').insert({
+      recurring_payment_id: payment.id,
+      user_id: user.id,
+      due_date: isoDate(dueDate),
+      status: 'paid',
+      transaction_id: txData.id,
+    });
+
+    if (occErr) {
+      setToast({ message: 'Transaction created but occurrence record failed.', variant: 'error' });
+    } else {
+      if (payment.labels && payment.labels.length > 0) {
+        await supabase.from('transaction_labels').insert(
+          payment.labels.map(l => ({ transaction_id: txData.id, label_id: l.id }))
+        );
+      }
+      setToast({ message: `${payment.name} added.`, variant: 'success' });
+      window.dispatchEvent(new Event('transaction-added'));
+    }
+    setPlannedActionLoading(false);
+    setPlannedDialogItem(undefined);
+    await fetchData();
+  }
+
+  async function handlePlannedSkip() {
+    if (!plannedDialogItem) return;
+    const { payment, dueDate } = plannedDialogItem;
+    setPlannedActionLoading(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setPlannedActionLoading(false); return; }
+
+    const { error } = await supabase.from('recurring_occurrences').insert({
+      recurring_payment_id: payment.id,
+      user_id: user.id,
+      due_date: isoDate(dueDate),
+      status: 'skipped',
+      transaction_id: null,
+    });
+
+    if (error) {
+      setToast({ message: 'Failed to skip.', variant: 'error' });
+    } else {
+      setToast({ message: `${payment.name} skipped.`, variant: 'success' });
+      window.dispatchEvent(new Event('transaction-added'));
+    }
+    setPlannedActionLoading(false);
+    setPlannedDialogItem(undefined);
+    await fetchData();
+  }
 
   async function handleDelete() {
     if (!editingTransaction) return;
@@ -433,7 +523,11 @@ export default function DashboardPage() {
             ) : (
               <div className={styles.sideCardList}>
                 {plannedDue.map(({ payment, dueDate }, i) => (
-                  <div key={`${payment.id}-${i}`} className={styles.plannedRow}>
+                  <div
+                    key={`${payment.id}-${i}`}
+                    className={styles.plannedRow}
+                    onClick={() => setPlannedDialogItem({ payment, dueDate })}
+                  >
                     <div className={styles.plannedTile}>
                       <span className={styles.plannedTileMon}>{dueDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}</span>
                       <span className={styles.plannedTileDay}>{dueDate.getDate()}</span>
@@ -536,6 +630,20 @@ export default function DashboardPage() {
           onSave={handleSave}
           onDelete={handleDelete}
           onClose={() => { setEditingTransaction(undefined); setEditingTransferPair(undefined); }}
+        />
+      )}
+
+      {plannedDialogItem && (
+        <ConfirmDialog
+          title={plannedDialogItem.payment.name}
+          message={`Due ${formatDayLabel(isoDate(plannedDialogItem.dueDate))} · ${formatCurrency(plannedDialogItem.payment.amount, plannedDialogItem.payment.wallet?.currency ?? 'HUF')}. Add this as a transaction, or skip this occurrence?`}
+          confirmLabel="Add transaction"
+          cancelLabel="Skip"
+          confirmVariant="primary"
+          onConfirm={handlePlannedAdd}
+          onCancel={handlePlannedSkip}
+          onDismiss={() => setPlannedDialogItem(undefined)}
+          loading={plannedActionLoading}
         />
       )}
 

@@ -289,6 +289,15 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  margin: 0 calc(-1 * var(--space-2));
+  padding: var(--space-2);
+  transition: background var(--transition-fast);
+}
+
+.plannedRow:hover {
+  background: var(--color-surface-2);
 }
 
 .plannedTile {

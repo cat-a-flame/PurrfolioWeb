@@ -8,8 +8,11 @@ interface ConfirmDialogProps {
   message: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  confirmVariant?: 'danger' | 'primary';
   onConfirm: () => void;
   onCancel: () => void;
+  /** Called when the overlay is clicked to dismiss. Defaults to onCancel. */
+  onDismiss?: () => void;
   loading?: boolean;
 }
 
@@ -18,12 +21,14 @@ export default function ConfirmDialog({
   message,
   confirmLabel = 'Delete',
   cancelLabel = 'Cancel',
+  confirmVariant = 'danger',
   onConfirm,
   onCancel,
+  onDismiss,
   loading = false,
 }: ConfirmDialogProps) {
   return (
-    <div className={styles.overlay} onClick={onCancel}>
+    <div className={styles.overlay} onClick={onDismiss ?? onCancel}>
       <div
         className={styles.dialog}
         onClick={(e) => e.stopPropagation()}
@@ -42,7 +47,7 @@ export default function ConfirmDialog({
           <Button variant="secondary" size="md" onClick={onCancel} disabled={loading}>
             {cancelLabel}
           </Button>
-          <Button variant="danger" size="md" onClick={onConfirm} loading={loading}>
+          <Button variant={confirmVariant} size="md" onClick={onConfirm} loading={loading}>
             {confirmLabel}
           </Button>
         </div>
