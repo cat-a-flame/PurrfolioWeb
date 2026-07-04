@@ -39,42 +39,42 @@ export default function TransactionsPage() {
   // Filters — initialised from sessionStorage so state persists across navigation
   const [filterType, setFilterType] = useState<FilterType>(() => {
     if (typeof window !== 'undefined') {
-      const saved = sessionStorage.getItem('pennypuff_tx_filters');
+      const saved = sessionStorage.getItem('purrfolio_tx_filters');
       if (saved) try { return (JSON.parse(saved).type ?? '') as FilterType; } catch {}
     }
     return '';
   });
   const [filterCategoryId, setFilterCategoryId] = useState(() => {
     if (typeof window !== 'undefined') {
-      const saved = sessionStorage.getItem('pennypuff_tx_filters');
+      const saved = sessionStorage.getItem('purrfolio_tx_filters');
       if (saved) try { return JSON.parse(saved).categoryId ?? ''; } catch {}
     }
     return '';
   });
   const [filterLabelId, setFilterLabelId] = useState(() => {
     if (typeof window !== 'undefined') {
-      const saved = sessionStorage.getItem('pennypuff_tx_filters');
+      const saved = sessionStorage.getItem('purrfolio_tx_filters');
       if (saved) try { return JSON.parse(saved).labelId ?? ''; } catch {}
     }
     return '';
   });
   const [filterWalletId, setFilterWalletId] = useState(() => {
     if (typeof window !== 'undefined') {
-      const saved = sessionStorage.getItem('pennypuff_tx_filters');
+      const saved = sessionStorage.getItem('purrfolio_tx_filters');
       if (saved) try { return JSON.parse(saved).walletId ?? ''; } catch {}
     }
     return '';
   });
   const [filterPeriod, setFilterPeriod] = useState<PeriodValue | null>(() => {
     if (typeof window !== 'undefined') {
-      const saved = sessionStorage.getItem('pennypuff_period');
+      const saved = sessionStorage.getItem('purrfolio_period');
       if (saved) try { return JSON.parse(saved) as PeriodValue; } catch {}
     }
     return null;
   });
   const [filterSearch, setFilterSearch] = useState(() => {
     if (typeof window !== 'undefined') {
-      const saved = sessionStorage.getItem('pennypuff_tx_filters');
+      const saved = sessionStorage.getItem('purrfolio_tx_filters');
       if (saved) try { return JSON.parse(saved).search ?? ''; } catch {}
     }
     return '';
@@ -82,7 +82,7 @@ export default function TransactionsPage() {
 
   // Persist filters to sessionStorage whenever they change
   useEffect(() => {
-    sessionStorage.setItem('pennypuff_tx_filters', JSON.stringify({
+    sessionStorage.setItem('purrfolio_tx_filters', JSON.stringify({
       type: filterType,
       categoryId: filterCategoryId,
       labelId: filterLabelId,
@@ -93,9 +93,9 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     if (filterPeriod) {
-      sessionStorage.setItem('pennypuff_period', JSON.stringify(filterPeriod));
+      sessionStorage.setItem('purrfolio_period', JSON.stringify(filterPeriod));
     } else {
-      sessionStorage.removeItem('pennypuff_period');
+      sessionStorage.removeItem('purrfolio_period');
     }
   }, [filterPeriod]);
 
@@ -252,8 +252,8 @@ export default function TransactionsPage() {
     setFilterWalletId('');
     setFilterPeriod(null);
     setFilterSearch('');
-    sessionStorage.removeItem('pennypuff_tx_filters');
-    sessionStorage.removeItem('pennypuff_period');
+    sessionStorage.removeItem('purrfolio_tx_filters');
+    sessionStorage.removeItem('purrfolio_period');
   }
 
   const hasMore = filteredTransactions.length > displayCount;

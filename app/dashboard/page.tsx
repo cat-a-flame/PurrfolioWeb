@@ -76,7 +76,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<PeriodValue>(() => {
     if (typeof window !== 'undefined') {
-      const saved = sessionStorage.getItem('pennypuff_period');
+      const saved = sessionStorage.getItem('purrfolio_period');
       if (saved) try { return JSON.parse(saved) as PeriodValue; } catch {}
     }
     return defaultPeriod();
@@ -107,7 +107,7 @@ export default function DashboardPage() {
   }, [periodTransactions, prevTransactions]);
 
   useEffect(() => {
-    sessionStorage.setItem('pennypuff_period', JSON.stringify(period));
+    sessionStorage.setItem('purrfolio_period', JSON.stringify(period));
   }, [period]);
 
   // Lazy load
