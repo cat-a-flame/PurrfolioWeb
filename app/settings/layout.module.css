@@ -1,13 +1,7 @@
-.layout {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
 .body {
-  flex: 1;
   display: flex;
-  overflow: hidden;
+  align-items: flex-start;
+  gap: var(--space-8);
 }
 
 @media (max-width: 640px) {
@@ -16,15 +10,5 @@
 
 .main {
   flex: 1;
-  padding: var(--space-8) var(--space-8);
-  overflow-y: auto;
   min-width: 0;
-}
-
-@media (max-width: 900px) {
-  .main { padding: var(--space-6) var(--space-5); }
-}
-
-@media (max-width: 768px) {
-  .main { padding: var(--space-4); }
 }

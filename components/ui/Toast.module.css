@@ -20,7 +20,7 @@
 }
 
 .success {
-  background: #166534;
+  background: var(--color-income);
   color: #fff;
 }
 

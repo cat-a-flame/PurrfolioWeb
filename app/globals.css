@@ -1,34 +1,39 @@
 /* Design tokens */
 :root {
   /* Colors */
-  --color-bg: #f5f3f7;
+  --color-bg: #f9f5ff;
   --color-surface: #ffffff;
-  --color-surface-2: #ede9f2;
-  --color-surface-3: #e5dff0;
+  --color-surface-2: #f3edfb;
+  --color-surface-3: #ece6f3;
 
-  --color-accent: #692f7c;
-  --color-accent-hover: #561268;
-  --color-accent-light: #f0e4f7;
+  --color-accent: #7a5ce0;
+  --color-accent-hover: #6a4bd0;
+  --color-accent-light: #f3edfb;
+  --color-accent-2: #e0609f;
+  --gradient-accent: linear-gradient(135deg, #7a5ce0, #e0609f);
+  --gradient-cashflow: linear-gradient(120deg, #5c3aa4 0%, #7c3e92 55%, #98448a 100%);
 
-  --color-text: #523e5c;
-  --color-text-muted: #8972a4;
-  --color-text-faint: #b0aba4;
+  --color-text: #2e2140;
+  --color-text-muted: #9a8cab;
+  --color-text-faint: #b0a2bf;
 
-  --color-border: #e5e2dd;
-  --color-border-focus: #692f7c;
-  --color-accent-glow: rgba(105, 47, 124, 0.4);
-  --color-accent-border: rgba(105, 47, 124, 0.2);
-  --color-overlay: rgba(0, 0, 0, 0.4);
+  --color-border: #ece6f3;
+  --color-border-focus: #7a5ce0;
+  --color-accent-glow: rgba(122, 92, 224, 0.35);
+  --color-accent-glow2: 122, 92, 224;
+  --color-accent-border: rgba(122, 92, 224, 0.2);
+  --color-overlay: rgba(46, 33, 64, 0.35);
+  --color-scrollbar-thumb: #dcd3e8;
 
-  --color-danger: #ef573c;
-  --color-danger-hover: #d44429;
-  --color-danger-light: #fde8e2;
+  --color-danger: #e24b3b;
+  --color-danger-hover: #c93d2e;
+  --color-danger-light: #fbecef;
 
   /* Budget-specific tokens */
-  --color-income: #149a83;
-  --color-income-light: #d0f5ef;
-  --color-expense: #ef573c;
-  --color-expense-light: #fde8e2;
+  --color-income: #1b7c58;
+  --color-income-light: #cdefe0;
+  --color-expense: #e24b3b;
+  --color-expense-light: #fbecef;
 
   /* Typography */
   --font-lora: 'Lora', serif;
@@ -47,17 +52,17 @@
   --space-16: 4rem;
 
   /* Radii */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
   --radius-full: 9999px;
 
   /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(82, 62, 92, 0.06);
-  --shadow-md: 0 4px 12px rgba(82, 62, 92, 0.08);
-  --shadow-lg: 0 8px 24px rgba(82, 62, 92, 0.12);
-  --shadow-nav: 0 -2px 12px rgba(82, 62, 92, 0.08);
+  --shadow-sm: 0 1px 2px rgba(80, 40, 110, 0.08);
+  --shadow-md: 0 8px 24px rgba(80, 40, 110, 0.14);
+  --shadow-lg: 0 18px 40px -20px rgba(80, 40, 110, 0.28);
+  --shadow-nav: 0 -2px 16px rgba(80, 40, 110, 0.1);
 
   /* Transitions */
   --transition-fast: 120ms ease;
@@ -65,39 +70,42 @@
 }
 
 html[data-theme="dark"] {
-  --color-bg: #0f0b1a;
-  --color-surface: #1a1028;
-  --color-surface-2: #231540;
-  --color-surface-3: #2d1c52;
+  --color-bg: #150e24;
+  --color-surface: #1e1533;
+  --color-surface-2: #271c41;
+  --color-surface-3: #32234f;
 
-  --color-accent: #d946a8;
-  --color-accent-hover: #bf3d94;
-  --color-accent-light: #3b1040;
+  --color-accent: #9b7ff0;
+  --color-accent-hover: #b49af5;
+  --color-accent-light: #2d2050;
+  --color-accent-2: #e67fb8;
+  --gradient-accent: linear-gradient(135deg, #9b7ff0, #e67fb8);
 
-  --color-text: #f0e6ff;
-  --color-text-muted: #a586c8;
-  --color-text-faint: #5e4a78;
+  --color-text: #f1eaff;
+  --color-text-muted: #b3a0cc;
+  --color-text-faint: #6b5a88;
 
-  --color-border: #3a2060;
-  --color-border-focus: #d946a8;
-  --color-accent-glow: rgba(217, 70, 168, 0.45);
-  --color-accent-glow2: 217, 70, 168;
-  --color-accent-border: rgba(217, 70, 168, 0.25);
+  --color-border: #362754;
+  --color-border-focus: #9b7ff0;
+  --color-accent-glow: rgba(155, 127, 240, 0.45);
+  --color-accent-glow2: 155, 127, 240;
+  --color-accent-border: rgba(155, 127, 240, 0.25);
   --color-overlay: rgba(5, 0, 15, 0.7);
+  --color-scrollbar-thumb: #3a2a5c;
 
-  --color-danger: #f43f5e;
-  --color-danger-hover: #e11d48;
-  --color-danger-light: #3d0a1a;
+  --color-danger: #ff6b5b;
+  --color-danger-hover: #ff5142;
+  --color-danger-light: #3d1512;
 
-  --color-income: #43eb81;
+  --color-income: #43eb9e;
   --color-income-light: #0a2e1a;
-  --color-expense: #ff5b77;
-  --color-expense-light: #3d0a1a;
+  --color-expense: #ff6b5b;
+  --color-expense-light: #3d1210;
 
   --shadow-sm: 0 1px 2px rgba(10, 0, 30, 0.5);
-  --shadow-md: 0 4px 12px rgba(10, 0, 30, 0.6);
-  --shadow-lg: 0 8px 24px rgba(10, 0, 30, 0.7);
-  --shadow-nav: 0 -2px 12px rgba(10, 0, 30, 0.5);
+  --shadow-md: 0 8px 24px rgba(10, 0, 30, 0.6);
+  --shadow-lg: 0 18px 40px -20px rgba(10, 0, 30, 0.8);
+  --shadow-nav: 0 -2px 16px rgba(10, 0, 30, 0.5);
 }
 
 /* Reset */
@@ -142,6 +150,22 @@ textarea {
 img,
 svg {
   display: block;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-scrollbar-thumb);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* Mobile: reserve space for bottom nav */
