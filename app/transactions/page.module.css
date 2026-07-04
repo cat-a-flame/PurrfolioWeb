@@ -589,45 +589,34 @@
 
 /* ── Cash flow summary card ── */
 .summaryCard {
-  border-radius: var(--radius-xl);
-  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6) var(--space-8);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
   position: relative;
+  overflow: hidden;
   background: var(--gradient-cashflow);
-  border: 1px solid rgba(122, 92, 224, 0.4);
-  box-shadow:
-    0 8px 32px rgba(80, 40, 110, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
-  }
+  color: #fff;
+  box-shadow: 0 26px 40px -28px rgba(90, 45, 140, 0.72);
 }
 
 .summaryBalance {
   display: flex;
-  align-items: baseline;
-  gap: var(--space-3);
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
 .summaryBalanceLabel {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.84375rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .summaryBalanceAmount {
   font-family: var(--font-nunito);
-  font-size: 1.75rem;
-  font-weight: 700;
+  font-size: 2.25rem;
+  font-weight: 900;
   line-height: 1.1;
 }
 
@@ -637,7 +626,7 @@
 .summaryBars {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .summaryBarRow {
@@ -650,17 +639,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  font-size: 0.875rem;
 }
 
 .summaryBarLabel {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.75);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .summaryBarAmount {
-  font-size: 0.9375rem;
-  font-weight: 600;
+  font-weight: 800;
   font-family: var(--font-nunito);
   color: #fff;
 }
@@ -671,7 +659,7 @@
 .summaryBarTrack {
   width: 100%;
   height: 8px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.22);
   border-radius: var(--radius-full);
   overflow: hidden;
 }
@@ -682,5 +670,5 @@
   transition: width 0.4s ease;
 }
 
-.summaryBarFillIncome { background: var(--color-income); }
-.summaryBarFillExpense { background: var(--color-expense); }
+.summaryBarFillIncome { background: #2fb894; }
+.summaryBarFillExpense { background: #f0603e; }
