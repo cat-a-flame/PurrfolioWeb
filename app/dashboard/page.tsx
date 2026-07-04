@@ -636,10 +636,22 @@ export default function DashboardPage() {
       {plannedDialogItem && (
         <ConfirmDialog
           title={plannedDialogItem.payment.name}
-          message={`Due ${formatDayLabel(isoDate(plannedDialogItem.dueDate))} · ${formatCurrency(plannedDialogItem.payment.amount, plannedDialogItem.payment.wallet?.currency ?? 'HUF')}. Add this as a transaction, or skip this occurrence?`}
+          message={
+            <>
+              <span className={[
+                styles.plannedDialogAmount,
+                plannedDialogItem.payment.type === 'income' ? styles.amtIncome : styles.amtExpense,
+              ].join(' ')}>
+                {plannedDialogItem.payment.type === 'income' ? '+' : '−'}
+                {formatCurrency(plannedDialogItem.payment.amount, plannedDialogItem.payment.wallet?.currency ?? 'HUF')}
+              </span>
+              {`Due ${plannedDialogItem.dueDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}. Add this as a transaction, or skip this occurrence?`}
+            </>
+          }
           confirmLabel="Add transaction"
           cancelLabel="Skip"
           confirmVariant="primary"
+          cancelVariant="ghost"
           onConfirm={handlePlannedAdd}
           onCancel={handlePlannedSkip}
           onDismiss={() => setPlannedDialogItem(undefined)}

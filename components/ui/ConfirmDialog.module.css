@@ -30,7 +30,7 @@
 
 .message {
   font-size: 0.9375rem;
-  color: var(--color-text-muted);
+  color: var(--color-text);
   line-height: 1.6;
 }
 

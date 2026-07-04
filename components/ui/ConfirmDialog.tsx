@@ -5,10 +5,11 @@ import styles from './ConfirmDialog.module.css';
 
 interface ConfirmDialogProps {
   title: string;
-  message: string;
+  message: React.ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   confirmVariant?: 'danger' | 'primary';
+  cancelVariant?: 'secondary' | 'ghost';
   onConfirm: () => void;
   onCancel: () => void;
   /** Called when the overlay is clicked to dismiss. Defaults to onCancel. */
@@ -22,6 +23,7 @@ export default function ConfirmDialog({
   confirmLabel = 'Delete',
   cancelLabel = 'Cancel',
   confirmVariant = 'danger',
+  cancelVariant = 'secondary',
   onConfirm,
   onCancel,
   onDismiss,
@@ -40,11 +42,11 @@ export default function ConfirmDialog({
         <h2 id="confirm-title" className={styles.title}>
           {title}
         </h2>
-        <p id="confirm-message" className={styles.message}>
+        <div id="confirm-message" className={styles.message}>
           {message}
-        </p>
+        </div>
         <div className={styles.actions}>
-          <Button variant="secondary" size="md" onClick={onCancel} disabled={loading}>
+          <Button variant={cancelVariant} size="md" onClick={onCancel} disabled={loading}>
             {cancelLabel}
           </Button>
           <Button variant={confirmVariant} size="md" onClick={onConfirm} loading={loading}>
