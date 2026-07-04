@@ -438,7 +438,7 @@ export default function RecurringPage() {
             <div>
               <h1 className={styles.pageTitle}>Planned payments</h1>
             </div>
-            <Button variant="primary" size="md" onClick={() => { setAddForm({ ...EMPTY_FORM, walletId: wallets.find(w => w.is_default && !w.is_archived)?.id ?? wallets.find(w => !w.is_archived)?.id ?? '' }); setShowAddDialog(true); setAddError(''); }}>
+            <Button variant="primary" size="lg" onClick={() => { setAddForm({ ...EMPTY_FORM, walletId: wallets.find(w => w.is_default && !w.is_archived)?.id ?? wallets.find(w => !w.is_archived)?.id ?? '' }); setShowAddDialog(true); setAddError(''); }}>
               + Add
             </Button>
           </div>

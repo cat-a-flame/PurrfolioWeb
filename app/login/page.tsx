@@ -80,7 +80,7 @@ export default function LoginPage() {
 
           {error && <p className={styles.error}>{error}</p>}
 
-          <Button type="submit" variant="primary" loading={loading} className={styles.submitBtn}>
+          <Button type="submit" variant="primary" size="lg" loading={loading} className={styles.submitBtn}>
             Sign in
           </Button>
         </form>

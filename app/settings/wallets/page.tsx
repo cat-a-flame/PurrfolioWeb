@@ -176,7 +176,7 @@ export default function WalletsSettingsPage() {
     <div className={styles.container}>
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>Wallets</h1>
-        <Button variant="primary" size="md" onClick={() => setShowAddDialog(true)}>+ Add wallet</Button>
+        <Button variant="primary" size="lg" onClick={() => setShowAddDialog(true)}>+ Add wallet</Button>
       </div>
 
       <section className={styles.section}>
