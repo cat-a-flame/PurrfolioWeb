@@ -34,6 +34,13 @@
   border-radius: var(--radius-full);
 }
 
+.lg {
+  font-size: 1rem;
+  padding: var(--space-4) var(--space-6);
+  height: 52px;
+  border-radius: var(--radius-full);
+}
+
 /* Variants */
 .primary {
   background: var(--gradient-accent);

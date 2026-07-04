@@ -174,7 +174,7 @@ export default function DashboardPage() {
   const expensePct = total > 0 ? (expense / total) * 100 : 0;
 
   const walletSummaries = wallets
-    .slice()
+    .filter(w => !w.is_archived)
     .sort((a, b) => {
       if (a.is_default !== b.is_default) return a.is_default ? -1 : 1;
       return a.name.localeCompare(b.name);
@@ -361,7 +361,7 @@ export default function DashboardPage() {
 
         <div className={styles.pageHeader}>
           <h1 className={styles.pageTitle}>Dashboard</h1>
-          <Button variant="primary" onClick={openAddDialog}>+ Add transaction</Button>
+          <Button variant="primary" size="lg" onClick={openAddDialog}>+ Add transaction</Button>
         </div>
 
         {walletSummaries.length > 0 && (
