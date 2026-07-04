@@ -618,10 +618,8 @@
   font-size: 2.25rem;
   font-weight: 900;
   line-height: 1.1;
+  color: #fff;
 }
-
-.summaryPos { color: var(--color-income); }
-.summaryNeg { color: var(--color-expense); }
 
 .summaryBars {
   display: flex;

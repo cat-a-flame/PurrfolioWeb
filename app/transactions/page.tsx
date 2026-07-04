@@ -674,7 +674,7 @@ export default function TransactionsPage() {
                   {showBalance && (
                     <div className={styles.summaryBalance}>
                       <span className={styles.summaryBalanceLabel}>Balance</span>
-                      <span className={[styles.summaryBalanceAmount, summaryBalance >= 0 ? styles.summaryPos : styles.summaryNeg].join(' ')}>
+                      <span className={styles.summaryBalanceAmount}>
                         {summaryBalance < 0 ? '−' : ''}{formatHUF(Math.abs(summaryBalance))}
                       </span>
                     </div>
