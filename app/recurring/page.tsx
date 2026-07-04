@@ -199,57 +199,65 @@ export default function RecurringPage() {
   async function handlePay(item: DueItem) {
     const key = `${item.payment.id}|${isoDate(item.dueDate)}`;
     setActionLoading(key);
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setActionLoading(null); return; }
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const wallet = item.payment.wallet_id ? wallets.find(w => w.id === item.payment.wallet_id) : null;
-
-    // Insert the transaction
-    const { data: txData, error: txErr } = await supabase
-      .from('transactions')
-      .insert({
-        user_id: user.id,
-        type: item.payment.type,
-        amount: item.payment.amount,
-        wallet_id: item.payment.wallet_id,
-        category_id: item.payment.category_id,
-        date: isoDate(item.dueDate),
-        notes: item.payment.notes,
-        payer: item.payment.payer,
-      })
-      .select('id')
-      .single();
-
-    if (txErr || !txData) {
-      setToast({ message: 'Failed to create transaction.', variant: 'error' });
-      setActionLoading(null);
-      return;
-    }
-
-    // Record the occurrence
-    const { error: occErr } = await supabase.from('recurring_occurrences').insert({
-      recurring_payment_id: item.payment.id,
-      user_id: user.id,
-      due_date: isoDate(item.dueDate),
-      status: 'paid',
-      transaction_id: txData.id,
-    });
-
-    if (occErr) {
-      setToast({ message: 'Transaction created but occurrence record failed.', variant: 'error' });
-    } else {
-      if (item.payment.labels && item.payment.labels.length > 0) {
-        await supabase.from('transaction_labels').insert(
-          item.payment.labels.map(l => ({ transaction_id: txData.id, label_id: l.id }))
-        );
+      if (!item.payment.wallet_id) {
+        setToast({ message: `${item.payment.name} has no wallet assigned. Edit it and pick a wallet first.`, variant: 'error' });
+        return;
       }
-      const currency = (wallet?.currency ?? 'HUF') as 'HUF' | 'USD' | 'EUR';
-      setToast({ message: `${item.payment.name} — ${formatCurrency(item.payment.amount, currency)} added.`, variant: 'success' });
-      window.dispatchEvent(new Event('transaction-added'));
+      const wallet = wallets.find(w => w.id === item.payment.wallet_id);
+
+      // Insert the transaction
+      const { data: txData, error: txErr } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: user.id,
+          type: item.payment.type,
+          amount: item.payment.amount,
+          wallet_id: item.payment.wallet_id,
+          category_id: item.payment.category_id,
+          date: isoDate(item.dueDate),
+          notes: item.payment.notes,
+          payer: item.payment.payer,
+        })
+        .select('id')
+        .single();
+
+      if (txErr || !txData) {
+        setToast({ message: 'Failed to create transaction.', variant: 'error' });
+        return;
+      }
+
+      // Record the occurrence
+      const { error: occErr } = await supabase.from('recurring_occurrences').insert({
+        recurring_payment_id: item.payment.id,
+        user_id: user.id,
+        due_date: isoDate(item.dueDate),
+        status: 'paid',
+        transaction_id: txData.id,
+      });
+
+      if (occErr) {
+        setToast({ message: 'Transaction created but occurrence record failed.', variant: 'error' });
+      } else {
+        if (item.payment.labels && item.payment.labels.length > 0) {
+          await supabase.from('transaction_labels').insert(
+            item.payment.labels.map(l => ({ transaction_id: txData.id, label_id: l.id }))
+          );
+        }
+        const currency = (wallet?.currency ?? 'HUF') as 'HUF' | 'USD' | 'EUR';
+        setToast({ message: `${item.payment.name} — ${formatCurrency(item.payment.amount, currency)} added.`, variant: 'success' });
+        window.dispatchEvent(new Event('transaction-added'));
+      }
+    } catch {
+      setToast({ message: 'Something went wrong. Please try again.', variant: 'error' });
+    } finally {
+      setActionLoading(null);
+      fetchAll();
     }
-    setActionLoading(null);
-    fetchAll();
   }
 
   // ─── Skip ────────────────────────────────────────────────────────────────────
@@ -257,26 +265,31 @@ export default function RecurringPage() {
   async function handleSkip(item: DueItem) {
     const key = `${item.payment.id}|${isoDate(item.dueDate)}`;
     setActionLoading(key);
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setActionLoading(null); return; }
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const { error } = await supabase.from('recurring_occurrences').insert({
-      recurring_payment_id: item.payment.id,
-      user_id: user.id,
-      due_date: isoDate(item.dueDate),
-      status: 'skipped',
-      transaction_id: null,
-    });
+      const { error } = await supabase.from('recurring_occurrences').insert({
+        recurring_payment_id: item.payment.id,
+        user_id: user.id,
+        due_date: isoDate(item.dueDate),
+        status: 'skipped',
+        transaction_id: null,
+      });
 
-    if (error) {
-      setToast({ message: 'Failed to skip.', variant: 'error' });
-    } else {
-      setToast({ message: `${item.payment.name} skipped.`, variant: 'success' });
-      window.dispatchEvent(new Event('transaction-added'));
+      if (error) {
+        setToast({ message: 'Failed to skip.', variant: 'error' });
+      } else {
+        setToast({ message: `${item.payment.name} skipped.`, variant: 'success' });
+        window.dispatchEvent(new Event('transaction-added'));
+      }
+    } catch {
+      setToast({ message: 'Something went wrong. Please try again.', variant: 'error' });
+    } finally {
+      setActionLoading(null);
+      fetchAll();
     }
-    setActionLoading(null);
-    fetchAll();
   }
 
   // ─── Add ─────────────────────────────────────────────────────────────────────
