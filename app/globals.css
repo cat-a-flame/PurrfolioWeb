@@ -37,7 +37,7 @@
 
   /* Typography */
   --font-lora: 'Lora', serif;
-  --font-figtree: 'Figtree', sans-serif;
+  --font-nunito: 'Nunito', sans-serif;
 
   /* Spacing */
   --space-1: 0.25rem;
@@ -124,7 +124,7 @@ html {
 }
 
 body {
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   background-color: var(--color-bg);
   color: var(--color-text);
   line-height: 1.6;

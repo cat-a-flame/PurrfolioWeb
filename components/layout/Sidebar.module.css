@@ -255,7 +255,7 @@
   cursor: pointer;
   text-decoration: none;
   transition: background var(--transition-fast);
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
 }
 
 .dropdownItem:hover:not(:disabled) {

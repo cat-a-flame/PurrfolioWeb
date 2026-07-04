@@ -349,7 +349,7 @@
   cursor: pointer;
   border-radius: calc(var(--radius-md) - 2px);
   transition: background 0.12s, color 0.12s;
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
 }
 .kebabItem:hover {
   background: var(--color-border);
@@ -446,7 +446,7 @@
   border: none;
   background: transparent;
   color: var(--color-text-muted);
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   font-size: 0.9375rem;
   font-weight: 600;
   cursor: pointer;

@@ -82,7 +82,7 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   font-size: 0.875rem;
   color: var(--color-text);
   outline: none;
@@ -216,7 +216,7 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   font-size: 0.9375rem;
   color: var(--color-text);
   resize: vertical;
@@ -278,7 +278,7 @@
   background: transparent;
   border: none;
   outline: none;
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   font-size: 0.875rem;
   color: var(--color-text);
 }
@@ -408,7 +408,7 @@
 .dayNet {
   font-size: 0.875rem;
   font-weight: 700;
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
 }
 
 .dayNetPos { color: var(--color-income); }
@@ -503,7 +503,7 @@
 .txAmount {
   font-size: 0.9375rem;
   font-weight: 700;
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
 }
 
 .txIncome { color: var(--color-income); }
@@ -539,7 +539,7 @@
   padding: 0;
   opacity: 0;
   transition: opacity var(--transition-fast);
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
 }
 
 .txRow:hover .txEditBtn {
@@ -625,7 +625,7 @@
 }
 
 .summaryBalanceAmount {
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   font-size: 1.75rem;
   font-weight: 700;
   line-height: 1.1;
@@ -661,7 +661,7 @@
 .summaryBarAmount {
   font-size: 0.9375rem;
   font-weight: 600;
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   color: #fff;
 }
 

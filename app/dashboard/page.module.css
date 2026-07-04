@@ -72,7 +72,7 @@
 .accountBalance {
   font-size: 0.875rem;
   font-weight: 600;
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   color: var(--color-text);
   white-space: nowrap;
 }
@@ -135,7 +135,7 @@
 }
 
 .cashFlowBalance {
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   font-size: 2.25rem;
   font-weight: 900;
   color: #fff;
@@ -206,7 +206,7 @@
 .barAmount {
   font-weight: 800;
   color: #fff;
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
 }
 
 .barTrack {
@@ -366,7 +366,7 @@
 
 .plannedDialogAmount {
   display: block;
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   font-size: 1.75rem;
   font-weight: 900;
   margin-bottom: var(--space-2);
@@ -509,7 +509,7 @@
 .txAmount {
   font-weight: 900;
   font-size: 0.9375rem;
-  font-family: var(--font-figtree);
+  font-family: var(--font-nunito);
   white-space: nowrap;
 }
 
