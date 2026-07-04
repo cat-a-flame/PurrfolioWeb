@@ -45,7 +45,7 @@ export default function SignupPage() {
       <div className={styles.page}>
         <div className={styles.card}>
           <div className={styles.header}>
-            <h1 className={styles.brand}>PennyPuff</h1>
+            <h1 className={styles.brand}>Purrfolio</h1>
             <p className={styles.tagline}>Your personal budget tracker</p>
           </div>
           <div className={signupStyles.successCard}>
@@ -65,7 +65,7 @@ export default function SignupPage() {
     <div className={styles.page}>
       <div className={styles.card}>
         <div className={styles.header}>
-          <h1 className={styles.brand}>PennyPuff</h1>
+          <h1 className={styles.brand}>Purrfolio</h1>
           <p className={styles.tagline}>Your personal budget tracker</p>
         </div>
 

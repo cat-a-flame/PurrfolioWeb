@@ -1,4 +1,4 @@
--- PennyPuff — complete database schema
+-- Purrfolio — complete database schema
 -- Run this in the Supabase SQL editor to set up the database from scratch.
 
 -- ─────────────────────────────────────────

@@ -10,7 +10,7 @@ const lora = Lora({ subsets: ['latin'], variable: '--font-lora', display: 'swap'
 const figtree = Figtree({ subsets: ['latin'], variable: '--font-figtree', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: 'PennyPuff',
+  title: 'Purrfolio',
   description: 'Your personal budget tracker',
 };
 
