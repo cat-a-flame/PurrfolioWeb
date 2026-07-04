@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useRecurringAlert } from '@/contexts/RecurringAlertContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import styles from './Sidebar.module.css';
 
 const navItems = [
@@ -104,6 +105,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const hasUrgentPlanned = useRecurringAlert();
+  const { theme, toggleTheme } = useTheme();
   const [email, setEmail] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -169,6 +171,17 @@ export default function Sidebar() {
       </div>
 
       <div className={styles.spacer} />
+
+      <button
+        className={styles.themeToggle}
+        onClick={toggleTheme}
+        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      >
+        <span className={styles.themeLabel}>{theme === 'dark' ? 'Dark mode' : 'Light mode'}</span>
+        <span className={[styles.toggleTrack, theme === 'dark' ? styles.toggleTrackOn : ''].filter(Boolean).join(' ')}>
+          <span className={[styles.toggleThumb, theme === 'dark' ? styles.toggleThumbOn : ''].filter(Boolean).join(' ')} />
+        </span>
+      </button>
 
       <div className={styles.userArea}>
         <button
