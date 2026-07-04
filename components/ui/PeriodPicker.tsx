@@ -3,6 +3,14 @@
 import { useState, useRef, useEffect } from 'react';
 import styles from './PeriodPicker.module.css';
 
+function Chevron({ direction }: { direction: 'left' | 'right' }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d={direction === 'left' ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6'} />
+    </svg>
+  );
+}
+
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MONTH_LONG  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAY_SHORT   = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
@@ -140,15 +148,22 @@ export default function PeriodPicker({ value, onChange, onClear, hideNav }: Prop
   return (
     <div className={styles.container} ref={ref}>
       <div className={styles.trigger}>
-        {!hideNav && <button className={styles.navBtn} onClick={() => navigate(-1)} aria-label="Previous" disabled={!value.from}>‹</button>}
+        {!hideNav && (
+          <button className={styles.navBtn} onClick={() => navigate(-1)} aria-label="Previous" disabled={!value.from}>
+            <Chevron direction="left" />
+          </button>
+        )}
         <button className={styles.labelBtn} onClick={() => setOpen(o => !o)}>
           {value.label}
-          <span className={styles.caret} aria-hidden>⌄</span>
         </button>
         {onClear && value.from ? (
           <button className={styles.clearBtn} onClick={onClear} aria-label="Clear date filter">×</button>
         ) : (
-          !hideNav && <button className={styles.navBtn} onClick={() => navigate(1)} aria-label="Next" disabled={!value.from}>›</button>
+          !hideNav && (
+            <button className={styles.navBtn} onClick={() => navigate(1)} aria-label="Next" disabled={!value.from}>
+              <Chevron direction="right" />
+            </button>
+          )
         )}
       </div>
 
