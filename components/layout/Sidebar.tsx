@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { useAddRecord } from '@/components/transactions/AddRecordProvider';
 import { useRecurringAlert } from '@/contexts/RecurringAlertContext';
 import styles from './Sidebar.module.css';
 
@@ -70,7 +69,6 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { openAddDialog } = useAddRecord();
   const hasUrgentPlanned = useRecurringAlert();
   const [email, setEmail] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -98,10 +96,6 @@ export default function Sidebar() {
         <img src="/logo.png" alt="Purrfolio logo" className={styles.logo} />
         <span className={styles.brandName}>Purrfolio</span>
       </Link>
-
-      <button className={styles.addRecordBtn} onClick={openAddDialog}>
-        <span className={styles.addRecordIcon} aria-hidden>+</span> Add transaction
-      </button>
 
       <div className={styles.menuLabel}>MENU</div>
       <div className={styles.navList}>

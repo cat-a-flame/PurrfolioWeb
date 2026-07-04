@@ -26,9 +26,8 @@
 /* ── Accounts strip ── */
 .accountsStrip {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-4);
-  overflow-x: auto;
-  padding-bottom: var(--space-1);
 }
 
 .accountTile {

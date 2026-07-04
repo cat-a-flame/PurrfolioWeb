@@ -35,36 +35,6 @@
   color: var(--color-text);
 }
 
-.addRecordBtn {
-  margin-top: var(--space-5);
-  width: 100%;
-  border: none;
-  cursor: pointer;
-  border-radius: var(--radius-full);
-  padding: var(--space-3) var(--space-4);
-  background: var(--gradient-accent);
-  color: #fff;
-  font-family: var(--font-figtree);
-  font-weight: 800;
-  font-size: 0.9375rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  box-shadow: 0 12px 24px -12px rgba(122, 92, 224, 0.65);
-  transition: filter var(--transition-fast);
-}
-
-.addRecordBtn:hover {
-  filter: brightness(1.05);
-}
-
-.addRecordIcon {
-  font-size: 1.125rem;
-  line-height: 0;
-  font-weight: 900;
-}
-
 .menuLabel {
   margin-top: var(--space-8);
   color: var(--color-text-faint);

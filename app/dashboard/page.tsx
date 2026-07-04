@@ -195,7 +195,7 @@ export default function DashboardPage() {
       entry.total += amt;
       totals.set(key, entry);
     }
-    return Array.from(totals.values()).sort((a, b) => b.total - a.total);
+    return Array.from(totals.values()).sort((a, b) => b.total - a.total).slice(0, 5);
   }, [periodTransactions, ratesByDate]);
 
   // Planned payments due within the selected period that haven't been paid/skipped yet
