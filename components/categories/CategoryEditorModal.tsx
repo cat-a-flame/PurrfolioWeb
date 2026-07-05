@@ -7,7 +7,7 @@ import Dialog from '@/components/ui/Dialog';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
 import type { TransactionType } from '@/lib/types';
-import { hexToRgba } from './colorUtils';
+import { hexToRgba } from '@/lib/colorUtils';
 import styles from './CategoryEditorModal.module.css';
 
 export type CategoryDraftType = TransactionType | 'both';

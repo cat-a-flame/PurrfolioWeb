@@ -1,5 +1,5 @@
 import type { Category } from '@/lib/types';
-import { hexToRgba } from './colorUtils';
+import { hexToRgba } from '@/lib/colorUtils';
 import styles from './CategoryCard.module.css';
 
 interface CategoryCardProps {
