@@ -429,6 +429,7 @@
   padding: var(--space-3) var(--space-4);
   transition: background var(--transition-fast);
   position: relative;
+  cursor: pointer;
 }
 
 .txRow + .txRow {
@@ -473,11 +474,19 @@
   flex-shrink: 0;
 }
 
+.txPayee {
+  font-size: .78125rem;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
 .txNotes {
+  display: block;
   font-size: 0.8125rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .txLeft {
@@ -489,7 +498,19 @@
 }
 
 .txDetails {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   margin-left: var(--space-2);
+  min-width: 0;
+  flex: 1;
+}
+
+.txPayeeNote {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .txRight {
@@ -525,23 +546,6 @@
   font-weight: 700;
   gap: .3rem;
   white-space: nowrap;
-}
-
-.txEditBtn {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-accent);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-  font-family: var(--font-nunito);
-}
-
-.txRow:hover .txEditBtn {
-  opacity: 1;
 }
 
 .sentinel {

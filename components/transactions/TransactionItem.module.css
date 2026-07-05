@@ -130,12 +130,24 @@
   gap: var(--space-1);
 }
 
+.tagRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
 .walletTag {
   font-size: 0.6875rem;
   color: var(--color-text-tertiary);
   display: flex;
   align-items: center;
   gap: 0.25rem;
+}
+
+.payeeTag {
+  font-size: 0.6875rem;
+  color: var(--color-text-tertiary);
 }
 
 @media (max-width: 768px) {

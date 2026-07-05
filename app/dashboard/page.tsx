@@ -599,6 +599,30 @@ export default function DashboardPage() {
                       </span>
                       {t.wallet && <span className={styles.txMeta}>{t.wallet.name}</span>}
                     </div>
+
+                    {((!isTransfer && t.payer) || t.notes || (t.labels && t.labels.length > 0)) && (
+                      <div className={styles.txDetails}>
+                        <div className={styles.txPayeeNote}>
+                          {!isTransfer && t.payer && (
+                            <span className={styles.txPayee}>{t.payer}</span>
+                          )}
+                          {t.notes && (
+                            <span className={styles.txNotes}>{t.notes}</span>
+                          )}
+                        </div>
+                        {t.labels && t.labels.length > 0 && (
+                          <div className={styles.txLabels}>
+                            {t.labels.map(l => (
+                              <span key={l.id} className={styles.txLabel}>
+                                <span className={styles.txLabelDot} style={{ backgroundColor: l.color }} />
+                                {l.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className={styles.txRight}>
                       <span className={[
                         styles.txAmount,

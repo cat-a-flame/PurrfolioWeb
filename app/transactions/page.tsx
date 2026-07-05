@@ -773,14 +773,18 @@ export default function TransactionsPage() {
                     <div className={styles.dayHeader}>
                       <span className={styles.dayDate}>{formatDayHeader(date)}</span>
                       <span className={[styles.dayNet, net >= 0 ? styles.dayNetPos : styles.dayNetNeg].join(' ')}>
-                        {net < 0 ? '−' : ''}{formatHUF(Math.abs(net))}
+                        {net < 0 ? '−' : '+'}{formatHUF(Math.abs(net))}
                       </span>
                     </div>
                     <div className={styles.dayTxList}>
                       {dayTxs.map(t => {
                         const isTransfer = !!t.transfer_group_id;
                         return (
-                          <div key={t.id} className={[styles.txRow, selectedIds.has(t.id) ? styles.txRowSelected : ''].filter(Boolean).join(' ')}>
+                          <div
+                            key={t.id}
+                            className={[styles.txRow, selectedIds.has(t.id) ? styles.txRowSelected : ''].filter(Boolean).join(' ')}
+                            onClick={() => openEdit(t)}
+                          >
                             <div className={styles.txLeft}>
                               <input
                                 type="checkbox"
@@ -810,8 +814,16 @@ export default function TransactionsPage() {
                                 )}
                               </div>
 
-                              {t.labels && t.labels.length > 0 && t.notes && (
+                              {((!isTransfer && t.payer) || t.notes || (t.labels && t.labels.length > 0)) && (
                                 <div className={styles.txDetails}>
+                                  <div className={styles.txPayeeNote}>
+                                    {!isTransfer && t.payer && (
+                                      <span className={styles.txPayee}>{t.payer}</span>
+                                    )}
+                                    {t.notes && (
+                                      <span className={styles.txNotes}>{t.notes}</span>
+                                    )}
+                                  </div>
                                   {t.labels && t.labels.length > 0 && (
                                     <div className={styles.txLabels}>
                                       {t.labels.map(l => (
@@ -822,29 +834,16 @@ export default function TransactionsPage() {
                                       ))}
                                     </div>
                                   )}
-                                  {t.notes && (
-                                    <span className={styles.txNotes}>{t.notes}</span>
-                                  )}
                                 </div>
                               )}
                             </div>
 
                             <div className={styles.txRight}>
-                              <button
-                                className={styles.txEditBtn}
-                                onClick={() => openEdit(t)}
-                                aria-label="Edit transaction"
-                              >
-                                Edit
-                              </button>
                               <span className={[
                                 styles.txAmount,
                                 isTransfer ? styles.txTransfer : t.type === 'income' ? styles.txIncome : styles.txExpense,
                               ].join(' ')}>
-                                {isTransfer
-                                  ? (t.type === 'expense' ? '−' : '')
-                                  : (t.type === 'income' ? '' : '−')
-                                }{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
+                                {t.type === 'income' ? '+' : '−'}{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
                               </span>
                             </div>
                           </div>

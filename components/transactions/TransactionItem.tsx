@@ -36,10 +36,17 @@ export default function TransactionItem({
           </span>
           <span className={styles.date}>{formatDate(transaction.date)}</span>
         </div>
-        {transaction.wallet && (
-          <span className={styles.walletTag}>
-            {transaction.wallet.icon} {transaction.wallet.name}
-          </span>
+        {(transaction.wallet || transaction.payer) && (
+          <div className={styles.tagRow}>
+            {transaction.wallet && (
+              <span className={styles.walletTag}>
+                {transaction.wallet.icon} {transaction.wallet.name}
+              </span>
+            )}
+            {transaction.payer && (
+              <span className={styles.payeeTag}>{transaction.payer}</span>
+            )}
+          </div>
         )}
 
         <div className={styles.midRow}>
