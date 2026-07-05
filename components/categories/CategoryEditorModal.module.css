@@ -1,0 +1,255 @@
+.previewTile {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8125rem;
+  transition: background var(--transition-base);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  font-weight: 800;
+  font-size: 0.78125rem;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.iconNameRow {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-end;
+}
+
+.iconField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.nameField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.emojiInput {
+  width: 64px;
+  height: 56px;
+  text-align: center;
+  font-size: 1.625rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  outline: none;
+  font-family: var(--font-nunito);
+  color: var(--color-text);
+}
+
+.emojiInput:focus, .nameInput:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-accent-light);
+}
+
+.nameInput {
+  width: 100%;
+  height: 56px;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--color-text);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 0 var(--space-4);
+  background: var(--color-bg);
+  outline: none;
+  font-family: var(--font-nunito);
+}
+
+.hint {
+  color: var(--color-text-faint);
+  font-weight: 600;
+  font-size: 0.75rem;
+  margin-top: var(--space-2);
+}
+
+.colorField {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 10px var(--space-4) 10px 12px;
+  cursor: pointer;
+  background: var(--color-bg);
+  transition: background var(--transition-fast);
+}
+
+.colorField:hover {
+  background: var(--color-surface-2);
+}
+
+.colorSwatch {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.colorInput {
+  position: absolute;
+  inset: -8px;
+  width: 200%;
+  height: 200%;
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.colorHex {
+  display: block;
+  font-weight: 800;
+  font-size: 0.90625rem;
+  color: var(--color-text);
+}
+
+.colorHint {
+  display: block;
+  color: var(--color-text-muted);
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.subsHeader {
+  margin-top: var(--space-6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.optional {
+  color: var(--color-text-faint);
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+
+.subsList {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.subRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2) var(--space-3);
+}
+
+.subEmojiInput {
+  width: 42px;
+  height: 38px;
+  text-align: center;
+  font-size: 1.0625rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  outline: none;
+  font-family: var(--font-nunito);
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+
+.subNameInput {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  font-weight: 700;
+  font-size: 0.90625rem;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-3);
+  background: var(--color-surface);
+  outline: none;
+  font-family: var(--font-nunito);
+}
+
+.subEmojiInput:focus, .subNameInput:focus {
+  border-color: var(--color-border-focus);
+}
+
+.subRemoveBtn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-danger);
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9375rem;
+  font-weight: 800;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+}
+
+.subRemoveBtn:hover {
+  background: var(--color-danger-light);
+}
+
+.addSubBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1.5px dashed var(--color-border-focus);
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-accent);
+  font-weight: 800;
+  font-size: 0.875rem;
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  font-family: var(--font-nunito);
+  transition: background var(--transition-fast);
+}
+
+.addSubBtn:hover {
+  background: var(--color-accent-light);
+}
+
+.addSubPlus {
+  font-size: 0.9375rem;
+  font-weight: 900;
+  line-height: 0;
+}
+
+.footer {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.spacer {
+  flex: 1;
+}

@@ -1,46 +1,30 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
-import ReactSelect from 'react-select';
+import { useEffect, useState, useCallback } from 'react';
 import Button from '@/components/ui/Button';
-import Dialog from '@/components/ui/Dialog';
-import FormLabel from '@/components/ui/FormLabel';
-import Input from '@/components/ui/Input';
-import Toast from '@/components/ui/Toast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
-import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
+import Toast from '@/components/ui/Toast';
+import CategoryCard from '@/components/categories/CategoryCard';
+import CategoryEditorModal, { type CategoryDraft } from '@/components/categories/CategoryEditorModal';
 import { createClient } from '@/lib/supabase/client';
 import type { Category } from '@/lib/types';
 import styles from './page.module.css';
 
-interface EditFields {
-  name: string;
-  icon: string;
-  color: string;
-  parent_id: string;
-}
+type CategoryWithChildren = Category & { children: Category[] };
+
+type ModalState =
+  | { mode: 'create' }
+  | { mode: 'edit'; category: CategoryWithChildren };
+
+const DEFAULT_COLOR = '#7a5ce0';
 
 export default function CategoriesSettingsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const [showAddDialog, setShowAddDialog] = useState(false);
-
-  const [name, setName] = useState('');
-  const [icon, setIcon] = useState('');
-  const [color, setColor] = useState('#f26e4d');
-  const [parentId, setParentId] = useState('');
+  const [modal, setModal] = useState<ModalState | null>(null);
   const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState('');
-
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [editFields, setEditFields] = useState<EditFields>({ name: '', icon: '', color: '#f26e4d', parent_id: '' });
-  const [editSaving, setEditSaving] = useState(false);
-  const [editError, setEditError] = useState('');
-
-  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
   const dismissToast = useCallback(() => setToast(null), []);
 
@@ -55,262 +39,156 @@ export default function CategoriesSettingsPage() {
 
   useEffect(() => { fetchCategories(); }, [fetchCategories]);
 
-  function toggleExpand(id: string) {
-    setExpandedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }
+  const topLevel: CategoryWithChildren[] = categories
+    .filter((c) => !c.parent_id)
+    .map((c) => ({ ...c, children: categories.filter((x) => x.parent_id === c.id) }));
 
-  function handleCloseAdd() {
-    setShowAddDialog(false);
-    setName(''); setIcon(''); setColor('#f26e4d'); setParentId('');
-    setFormError('');
-  }
+  function openCreate() { setModal({ mode: 'create' }); }
+  function openEdit(category: CategoryWithChildren) { setModal({ mode: 'edit', category }); }
+  function closeModal() { setModal(null); }
 
-  async function handleAdd(e: React.FormEvent) {
-    e.preventDefault();
-    setFormError('');
-    if (!name.trim()) { setFormError('Name is required.'); return; }
+  async function handleSave(draft: CategoryDraft) {
+    if (!modal) return;
+    const supabase = createClient();
+    const name = draft.name.trim() || 'Untitled';
+    const icon = draft.icon.trim() || '📁';
+    const subs = draft.subs.filter((s) => s.name.trim());
     setSaving(true);
-    const supabase = createClient();
+
+    if (modal.mode === 'create') {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setSaving(false); return; }
+
+      const { data: created, error } = await supabase.from('categories')
+        .insert({ user_id: user.id, name, type: 'both', icon, color: draft.color, is_default: false, parent_id: null })
+        .select('id').single();
+
+      if (error || !created) {
+        setSaving(false);
+        setToast({ message: 'Failed to create category.', variant: 'error' });
+        return;
+      }
+
+      if (subs.length) {
+        await supabase.from('categories').insert(subs.map((s) => ({
+          user_id: user.id, name: s.name.trim(), type: 'both', icon: s.icon.trim() || '📁',
+          color: draft.color, is_default: false, parent_id: created.id,
+        })));
+      }
+
+      setSaving(false);
+      setModal(null);
+      setToast({ message: 'Category created', variant: 'success' });
+      fetchCategories();
+      return;
+    }
+
+    const category = modal.category;
+    const { error } = await supabase.from('categories')
+      .update({ name, icon, color: draft.color })
+      .eq('id', category.id);
+
+    if (error) {
+      setSaving(false);
+      setToast({ message: 'Failed to save category.', variant: 'error' });
+      return;
+    }
+
+    const keptIds = new Set(subs.filter((s) => s.id).map((s) => s.id as string));
+    const removedIds = category.children.map((c) => c.id).filter((id) => !keptIds.has(id));
+    const toUpdate = subs.filter((s) => s.id);
+    const toInsert = subs.filter((s) => !s.id);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSaving(false); return; }
-    const effectiveColor = parentId
-      ? (categories.find(c => c.id === parentId)?.color ?? color)
-      : color;
-    const { error } = await supabase.from('categories').insert({
-      user_id: user.id, name: name.trim(), type: 'both',
-      icon: icon.trim() || '📁', color: effectiveColor, is_default: false,
-      parent_id: parentId || null,
-    });
+
+    await Promise.all([
+      ...toUpdate.map((s) => supabase.from('categories')
+        .update({ name: s.name.trim(), icon: s.icon.trim() || '📁', color: draft.color })
+        .eq('id', s.id as string)),
+      ...(toInsert.length && user ? [supabase.from('categories').insert(toInsert.map((s) => ({
+        user_id: user.id, name: s.name.trim(), type: 'both', icon: s.icon.trim() || '📁',
+        color: draft.color, is_default: false, parent_id: category.id,
+      })))] : []),
+      ...(removedIds.length ? [supabase.from('categories').delete().in('id', removedIds)] : []),
+    ]);
+
     setSaving(false);
-    if (error) { setFormError(error.message); } else {
-      handleCloseAdd();
-      setToast({ message: 'Category added.', variant: 'success' });
-      await fetchCategories();
+    setModal(null);
+    setToast({ message: 'Changes saved', variant: 'success' });
+    fetchCategories();
+  }
+
+  function requestDelete() {
+    if (modal?.mode !== 'edit') return;
+    setConfirmDelete({ id: modal.category.id, name: modal.category.name });
+  }
+
+  async function handleConfirmDelete() {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    const supabase = createClient();
+    await supabase.from('categories').delete().eq('parent_id', confirmDelete.id);
+    const { error } = await supabase.from('categories').delete().eq('id', confirmDelete.id);
+    setDeleting(false);
+    setConfirmDelete(null);
+    if (error) {
+      setToast({ message: 'Failed to delete category.', variant: 'error' });
+    } else {
+      setModal(null);
+      setToast({ message: 'Category deleted', variant: 'success' });
+      fetchCategories();
     }
   }
 
-  function startEdit(cat: Category) {
-    setEditingCategory(cat);
-    setEditFields({ name: cat.name, icon: cat.icon, color: cat.color, parent_id: cat.parent_id ?? '' });
-    setEditError('');
-  }
-
-  function handleCloseEdit() {
-    setEditingCategory(null); setEditError('');
-  }
-
-  async function handleEditSave(e: React.FormEvent) {
-    e.preventDefault();
-    if (!editingCategory) return;
-    setEditError('');
-    if (!editFields.name.trim()) { setEditError('Name is required.'); return; }
-    setEditSaving(true);
-    const supabase = createClient();
-    const resolvedParentId = editFields.parent_id || null;
-    const effectiveColor = resolvedParentId
-      ? (categories.find(c => c.id === resolvedParentId)?.color ?? editFields.color)
-      : editFields.color;
-    const { error } = await supabase.from('categories').update({
-      name: editFields.name.trim(), icon: editFields.icon.trim() || '📁',
-      color: effectiveColor, parent_id: resolvedParentId,
-    }).eq('id', editingCategory.id);
-    setEditSaving(false);
-    if (error) { setEditError(error.message); } else {
-      handleCloseEdit();
-      setToast({ message: 'Category updated.', variant: 'success' });
-      await fetchCategories();
-    }
-  }
-
-  async function handleDelete() {
-    if (!deletingCategory) return;
-    setDeleteLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.from('categories').delete().eq('id', deletingCategory.id);
-    setDeleteLoading(false);
-    setDeletingCategory(null);
-    if (error) { setToast({ message: 'Failed to delete category.', variant: 'error' }); }
-    else { setToast({ message: 'Category deleted.', variant: 'success' }); await fetchCategories(); }
-  }
-
-  const topLevel = categories.filter(c => !c.parent_id);
-  const getChildren = (pid: string) => categories.filter(c => c.parent_id === pid);
-
-  function renderChildRow(cat: Category) {
-    const parentColor = categories.find(c => c.id === cat.parent_id)?.color ?? cat.color;
-    return (
-      <div key={cat.id} className={[styles.catItem, styles.catItemChild].join(' ')}>
-        <span className={styles.childIndent}>↳</span>
-        <div className={styles.catIcon} style={{ backgroundColor: parentColor + '22' }}><span>{cat.icon || '📁'}</span></div>
-        <span className={styles.catName}>{cat.name}</span>
-        <div className={styles.catActions}>
-          <Button variant="ghost" size="sm" onClick={() => startEdit(cat)}>Edit</Button>
-        </div>
-      </div>
-    );
-  }
-
-  function renderParentRow(cat: Category) {
-    const children = getChildren(cat.id);
-    const hasChildren = children.length > 0;
-    const isExpanded = expandedIds.has(cat.id);
-    return (
-      <div key={cat.id} className={styles.parentGroup}>
-        <div className={styles.catItem}>
-          <button
-            type="button"
-            className={[styles.expandBtn, hasChildren ? '' : styles.expandBtnHidden].filter(Boolean).join(' ')}
-            onClick={() => hasChildren && toggleExpand(cat.id)}
-            aria-expanded={isExpanded}
-          >
-            {isExpanded ? '▾' : '▸'}
-          </button>
-          <div className={styles.catIcon} style={{ backgroundColor: cat.color + '22' }}><span>{cat.icon || '📁'}</span></div>
-          <span className={styles.catName}>
-            {cat.name}
-            {hasChildren && <span className={styles.childCount}>{children.length}</span>}
-          </span>
-          <div className={styles.catActions}>
-            <Button variant="ghost" size="sm" onClick={() => startEdit(cat)}>Edit</Button>
-          </div>
-        </div>
-        {isExpanded && hasChildren && (
-          <div className={styles.childList}>{children.map(child => renderChildRow(child))}</div>
-        )}
-      </div>
-    );
-  }
+  const draftInitial: CategoryDraft | null = !modal ? null : modal.mode === 'create'
+    ? { name: '', icon: '🙂', color: DEFAULT_COLOR, subs: [] }
+    : {
+      name: modal.category.name,
+      icon: modal.category.icon,
+      color: modal.category.color,
+      subs: modal.category.children.map((c) => ({ id: c.id, _key: c.id, icon: c.icon, name: c.name })),
+    };
 
   return (
     <div className={styles.container}>
-      <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>Categories</h1>
-        <Button variant="primary" size="lg" onClick={() => setShowAddDialog(true)}>+ Add category</Button>
+      <div className={styles.header}>
+        <div>
+          <div className={styles.eyebrow}>Organize your spending</div>
+          <h1 className={styles.title}>Categories</h1>
+        </div>
+        <Button variant="primary" size="lg" onClick={openCreate}>+ New category</Button>
       </div>
 
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Your categories</h2>
-        {loading ? (
-          <p className={styles.emptyState}>Loading…</p>
-        ) : categories.length === 0 ? (
-          <p className={styles.emptyState}>No categories yet.</p>
-        ) : (
-          <div className={styles.list}>{topLevel.map(cat => renderParentRow(cat))}</div>
-        )}
-      </section>
-
-      {showAddDialog && (
-        <Dialog title="Add category" onClose={handleCloseAdd}>
-          <form onSubmit={handleAdd} className={styles.form}>
-            <div className={styles.field}>
-              <FormLabel htmlFor="cat-name" required>Name</FormLabel>
-              <Input id="cat-name" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Groceries" required autoFocus />
-            </div>
-            <div className={styles.twoCol}>
-              <div className={styles.field}>
-                <FormLabel htmlFor="cat-icon">Icon (emoji)</FormLabel>
-                <Input id="cat-icon" type="text" value={icon} onChange={e => setIcon(e.target.value)} placeholder="📁" maxLength={4} />
-              </div>
-              {!parentId && (
-                <div className={styles.field}>
-                  <FormLabel htmlFor="cat-color">Color</FormLabel>
-                  <input id="cat-color" type="color" className={styles.colorPicker} value={color} onChange={e => setColor(e.target.value)} />
-                </div>
-              )}
-            </div>
-            <div className={styles.field}>
-              <FormLabel htmlFor="cat-parent">Parent category</FormLabel>
-              {(() => {
-                const addParentOptions = [
-                  { value: '', label: '— Top level —' },
-                  ...categories.filter(c => !c.parent_id).map(c => ({ value: c.id, label: `${c.icon} ${c.name}` })),
-                ];
-                return (
-                  <ReactSelect<{ value: string; label: string }>
-                    inputId="cat-parent"
-                    options={addParentOptions}
-                    value={addParentOptions.find(o => o.value === parentId) ?? addParentOptions[0]}
-                    onChange={(opt) => setParentId(opt?.value ?? '')}
-                    isSearchable
-                    styles={makeRsStyles<{ value: string; label: string }>()}
-                    theme={rsTheme}
-                    menuPosition="fixed"
-                  />
-                );
-              })()}
-            </div>
-            {formError && <p className={styles.formError}>{formError}</p>}
-            <div className={styles.dialogActions}>
-              <Button variant="secondary" size="md" type="button" onClick={handleCloseAdd}>Cancel</Button>
-              <Button type="submit" variant="primary" size="md" loading={saving}>Add category</Button>
-            </div>
-          </form>
-        </Dialog>
+      {loading ? (
+        <p className={styles.emptyState}>Loading…</p>
+      ) : topLevel.length === 0 ? (
+        <p className={styles.emptyState}>No categories yet.</p>
+      ) : (
+        <div className={styles.grid}>
+          {topLevel.map((c) => (
+            <CategoryCard key={c.id} category={c} onEdit={openEdit} />
+          ))}
+        </div>
       )}
 
-      {editingCategory && (
-        <Dialog title="Edit category" onClose={handleCloseEdit}>
-          <form onSubmit={handleEditSave} className={styles.form}>
-            <div className={styles.field}>
-              <FormLabel htmlFor="ecat-name" required>Name</FormLabel>
-              <Input id="ecat-name" type="text" value={editFields.name} onChange={e => setEditFields(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Groceries" required autoFocus />
-            </div>
-            <div className={styles.twoCol}>
-              <div className={styles.field}>
-                <FormLabel htmlFor="ecat-icon">Icon (emoji)</FormLabel>
-                <Input id="ecat-icon" type="text" value={editFields.icon} onChange={e => setEditFields(f => ({ ...f, icon: e.target.value }))} placeholder="📁" maxLength={4} />
-              </div>
-              {!editFields.parent_id && (
-                <div className={styles.field}>
-                  <FormLabel htmlFor="ecat-color">Color</FormLabel>
-                  <input id="ecat-color" type="color" className={styles.colorPicker} value={editFields.color} onChange={e => setEditFields(f => ({ ...f, color: e.target.value }))} />
-                </div>
-              )}
-            </div>
-            <div className={styles.field}>
-              <FormLabel htmlFor="ecat-parent">Parent category</FormLabel>
-              {(() => {
-                const parentOptions = [
-                  { value: '', label: '— Top level —' },
-                  ...categories.filter(c => !c.parent_id && c.id !== editingCategory.id).map(c => ({ value: c.id, label: `${c.icon} ${c.name}` })),
-                ];
-                return (
-                  <ReactSelect<{ value: string; label: string }>
-                    inputId="ecat-parent"
-                    options={parentOptions}
-                    value={parentOptions.find(o => o.value === editFields.parent_id) ?? parentOptions[0]}
-                    onChange={(opt) => setEditFields(f => ({ ...f, parent_id: opt?.value ?? '' }))}
-                    isSearchable
-                    styles={makeRsStyles<{ value: string; label: string }>()}
-                    theme={rsTheme}
-                    menuPosition="fixed"
-                  />
-                );
-              })()}
-            </div>
-            {editError && <p className={styles.formError}>{editError}</p>}
-            <div className={styles.dialogActions}>
-              {!editingCategory.is_default && (
-                <Button variant="danger" size="md" type="button" style={{ marginRight: 'auto' }} onClick={() => { setDeletingCategory(editingCategory); handleCloseEdit(); }}>Delete</Button>
-              )}
-              <Button variant="secondary" size="md" type="button" onClick={handleCloseEdit}>Cancel</Button>
-              <Button type="submit" variant="primary" size="md" loading={editSaving}>Save</Button>
-            </div>
-          </form>
-        </Dialog>
+      {modal && draftInitial && (
+        <CategoryEditorModal
+          mode={modal.mode}
+          initial={draftInitial}
+          canDelete={modal.mode === 'edit' && !modal.category.is_default}
+          saving={saving}
+          onClose={closeModal}
+          onSave={handleSave}
+          onDelete={requestDelete}
+        />
       )}
 
-      {deletingCategory && (
+      {confirmDelete && (
         <ConfirmDialog
-          title="Delete category"
-          message={`Delete "${deletingCategory.name}"? Transactions using this category will become uncategorised.`}
-          onConfirm={handleDelete}
-          onCancel={() => setDeletingCategory(null)}
-          loading={deleteLoading}
+          title={`Delete "${confirmDelete.name}"?`}
+          message="This category and its subcategories will be removed. Existing transactions will become uncategorized."
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setConfirmDelete(null)}
+          loading={deleting}
         />
       )}
 
