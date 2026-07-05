@@ -15,8 +15,6 @@ import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import { createClient } from '@/lib/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import { generateDueDates, frequencyLabel, nextDueDate, isoDate, monthBounds } from '@/lib/recurringUtils';
-import { FaCheck } from 'react-icons/fa';
-import { RxCross1 } from "react-icons/rx";
 import { FaChevronRight } from "react-icons/fa6";
 import { FaChevronLeft } from "react-icons/fa6";
 import { BsThreeDotsVertical } from "react-icons/bs";
@@ -83,6 +81,7 @@ export default function RecurringPage() {
   const [deleteLoading, setDeleteLoading]     = useState(false);
 
   const [actionLoading, setActionLoading] = useState<string | null>(null); // due item key
+  const [duePromptItem, setDuePromptItem] = useState<DueItem | null>(null);
 
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
   const dismissToast = useCallback(() => setToast(null), []);
@@ -467,8 +466,8 @@ export default function RecurringPage() {
                 <p className={styles.dueGroupLabel}>Overdue</p>
                 {overdueItems.map(item => (
                   <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
-                    item={item} loading={actionLoading === `${item.payment.id}|${isoDate(item.dueDate)}`}
-                    onPay={handlePay} onSkip={handleSkip} onEdit={openEdit}
+                    item={item}
+                    onSelect={setDuePromptItem}
                     currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
                 ))}
               </div>
@@ -479,8 +478,8 @@ export default function RecurringPage() {
                 <p className={styles.dueGroupLabel}>Due today</p>
                 {todayItems.map(item => (
                   <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
-                    item={item} loading={actionLoading === `${item.payment.id}|${isoDate(item.dueDate)}`}
-                    onPay={handlePay} onSkip={handleSkip} onEdit={openEdit}
+                    item={item}
+                    onSelect={setDuePromptItem}
                     currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
                 ))}
               </div>
@@ -491,8 +490,8 @@ export default function RecurringPage() {
                 {(overdueItems.length > 0 || todayItems.length > 0) && <p className={styles.dueGroupLabel}>Upcoming</p>}
                 {upcomingItems.map(item => (
                   <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
-                    item={item} loading={actionLoading === `${item.payment.id}|${isoDate(item.dueDate)}`}
-                    onPay={handlePay} onSkip={handleSkip} onEdit={openEdit}
+                    item={item}
+                    onSelect={setDuePromptItem}
                     currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
                 ))}
               </div>
@@ -598,6 +597,32 @@ export default function RecurringPage() {
         <PaymentModal form={editForm} set={setEditForm} title="Edit recurring payment"
           error={editError} saving={editSaving} onSave={handleEdit} onClose={() => setEditingPayment(null)}
           wallets={wallets} categories={categories} labels={labels} />
+      )}
+
+      {duePromptItem && (
+        <ConfirmDialog
+          title={duePromptItem.payment.name}
+          message={
+            <>
+              <span className={[
+                styles.dueDialogAmount,
+                duePromptItem.payment.type === 'income' ? styles.amtIncome : styles.amtExpense,
+              ].join(' ')}>
+                {duePromptItem.payment.type === 'income' ? '+' : '−'}
+                {formatCurrency(duePromptItem.payment.amount, walletCurrency(duePromptItem.payment.wallet_id))}
+              </span>
+              {`Due ${duePromptItem.dueDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}. Add this as a transaction, or skip this occurrence?`}
+            </>
+          }
+          confirmLabel="Add transaction"
+          cancelLabel="Skip"
+          confirmVariant="primary"
+          cancelVariant="ghost"
+          onConfirm={async () => { await handlePay(duePromptItem); setDuePromptItem(null); }}
+          onCancel={async () => { await handleSkip(duePromptItem); setDuePromptItem(null); }}
+          onDismiss={() => setDuePromptItem(null)}
+          loading={actionLoading === `${duePromptItem.payment.id}|${isoDate(duePromptItem.dueDate)}`}
+        />
       )}
 
       {/* Delete confirm */}
@@ -777,22 +802,22 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
 
 // ─── Due card sub-component ────────────────────────────────────────────────────
 
-function DueCard({ item, loading, onPay, onSkip, onEdit, currency, dueDateLabel }: {
+function DueCard({ item, onSelect, currency, dueDateLabel }: {
   item: DueItem;
-  loading: boolean;
-  onPay: (item: DueItem) => void | Promise<void>;
-  onSkip: (item: DueItem) => void | Promise<void>;
-  onEdit: (payment: RecurringPayment) => void;
+  onSelect: (item: DueItem) => void;
   currency: 'HUF' | 'USD' | 'EUR';
   dueDateLabel: string;
 }) {
   const { payment } = item;
   const isOverdue = dueDateLabel.includes('overdue');
   return (
-    <div
-      className={[styles.dueCard, isOverdue ? styles.dueCardOverdue : ''].join(' ')}
-      onClick={() => onEdit(payment)}
-    >
+    <div className={styles.dueCard} onClick={() => onSelect(item)}>
+      <div
+        className={styles.dueIcon}
+        style={{ backgroundColor: (payment.category?.color ?? '#94a3b8') + '22' }}
+      >
+        {payment.category?.icon ?? '?'}
+      </div>
       <div className={styles.dueMeta}>
         <div className={styles.dueMain}>
           <p className={styles.dueName}>{payment.name}</p>
@@ -830,24 +855,6 @@ function DueCard({ item, loading, onPay, onSkip, onEdit, currency, dueDateLabel 
         <span className={[styles.dueAmount, payment.type === 'income' ? styles.amtIncome : styles.amtExpense].join(' ')}>
           {payment.type === 'expense' ? '−' : '+'}{formatCurrency(payment.amount, currency)}
         </span>
-        <div className={styles.dueActions}>
-          <button
-            className={styles.skipBtn}
-            onClick={e => { e.stopPropagation(); onSkip(item); }}
-            disabled={loading}
-            title="Skip this occurrence"
-          >
-            <RxCross1 />
-          </button>
-          <button
-            className={styles.payBtn}
-            onClick={e => { e.stopPropagation(); onPay(item); }}
-            disabled={loading}
-            title="Mark as paid"
-          >
-            <FaCheck />
-          </button>
-        </div>
       </div>
     </div>
   );
