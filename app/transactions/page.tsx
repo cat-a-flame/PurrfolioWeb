@@ -773,7 +773,7 @@ export default function TransactionsPage() {
                     <div className={styles.dayHeader}>
                       <span className={styles.dayDate}>{formatDayHeader(date)}</span>
                       <span className={[styles.dayNet, net >= 0 ? styles.dayNetPos : styles.dayNetNeg].join(' ')}>
-                        {net < 0 ? '−' : ''}{formatHUF(Math.abs(net))}
+                        {net < 0 ? '−' : '+'}{formatHUF(Math.abs(net))}
                       </span>
                     </div>
                     <div className={styles.dayTxList}>
