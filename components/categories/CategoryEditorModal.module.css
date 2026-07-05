@@ -14,11 +14,11 @@
   flex-direction: column;
 }
 
-.label {
-  font-weight: 800;
-  font-size: 0.78125rem;
-  letter-spacing: 0.06em;
-  color: var(--color-text-muted);
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
 }
 
 .iconNameRow {
@@ -31,6 +31,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  width: 64px;
   flex-shrink: 0;
 }
 
@@ -43,35 +44,8 @@
 }
 
 .emojiInput {
-  width: 64px;
-  height: 56px;
   text-align: center;
-  font-size: 1.625rem;
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg);
-  outline: none;
-  font-family: var(--font-nunito);
-  color: var(--color-text);
-}
-
-.emojiInput:focus, .nameInput:focus {
-  border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 3px var(--color-accent-light);
-}
-
-.nameInput {
-  width: 100%;
-  height: 56px;
-  font-weight: 700;
-  font-size: 1rem;
-  color: var(--color-text);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 0 var(--space-4);
-  background: var(--color-bg);
-  outline: none;
-  font-family: var(--font-nunito);
+  font-size: 1.375rem;
 }
 
 .hint {
@@ -81,15 +55,56 @@
   margin-top: var(--space-2);
 }
 
+.typeTabs {
+  display: flex;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 2px;
+}
+
+.typeTab {
+  flex: 1;
+  height: 38px;
+  border-radius: calc(var(--radius-md) - 2px);
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-nunito);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.typeTab:hover {
+  color: var(--color-text);
+}
+
+.typeTabExpenseActive {
+  background: var(--color-expense);
+  color: #fff;
+}
+
+.typeTabIncomeActive {
+  background: var(--color-income);
+  color: #fff;
+}
+
+.typeTabBothActive {
+  background: var(--color-accent);
+  color: #fff;
+}
+
 .colorField {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-4);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 10px var(--space-4) 10px 12px;
+  gap: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-2);
   cursor: pointer;
-  background: var(--color-bg);
+  background: var(--color-surface);
   transition: background var(--transition-fast);
 }
 
@@ -99,9 +114,9 @@
 
 .colorSwatch {
   position: relative;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
   flex-shrink: 0;
   overflow: hidden;
@@ -156,43 +171,24 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
 }
 
-.subEmojiInput {
+.subEmojiWrap {
   width: 42px;
-  height: 38px;
-  text-align: center;
-  font-size: 1.0625rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  outline: none;
-  font-family: var(--font-nunito);
-  color: var(--color-text);
   flex-shrink: 0;
 }
 
-.subNameInput {
-  flex: 1;
-  min-width: 0;
-  height: 38px;
-  font-weight: 700;
-  font-size: 0.90625rem;
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 0 var(--space-3);
-  background: var(--color-surface);
-  outline: none;
-  font-family: var(--font-nunito);
+.subEmojiInput {
+  text-align: center;
+  font-size: 1.0625rem;
 }
 
-.subEmojiInput:focus, .subNameInput:focus {
-  border-color: var(--color-border-focus);
+.subNameWrap {
+  flex: 1;
+  min-width: 0;
 }
 
 .subRemoveBtn {
@@ -200,9 +196,9 @@
   background: transparent;
   cursor: pointer;
   color: var(--color-danger);
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-sm);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
   font-size: 0.9375rem;
   font-weight: 800;
   line-height: 1;
@@ -219,14 +215,14 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  border: 1.5px dashed var(--color-border-focus);
+  border: 1px dashed var(--color-border-focus);
   background: transparent;
   cursor: pointer;
   color: var(--color-accent);
-  font-weight: 800;
+  font-weight: 700;
   font-size: 0.875rem;
-  border-radius: var(--radius-lg);
-  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  height: 42px;
   font-family: var(--font-nunito);
   transition: background var(--transition-fast);
 }

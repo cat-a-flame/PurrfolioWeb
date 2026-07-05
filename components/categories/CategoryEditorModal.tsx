@@ -1,9 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import { FaTrash } from 'react-icons/fa';
 import Button from '@/components/ui/Button';
 import Dialog from '@/components/ui/Dialog';
+import FormLabel from '@/components/ui/FormLabel';
+import Input from '@/components/ui/Input';
+import type { TransactionType } from '@/lib/types';
+import { hexToRgba } from './colorUtils';
 import styles from './CategoryEditorModal.module.css';
+
+export type CategoryDraftType = TransactionType | 'both';
 
 export interface SubDraft {
   id?: string;
@@ -16,6 +23,7 @@ export interface CategoryDraft {
   name: string;
   icon: string;
   color: string;
+  type: CategoryDraftType;
   subs: SubDraft[];
 }
 
@@ -62,7 +70,7 @@ export default function CategoryEditorModal({
       icon={
         <div
           className={styles.previewTile}
-          style={{ background: draft.color, boxShadow: `0 10px 22px -8px ${draft.color}` }}
+          style={{ background: hexToRgba(draft.color, 0.25), boxShadow: `0 10px 22px -8px ${draft.color}` }}
         >
           {draft.icon || '🙂'}
         </div>
@@ -72,8 +80,8 @@ export default function CategoryEditorModal({
       <form onSubmit={handleSubmit} className={styles.form}>
         <div className={styles.iconNameRow}>
           <div className={styles.iconField}>
-            <label className={styles.label} htmlFor="cat-emoji">ICON</label>
-            <input
+            <FormLabel htmlFor="cat-emoji">Icon</FormLabel>
+            <Input
               id="cat-emoji"
               className={styles.emojiInput}
               value={draft.icon}
@@ -84,10 +92,9 @@ export default function CategoryEditorModal({
             />
           </div>
           <div className={styles.nameField}>
-            <label className={styles.label} htmlFor="cat-name">CATEGORY NAME</label>
-            <input
+            <FormLabel htmlFor="cat-name" required>Category name</FormLabel>
+            <Input
               id="cat-name"
-              className={styles.nameInput}
               value={draft.name}
               onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
               placeholder="e.g. Food & Dining"
@@ -98,44 +105,76 @@ export default function CategoryEditorModal({
         </div>
         <div className={styles.hint}>Type or paste any emoji as the icon.</div>
 
-        <label className={styles.label} style={{ display: 'block', margin: '22px 0 10px' }}>COLOR</label>
-        <label className={styles.colorField}>
-          <span className={styles.colorSwatch} style={{ background: draft.color }}>
-            <input
-              type="color"
-              value={draft.color}
-              onChange={(e) => setDraft((d) => ({ ...d, color: e.target.value }))}
-              aria-label="Category color"
-              className={styles.colorInput}
-            />
-          </span>
-          <span>
-            <span className={styles.colorHex}>{draft.color.toUpperCase()}</span>
-            <span className={styles.colorHint}>Click to open color picker</span>
-          </span>
-        </label>
+        <div className={styles.section}>
+          <FormLabel>Type</FormLabel>
+          <div className={styles.typeTabs}>
+            <button
+              type="button"
+              className={[styles.typeTab, draft.type === 'expense' ? styles.typeTabExpenseActive : ''].filter(Boolean).join(' ')}
+              onClick={() => setDraft((d) => ({ ...d, type: 'expense' }))}
+            >
+              Expense
+            </button>
+            <button
+              type="button"
+              className={[styles.typeTab, draft.type === 'income' ? styles.typeTabIncomeActive : ''].filter(Boolean).join(' ')}
+              onClick={() => setDraft((d) => ({ ...d, type: 'income' }))}
+            >
+              Income
+            </button>
+            <button
+              type="button"
+              className={[styles.typeTab, draft.type === 'both' ? styles.typeTabBothActive : ''].filter(Boolean).join(' ')}
+              onClick={() => setDraft((d) => ({ ...d, type: 'both' }))}
+            >
+              Both
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.section}>
+          <FormLabel>Color</FormLabel>
+          <label className={styles.colorField}>
+            <span className={styles.colorSwatch} style={{ background: draft.color }}>
+              <input
+                type="color"
+                value={draft.color}
+                onChange={(e) => setDraft((d) => ({ ...d, color: e.target.value }))}
+                aria-label="Category color"
+                className={styles.colorInput}
+              />
+            </span>
+            <span>
+              <span className={styles.colorHex}>{draft.color.toUpperCase()}</span>
+              <span className={styles.colorHint}>Click to open color picker</span>
+            </span>
+          </label>
+        </div>
 
         <div className={styles.subsHeader}>
-          <label className={styles.label}>SUBCATEGORIES</label>
+          <FormLabel>Subcategories</FormLabel>
           <span className={styles.optional}>Optional</span>
         </div>
         <div className={styles.subsList}>
           {draft.subs.map((s) => (
             <div key={s._key} className={styles.subRow}>
-              <input
-                className={styles.subEmojiInput}
-                value={s.icon}
-                onChange={(e) => patchSub(s._key, { icon: e.target.value })}
-                maxLength={4}
-                aria-label="Subcategory emoji"
-              />
-              <input
-                className={styles.subNameInput}
-                value={s.name}
-                onChange={(e) => patchSub(s._key, { name: e.target.value })}
-                placeholder="Subcategory name"
-                aria-label="Subcategory name"
-              />
+              <div className={styles.subEmojiWrap}>
+                <Input
+                  className={styles.subEmojiInput}
+                  value={s.icon}
+                  onChange={(e) => patchSub(s._key, { icon: e.target.value })}
+                  maxLength={4}
+                  aria-label="Subcategory emoji"
+                />
+              </div>
+              <div className={styles.subNameWrap}>
+                <Input
+                  value={s.name}
+                  onChange={(e) => patchSub(s._key, { name: e.target.value })}
+                  placeholder="Subcategory name"
+                  aria-label="Subcategory name"
+                />
+              </div>
               <button
                 type="button"
                 className={styles.subRemoveBtn}
@@ -154,7 +193,7 @@ export default function CategoryEditorModal({
         <div className={styles.footer}>
           {canDelete && (
             <Button type="button" variant="danger" size="md" onClick={onDelete}>
-              🗑 Delete
+              <FaTrash style={{ display: 'inline-block' }} /> Delete
             </Button>
           )}
           <div className={styles.spacer} />

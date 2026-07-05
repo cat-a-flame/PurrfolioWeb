@@ -1,18 +1,10 @@
 import type { Category } from '@/lib/types';
+import { hexToRgba } from './colorUtils';
 import styles from './CategoryCard.module.css';
 
 interface CategoryCardProps {
   category: Category & { children: Category[] };
   onEdit: (category: Category & { children: Category[] }) => void;
-}
-
-function hexToRgba(hex: string, alpha: number): string {
-  const h = hex.replace('#', '');
-  if (h.length !== 6) return `rgba(122, 92, 224, ${alpha})`;
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 export default function CategoryCard({ category, onEdit }: CategoryCardProps) {

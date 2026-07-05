@@ -60,7 +60,7 @@ export default function CategoriesSettingsPage() {
       if (!user) { setSaving(false); return; }
 
       const { data: created, error } = await supabase.from('categories')
-        .insert({ user_id: user.id, name, type: 'both', icon, color: draft.color, is_default: false, parent_id: null })
+        .insert({ user_id: user.id, name, type: draft.type, icon, color: draft.color, is_default: false, parent_id: null })
         .select('id').single();
 
       if (error || !created) {
@@ -71,7 +71,7 @@ export default function CategoriesSettingsPage() {
 
       if (subs.length) {
         await supabase.from('categories').insert(subs.map((s) => ({
-          user_id: user.id, name: s.name.trim(), type: 'both', icon: s.icon.trim() || '📁',
+          user_id: user.id, name: s.name.trim(), type: draft.type, icon: s.icon.trim() || '📁',
           color: draft.color, is_default: false, parent_id: created.id,
         })));
       }
@@ -85,7 +85,7 @@ export default function CategoriesSettingsPage() {
 
     const category = modal.category;
     const { error } = await supabase.from('categories')
-      .update({ name, icon, color: draft.color })
+      .update({ name, icon, color: draft.color, type: draft.type })
       .eq('id', category.id);
 
     if (error) {
@@ -102,10 +102,10 @@ export default function CategoriesSettingsPage() {
 
     await Promise.all([
       ...toUpdate.map((s) => supabase.from('categories')
-        .update({ name: s.name.trim(), icon: s.icon.trim() || '📁', color: draft.color })
+        .update({ name: s.name.trim(), icon: s.icon.trim() || '📁', color: draft.color, type: draft.type })
         .eq('id', s.id as string)),
       ...(toInsert.length && user ? [supabase.from('categories').insert(toInsert.map((s) => ({
-        user_id: user.id, name: s.name.trim(), type: 'both', icon: s.icon.trim() || '📁',
+        user_id: user.id, name: s.name.trim(), type: draft.type, icon: s.icon.trim() || '📁',
         color: draft.color, is_default: false, parent_id: category.id,
       })))] : []),
       ...(removedIds.length ? [supabase.from('categories').delete().in('id', removedIds)] : []),
@@ -140,11 +140,12 @@ export default function CategoriesSettingsPage() {
   }
 
   const draftInitial: CategoryDraft | null = !modal ? null : modal.mode === 'create'
-    ? { name: '', icon: '🙂', color: DEFAULT_COLOR, subs: [] }
+    ? { name: '', icon: '🙂', color: DEFAULT_COLOR, type: 'both', subs: [] }
     : {
       name: modal.category.name,
       icon: modal.category.icon,
       color: modal.category.color,
+      type: modal.category.type,
       subs: modal.category.children.map((c) => ({ id: c.id, _key: c.id, icon: c.icon, name: c.name })),
     };
 
