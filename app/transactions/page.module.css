@@ -429,6 +429,7 @@
   padding: var(--space-3) var(--space-4);
   transition: background var(--transition-fast);
   position: relative;
+  cursor: pointer;
 }
 
 .txRow + .txRow {
@@ -531,23 +532,6 @@
   font-weight: 700;
   gap: .3rem;
   white-space: nowrap;
-}
-
-.txEditBtn {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-accent);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-  font-family: var(--font-nunito);
-}
-
-.txRow:hover .txEditBtn {
-  opacity: 1;
 }
 
 .sentinel {

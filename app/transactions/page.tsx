@@ -780,7 +780,11 @@ export default function TransactionsPage() {
                       {dayTxs.map(t => {
                         const isTransfer = !!t.transfer_group_id;
                         return (
-                          <div key={t.id} className={[styles.txRow, selectedIds.has(t.id) ? styles.txRowSelected : ''].filter(Boolean).join(' ')}>
+                          <div
+                            key={t.id}
+                            className={[styles.txRow, selectedIds.has(t.id) ? styles.txRowSelected : ''].filter(Boolean).join(' ')}
+                            onClick={() => openEdit(t)}
+                          >
                             <div className={styles.txLeft}>
                               <input
                                 type="checkbox"
@@ -833,13 +837,6 @@ export default function TransactionsPage() {
                             </div>
 
                             <div className={styles.txRight}>
-                              <button
-                                className={styles.txEditBtn}
-                                onClick={() => openEdit(t)}
-                                aria-label="Edit transaction"
-                              >
-                                Edit
-                              </button>
                               <span className={[
                                 styles.txAmount,
                                 isTransfer ? styles.txTransfer : t.type === 'income' ? styles.txIncome : styles.txExpense,
