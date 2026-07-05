@@ -151,24 +151,35 @@ export default function TransactionForm({
         }
     }
 
+    const matchesMode = (c: Category) => c.type === 'both' || c.type === mode;
+
     const parentCategories = categories.filter(c => !c.parent_id);
     const childCategories = categories.filter(c => c.parent_id);
     const categoryOptions: SelectOption[] = [];
     for (const parent of parentCategories) {
         const children = childCategories.filter(c => c.parent_id === parent.id);
         if (children.length > 0) {
-            // Parent has children → heading only, children are the selectable items
-            for (const child of children) {
+            // Parent has children → heading only, matching children are the selectable items
+            for (const child of children.filter(matchesMode)) {
                 categoryOptions.push({ value: child.id, label: `${child.icon} ${child.name}`, group: `${parent.icon} ${parent.name}` });
             }
-        } else {
+        } else if (matchesMode(parent)) {
             // Parent has no children → selectable on its own
             categoryOptions.push({ value: parent.id, label: `${parent.icon} ${parent.name}` });
         }
     }
-    for (const child of childCategories.filter(c => !parentCategories.find(p => p.id === c.parent_id))) {
+    for (const child of childCategories.filter(c => !parentCategories.find(p => p.id === c.parent_id) && matchesMode(c))) {
         categoryOptions.push({ value: child.id, label: `${child.icon} ${child.name}` });
     }
+
+    // Clear a selected category that no longer matches the active mode (e.g. after switching tabs)
+    useEffect(() => {
+        if (mode === 'transfer' || !categoryId) return;
+        const selected = categories.find(c => c.id === categoryId);
+        if (selected && selected.type !== 'both' && selected.type !== mode) {
+            setCategoryId('');
+        }
+    }, [mode, categoryId, categories]);
 
     function toggleLabel(id: string) {
         setLabelIds(prev => prev.includes(id) ? prev.filter(l => l !== id) : [...prev, id]);
