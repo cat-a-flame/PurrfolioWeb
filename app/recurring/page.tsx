@@ -468,7 +468,7 @@ export default function RecurringPage() {
                 {overdueItems.map(item => (
                   <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
                     item={item} loading={actionLoading === `${item.payment.id}|${isoDate(item.dueDate)}`}
-                    onPay={handlePay} onSkip={handleSkip}
+                    onPay={handlePay} onSkip={handleSkip} onEdit={openEdit}
                     currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
                 ))}
               </div>
@@ -480,7 +480,7 @@ export default function RecurringPage() {
                 {todayItems.map(item => (
                   <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
                     item={item} loading={actionLoading === `${item.payment.id}|${isoDate(item.dueDate)}`}
-                    onPay={handlePay} onSkip={handleSkip}
+                    onPay={handlePay} onSkip={handleSkip} onEdit={openEdit}
                     currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
                 ))}
               </div>
@@ -492,7 +492,7 @@ export default function RecurringPage() {
                 {upcomingItems.map(item => (
                   <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
                     item={item} loading={actionLoading === `${item.payment.id}|${isoDate(item.dueDate)}`}
-                    onPay={handlePay} onSkip={handleSkip}
+                    onPay={handlePay} onSkip={handleSkip} onEdit={openEdit}
                     currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
                 ))}
               </div>
@@ -519,7 +519,11 @@ export default function RecurringPage() {
                     const next = nextDueDate(p);
                     const currency = walletCurrency(p.wallet_id);
                     return (
-                      <div key={p.id} className={[styles.paymentRow, !p.is_active ? styles.paymentRowInactive : ''].join(' ')}>
+                      <div
+                        key={p.id}
+                        className={[styles.paymentRow, !p.is_active ? styles.paymentRowInactive : ''].join(' ')}
+                        onClick={() => openEdit(p)}
+                      >
                         <div className={styles.paymentMeta}>
                           <div className={styles.paymentMain}>
                             <p className={styles.paymentName}>{p.name}</p>
@@ -568,7 +572,6 @@ export default function RecurringPage() {
                           ><BsThreeDotsVertical /></button>
                           {openMenuId === p.id && (
                             <div className={styles.kebabMenu} onClick={e => e.stopPropagation()}>
-                              <button className={styles.kebabItem} onClick={() => { openEdit(p); setOpenMenuId(null); }}>Edit</button>
                               <button className={styles.kebabItem} onClick={() => { handleToggleActive(p); setOpenMenuId(null); }}>
                                 {p.is_active ? 'Pause' : 'Resume'}
                               </button>
@@ -774,36 +777,74 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
 
 // ─── Due card sub-component ────────────────────────────────────────────────────
 
-function DueCard({ item, loading, onPay, onSkip, currency, dueDateLabel }: {
+function DueCard({ item, loading, onPay, onSkip, onEdit, currency, dueDateLabel }: {
   item: DueItem;
   loading: boolean;
   onPay: (item: DueItem) => void | Promise<void>;
   onSkip: (item: DueItem) => void | Promise<void>;
+  onEdit: (payment: RecurringPayment) => void;
   currency: 'HUF' | 'USD' | 'EUR';
   dueDateLabel: string;
 }) {
   const { payment } = item;
   const isOverdue = dueDateLabel.includes('overdue');
   return (
-    <div className={[styles.dueCard, isOverdue ? styles.dueCardOverdue : ''].join(' ')}>
+    <div
+      className={[styles.dueCard, isOverdue ? styles.dueCardOverdue : ''].join(' ')}
+      onClick={() => onEdit(payment)}
+    >
       <div className={styles.dueMeta}>
-        <div>
+        <div className={styles.dueMain}>
           <p className={styles.dueName}>{payment.name}</p>
           <p className={styles.dueSub}>
-            {payment.category && ` ${payment.category.icon} ${payment.category.name}`} ·
+            {payment.category && `${payment.category.icon} ${payment.category.name}`}
+            {payment.wallet && (payment.category ? ' · ' : '') + payment.wallet.name} ·
             <span className={[styles.dueDateBadge, isOverdue ? styles.dueDateBadgeOverdue : ''].join(' ')}>{dueDateLabel}</span>
           </p>
         </div>
+
+        {(payment.payer || payment.notes || (payment.labels && payment.labels.length > 0)) && (
+          <div className={styles.dueDetails}>
+            <div className={styles.duePayeeNote}>
+              {payment.payer && (
+                <span className={styles.duePayee}>{payment.payer}</span>
+              )}
+              {payment.notes && (
+                <span className={styles.dueNotes}>{payment.notes}</span>
+              )}
+            </div>
+            {payment.labels && payment.labels.length > 0 && (
+              <div className={styles.dueLabels}>
+                {payment.labels.map(l => (
+                  <span key={l.id} className={styles.dueLabel}>
+                    <span className={styles.dueLabelDot} style={{ backgroundColor: l.color }} />
+                    {l.name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
       <div className={styles.dueRight}>
         <span className={[styles.dueAmount, payment.type === 'income' ? styles.amtIncome : styles.amtExpense].join(' ')}>
           {payment.type === 'expense' ? '−' : '+'}{formatCurrency(payment.amount, currency)}
         </span>
         <div className={styles.dueActions}>
-          <button className={styles.skipBtn} onClick={() => onSkip(item)} disabled={loading} title="Skip this occurrence">
+          <button
+            className={styles.skipBtn}
+            onClick={e => { e.stopPropagation(); onSkip(item); }}
+            disabled={loading}
+            title="Skip this occurrence"
+          >
             <RxCross1 />
           </button>
-          <button className={styles.payBtn} onClick={() => onPay(item)} disabled={loading} title="Mark as paid">
+          <button
+            className={styles.payBtn}
+            onClick={e => { e.stopPropagation(); onPay(item); }}
+            disabled={loading}
+            title="Mark as paid"
+          >
             <FaCheck />
           </button>
         </div>

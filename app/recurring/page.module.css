@@ -128,6 +128,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   flex-wrap: wrap;
+  cursor: pointer;
 }
 
 .dueCardOverdue {
@@ -167,6 +168,66 @@
   font-weight: 500;
   font-size: 0.75rem;
   color: var(--color-text-muted);
+}
+
+.dueMain {
+  min-width: 0;
+}
+
+.dueDetails {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+}
+
+.duePayeeNote {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.duePayee {
+  font-size: .78125rem;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.dueNotes {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.dueLabels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.dueLabel {
+  display: flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  gap: .3rem;
+  white-space: nowrap;
+}
+
+.dueLabelDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
 }
 
 .dueDateBadgeOverdue {
@@ -244,6 +305,7 @@
   border-radius: var(--radius-lg);
   background: var(--color-bg);
   flex-wrap: wrap;
+  cursor: pointer;
   transition: opacity 0.2s;
 }
 
