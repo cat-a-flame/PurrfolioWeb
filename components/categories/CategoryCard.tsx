@@ -23,7 +23,7 @@ export default function CategoryCard({ category, onEdit }: CategoryCardProps) {
       <div className={styles.head}>
         <div
           className={styles.iconTile}
-          style={{ background: hexToRgba(category.color, 0.5), boxShadow: `0 8px 16px -8px ${category.color}` }}
+          style={{ background: hexToRgba(category.color, 0.25), boxShadow: `0 8px 16px -8px ${category.color}` }}
         >
           <span>{category.icon || '📁'}</span>
         </div>
