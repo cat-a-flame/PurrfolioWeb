@@ -2,9 +2,11 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-text);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
 }
 
 .required {
