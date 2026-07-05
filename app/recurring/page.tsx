@@ -521,12 +521,36 @@ export default function RecurringPage() {
                     return (
                       <div key={p.id} className={[styles.paymentRow, !p.is_active ? styles.paymentRowInactive : ''].join(' ')}>
                         <div className={styles.paymentMeta}>
-                          <div>
+                          <div className={styles.paymentMain}>
                             <p className={styles.paymentName}>{p.name}</p>
                             <p className={styles.paymentSub}>
-                              {p.category && ` ${p.category.icon} ${p.category.name}`}
+                              {p.category && `${p.category.icon} ${p.category.name}`}
+                              {p.wallet && (p.category ? ' · ' : '') + p.wallet.name}
                             </p>
                           </div>
+
+                          {(p.payer || p.notes || (p.labels && p.labels.length > 0)) && (
+                            <div className={styles.paymentDetails}>
+                              <div className={styles.paymentPayeeNote}>
+                                {p.payer && (
+                                  <span className={styles.paymentPayee}>{p.payer}</span>
+                                )}
+                                {p.notes && (
+                                  <span className={styles.paymentNotes}>{p.notes}</span>
+                                )}
+                              </div>
+                              {p.labels && p.labels.length > 0 && (
+                                <div className={styles.paymentLabels}>
+                                  {p.labels.map(l => (
+                                    <span key={l.id} className={styles.paymentLabel}>
+                                      <span className={styles.paymentLabelDot} style={{ backgroundColor: l.color }} />
+                                      {l.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <div className={styles.paymentRight}>
                           <span className={[styles.paymentAmount, p.type === 'income' ? styles.amtIncome : styles.amtExpense].join(' ')}>
