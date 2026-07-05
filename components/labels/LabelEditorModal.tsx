@@ -38,7 +38,6 @@ export default function LabelEditorModal({
   return (
     <Dialog
       title={isEdit ? 'Edit label' : 'New label'}
-      subtitle={isEdit ? 'Update the name and color' : 'Set up a label to tag transactions'}
       onClose={onClose}
     >
       <form onSubmit={handleSubmit} className={styles.form}>
