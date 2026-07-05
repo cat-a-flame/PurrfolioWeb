@@ -33,16 +33,16 @@
   width: 300px;
   flex-shrink: 0;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-md);
   padding: var(--space-5);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   position: sticky;
-  top: calc(60px + var(--space-4));
+  top: var(--space-4);
   max-height: calc(100vh - 60px - var(--space-8));
   overflow-y: auto;
+  box-shadow: var(--shadow-sm);
 }
 
 .filterSidebarTitle {
@@ -66,7 +66,7 @@
 .filterField {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 /* Make SearchableSelect trigger match filter input height */
@@ -172,6 +172,7 @@
   height: 16px;
   accent-color: var(--color-accent);
   cursor: pointer;
+  margin-right: .4rem;
   flex-shrink: 0;
 }
 
@@ -401,13 +402,13 @@
 
 .dayDate {
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text-muted);
 }
 
 .dayNet {
   font-size: 0.875rem;
-  font-weight: 700;
+  font-weight: 900;
   font-family: var(--font-nunito);
 }
 
@@ -415,14 +416,9 @@
 .dayNetNeg { color: var(--color-expense); }
 
 .dayTxList {
-  display: flex;
-  flex-direction: column;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
-  position: relative;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
 }
 
 /* ── Transaction row ── */
@@ -436,7 +432,7 @@
 }
 
 .txRow + .txRow {
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border-light);
 }
 
 .txRow:hover {
@@ -457,7 +453,7 @@
 
 .txCategory {
   font-size: 0.9375rem;
-  font-weight: 600;
+  font-weight: 800;
   color: var(--color-text);
 }
 
@@ -465,9 +461,9 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  font-size: 0.8125rem;
+  font-size: .78125rem;
   color: var(--color-text-muted);
-  font-weight: 500;
+  font-weight: 700;
 }
 
 .txWalletDot {
@@ -479,7 +475,6 @@
 
 .txNotes {
   font-size: 0.8125rem;
-  color: var(--color-text-faint);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -493,6 +488,10 @@
   align-items: center;
 }
 
+.txDetails {
+  margin-left: var(--space-2);
+}
+
 .txRight {
   display: flex;
   align-items: center;
@@ -502,7 +501,7 @@
 
 .txAmount {
   font-size: 0.9375rem;
-  font-weight: 700;
+  font-weight: 800;
   font-family: var(--font-nunito);
 }
 
@@ -514,7 +513,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  margin-left: var(--space-3);
 }
 
 .txLabel {
@@ -524,7 +522,7 @@
   background: var(--color-surface-2);
   border-radius: var(--radius-sm);
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   gap: .3rem;
   white-space: nowrap;
 }
@@ -599,6 +597,7 @@
   background: var(--gradient-cashflow);
   color: #fff;
   box-shadow: 0 26px 40px -28px rgba(90, 45, 140, 0.72);
+  max-width: 420px;
 }
 
 .summaryBalance {

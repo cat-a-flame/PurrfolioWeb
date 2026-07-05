@@ -39,42 +39,42 @@ export default function TransactionsPage() {
   const [filterType, setFilterType] = useState<FilterType>(() => {
     if (typeof window !== 'undefined') {
       const saved = sessionStorage.getItem('purrfolio_tx_filters');
-      if (saved) try { return (JSON.parse(saved).type ?? '') as FilterType; } catch {}
+      if (saved) try { return (JSON.parse(saved).type ?? '') as FilterType; } catch { }
     }
     return '';
   });
   const [filterCategoryId, setFilterCategoryId] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = sessionStorage.getItem('purrfolio_tx_filters');
-      if (saved) try { return JSON.parse(saved).categoryId ?? ''; } catch {}
+      if (saved) try { return JSON.parse(saved).categoryId ?? ''; } catch { }
     }
     return '';
   });
   const [filterLabelId, setFilterLabelId] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = sessionStorage.getItem('purrfolio_tx_filters');
-      if (saved) try { return JSON.parse(saved).labelId ?? ''; } catch {}
+      if (saved) try { return JSON.parse(saved).labelId ?? ''; } catch { }
     }
     return '';
   });
   const [filterWalletId, setFilterWalletId] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = sessionStorage.getItem('purrfolio_tx_filters');
-      if (saved) try { return JSON.parse(saved).walletId ?? ''; } catch {}
+      if (saved) try { return JSON.parse(saved).walletId ?? ''; } catch { }
     }
     return '';
   });
   const [filterPeriod, setFilterPeriod] = useState<PeriodValue | null>(() => {
     if (typeof window !== 'undefined') {
       const saved = sessionStorage.getItem('purrfolio_period');
-      if (saved) try { return JSON.parse(saved) as PeriodValue; } catch {}
+      if (saved) try { return JSON.parse(saved) as PeriodValue; } catch { }
     }
     return null;
   });
   const [filterSearch, setFilterSearch] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = sessionStorage.getItem('purrfolio_tx_filters');
-      if (saved) try { return JSON.parse(saved).search ?? ''; } catch {}
+      if (saved) try { return JSON.parse(saved).search ?? ''; } catch { }
     }
     return '';
   });
@@ -157,7 +157,7 @@ export default function TransactionsPage() {
     const now = new Date();
     const defaultFrom = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
     const from = filterPeriod?.from ?? `${defaultFrom.getFullYear()}-${String(defaultFrom.getMonth() + 1).padStart(2, '0')}-${String(defaultFrom.getDate()).padStart(2, '0')}`;
-    const to   = filterPeriod?.to   ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const to = filterPeriod?.to ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
     const [transactions, catRes, lblRes, walletRes] = await Promise.all([
       fetchTransactions(user.id, from, to),
@@ -407,8 +407,8 @@ export default function TransactionsPage() {
           getWalletRate(data.transfer.to_wallet_id, data.date),
         ]);
         const { error } = await supabase.from('transactions').insert([
-          { ...common, type: 'expense', amount: data.amount,             wallet_id: data.wallet_id,             exchange_rate_to_huf: expenseRate },
-          { ...common, type: 'income',  amount: data.transfer.to_amount, wallet_id: data.transfer.to_wallet_id, exchange_rate_to_huf: incomeRate },
+          { ...common, type: 'expense', amount: data.amount, wallet_id: data.wallet_id, exchange_rate_to_huf: expenseRate },
+          { ...common, type: 'income', amount: data.transfer.to_amount, wallet_id: data.transfer.to_wallet_id, exchange_rate_to_huf: incomeRate },
         ]);
         if (error) throw error;
       } else {
@@ -476,8 +476,8 @@ export default function TransactionsPage() {
           getWalletRate(data.transfer.to_wallet_id, data.date),
         ]);
         const { error } = await supabase.from('transactions').insert([
-          { ...common, type: 'expense', amount: data.amount,             wallet_id: data.wallet_id,             exchange_rate_to_huf: expenseRate },
-          { ...common, type: 'income',  amount: data.transfer.to_amount, wallet_id: data.transfer.to_wallet_id, exchange_rate_to_huf: incomeRate },
+          { ...common, type: 'expense', amount: data.amount, wallet_id: data.wallet_id, exchange_rate_to_huf: expenseRate },
+          { ...common, type: 'income', amount: data.transfer.to_amount, wallet_id: data.transfer.to_wallet_id, exchange_rate_to_huf: incomeRate },
         ]);
         if (error) throw error;
       } else {
@@ -551,309 +551,314 @@ export default function TransactionsPage() {
 
   return (
     <AppShell>
-        <div className={styles.container}>
-          <div className={styles.pageHeader}>
-            <h1 className={styles.pageTitle}>Transactions</h1>
-          </div>
+      <div className={styles.container}>
+        <div className={styles.pageHeader}>
+          <h1 className={styles.pageTitle}>Transactions</h1>
+        </div>
 
-          <div className={styles.bodyLayout}>
-            {/* ── Filter sidebar ── */}
-            <aside className={styles.filterSidebar}>
-              <p className={styles.filterSidebarTitle}>Filters</p>
+        <div className={styles.bodyLayout}>
+          {/* ── Filter sidebar ── */}
+          <aside className={styles.filterSidebar}>
+            <p className={styles.filterSidebarTitle}>Filters</p>
 
-              {/* Type */}
-              <div className={styles.filterField}>
-                <FormLabel htmlFor="filter-type">Type</FormLabel>
-                <ReactSelect<{ value: string; label: string }>
-                  inputId="filter-type"
-                  options={typeOptions}
-                  value={typeOptions.find(o => o.value === filterType) ?? typeOptions[0]}
-                  onChange={(opt) => setFilterType((opt?.value ?? '') as FilterType)}
-                  isSearchable={false}
-                  styles={makeRsStyles('sm')}
-                  theme={rsTheme}
-                  menuPosition="fixed"
-                />
-              </div>
+            {/* Type */}
+            <div className={styles.filterField}>
+              <FormLabel htmlFor="filter-type">Type</FormLabel>
+              <ReactSelect<{ value: string; label: string }>
+                inputId="filter-type"
+                options={typeOptions}
+                value={typeOptions.find(o => o.value === filterType) ?? typeOptions[0]}
+                onChange={(opt) => setFilterType((opt?.value ?? '') as FilterType)}
+                isSearchable={false}
+                styles={makeRsStyles('sm')}
+                theme={rsTheme}
+                menuPosition="fixed"
+              />
+            </div>
 
-              {/* Category */}
-              <div className={styles.filterField}>
-                <FormLabel htmlFor="filter-cat">Category</FormLabel>
-                <SearchableSelect
-                  id="filter-cat"
-                  options={categoryFilterOptions}
-                  value={filterCategoryId}
-                  onChange={setFilterCategoryId}
-                  placeholder="All categories"
-                />
-              </div>
+            {/* Category */}
+            <div className={styles.filterField}>
+              <FormLabel htmlFor="filter-cat">Category</FormLabel>
+              <SearchableSelect
+                id="filter-cat"
+                options={categoryFilterOptions}
+                value={filterCategoryId}
+                onChange={setFilterCategoryId}
+                placeholder="All categories"
+              />
+            </div>
 
-              {/* Label */}
-              <div className={styles.filterField}>
-                <FormLabel htmlFor="filter-label">Label</FormLabel>
-                {(() => {
-                  const labelOptions = [
-                    { value: '', label: 'All labels' },
-                    ...labels.map(l => ({ value: l.id, label: l.name })),
-                  ];
-                  return (
-                    <ReactSelect<{ value: string; label: string }>
-                      inputId="filter-label"
-                      options={labelOptions}
-                      value={labelOptions.find(o => o.value === filterLabelId) ?? labelOptions[0]}
-                      onChange={(opt) => setFilterLabelId(opt?.value ?? '')}
-                      isSearchable
-                      styles={makeRsStyles('sm')}
-                      theme={rsTheme}
-                      menuPosition="fixed"
-                    />
-                  );
-                })()}
-              </div>
-
-              {/* Wallet */}
-              <div className={styles.filterField}>
-                <FormLabel htmlFor="filter-wallet">Wallet</FormLabel>
-                {(() => {
-                  const walletOptions = [
-                    { value: '', label: 'All wallets' },
-                    ...wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` })),
-                  ];
-                  return (
-                    <ReactSelect<{ value: string; label: string }>
-                      inputId="filter-wallet"
-                      options={walletOptions}
-                      value={walletOptions.find(o => o.value === filterWalletId) ?? walletOptions[0]}
-                      onChange={(opt) => setFilterWalletId(opt?.value ?? '')}
-                      isSearchable
-                      styles={makeRsStyles('sm')}
-                      theme={rsTheme}
-                      menuPosition="fixed"
-                    />
-                  );
-                })()}
-              </div>
-
-              {/* Date */}
-              <div className={styles.filterField}>
-                <FormLabel>Date</FormLabel>
-                <PeriodPicker
-                  value={filterPeriod ?? { from: '', to: '', label: 'Any date', tab: 'months' }}
-                  onChange={setFilterPeriod}
-                  onClear={() => setFilterPeriod(null)}
-                  hideNav
-                />
-              </div>
-
-              {/* Notes search */}
-              <div className={styles.filterField}>
-                <FormLabel htmlFor="filter-search">Search notes</FormLabel>
-                <div className={styles.searchWrapper}>
-                  <span className={styles.searchIcon}>🔍</span>
-                  <input
-                    id="filter-search"
-                    type="search"
-                    className={styles.searchInput}
-                    placeholder="Search in notes…"
-                    value={filterSearch}
-                    onChange={e => setFilterSearch(e.target.value)}
+            {/* Label */}
+            <div className={styles.filterField}>
+              <FormLabel htmlFor="filter-label">Label</FormLabel>
+              {(() => {
+                const labelOptions = [
+                  { value: '', label: 'All labels' },
+                  ...labels.map(l => ({ value: l.id, label: l.name })),
+                ];
+                return (
+                  <ReactSelect<{ value: string; label: string }>
+                    inputId="filter-label"
+                    options={labelOptions}
+                    value={labelOptions.find(o => o.value === filterLabelId) ?? labelOptions[0]}
+                    onChange={(opt) => setFilterLabelId(opt?.value ?? '')}
+                    isSearchable
+                    styles={makeRsStyles('sm')}
+                    theme={rsTheme}
+                    menuPosition="fixed"
                   />
-                </div>
+                );
+              })()}
+            </div>
+
+            {/* Wallet */}
+            <div className={styles.filterField}>
+              <FormLabel htmlFor="filter-wallet">Wallet</FormLabel>
+              {(() => {
+                const walletOptions = [
+                  { value: '', label: 'All wallets' },
+                  ...wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` })),
+                ];
+                return (
+                  <ReactSelect<{ value: string; label: string }>
+                    inputId="filter-wallet"
+                    options={walletOptions}
+                    value={walletOptions.find(o => o.value === filterWalletId) ?? walletOptions[0]}
+                    onChange={(opt) => setFilterWalletId(opt?.value ?? '')}
+                    isSearchable
+                    styles={makeRsStyles('sm')}
+                    theme={rsTheme}
+                    menuPosition="fixed"
+                  />
+                );
+              })()}
+            </div>
+
+            {/* Date */}
+            <div className={styles.filterField}>
+              <FormLabel>Date</FormLabel>
+              <PeriodPicker
+                value={filterPeriod ?? { from: '', to: '', label: 'Any date', tab: 'months' }}
+                onChange={setFilterPeriod}
+                onClear={() => setFilterPeriod(null)}
+                hideNav
+              />
+            </div>
+
+            {/* Notes search */}
+            <div className={styles.filterField}>
+              <FormLabel htmlFor="filter-search">Search notes</FormLabel>
+              <div className={styles.searchWrapper}>
+                <span className={styles.searchIcon}>🔍</span>
+                <input
+                  id="filter-search"
+                  type="search"
+                  className={styles.searchInput}
+                  placeholder="Search in notes…"
+                  value={filterSearch}
+                  onChange={e => setFilterSearch(e.target.value)}
+                />
               </div>
+            </div>
 
-              <Button variant="secondary" size="sm" onClick={resetFilters} className={styles.resetBtn}>
-                Reset
-              </Button>
-            </aside>
+            <Button variant="secondary" size="sm" onClick={resetFilters} className={styles.resetBtn}>
+              Reset
+            </Button>
+          </aside>
 
-            {/* ── Content ── */}
-            <div className={styles.contentArea}>
-              {/* ── Cash flow summary ── */}
-              {!loading && filteredTransactions.length > 0 && filterType !== 'transfer' && (
-                <div className={styles.summaryCard}>
-                  {showBalance && (
-                    <div className={styles.summaryBalance}>
-                      <span className={styles.summaryBalanceLabel}>Balance</span>
-                      <span className={styles.summaryBalanceAmount}>
-                        {summaryBalance < 0 ? '−' : ''}{formatHUF(Math.abs(summaryBalance))}
-                      </span>
+          {/* ── Content ── */}
+          <div className={styles.contentArea}>
+            {/* ── Cash flow summary ── */}
+            {!loading && filteredTransactions.length > 0 && filterType !== 'transfer' && (
+              <div className={styles.summaryCard}>
+                {showBalance && (
+                  <div className={styles.summaryBalance}>
+                    <span className={styles.summaryBalanceLabel}>Balance</span>
+                    <span className={styles.summaryBalanceAmount}>
+                      {summaryBalance < 0 ? '−' : ''}{formatHUF(Math.abs(summaryBalance))}
+                    </span>
+                  </div>
+                )}
+                <div className={styles.summaryBars}>
+                  {showIncome && (
+                    <div className={styles.summaryBarRow}>
+                      <div className={styles.summaryBarMeta}>
+                        <span className={styles.summaryBarLabel}>Income</span>
+                        <span className={[styles.summaryBarAmount, styles.summaryIncomeAmount].join(' ')}>{formatHUF(summaryIncome)}</span>
+                      </div>
+                      {showBalance && (
+                        <div className={styles.summaryBarTrack}>
+                          <div className={[styles.summaryBarFill, styles.summaryBarFillIncome].join(' ')} style={{ width: `${summaryIncomePct}%` }} />
+                        </div>
+                      )}
                     </div>
                   )}
-                  <div className={styles.summaryBars}>
-                    {showIncome && (
-                      <div className={styles.summaryBarRow}>
-                        <div className={styles.summaryBarMeta}>
-                          <span className={styles.summaryBarLabel}>Income</span>
-                          <span className={[styles.summaryBarAmount, styles.summaryIncomeAmount].join(' ')}>{formatHUF(summaryIncome)}</span>
-                        </div>
-                        {showBalance && (
-                          <div className={styles.summaryBarTrack}>
-                            <div className={[styles.summaryBarFill, styles.summaryBarFillIncome].join(' ')} style={{ width: `${summaryIncomePct}%` }} />
-                          </div>
-                        )}
+                  {showExpense && (
+                    <div className={styles.summaryBarRow}>
+                      <div className={styles.summaryBarMeta}>
+                        <span className={styles.summaryBarLabel}>Expense</span>
+                        <span className={[styles.summaryBarAmount, styles.summaryExpenseAmount].join(' ')}>−{formatHUF(summaryExpense)}</span>
                       </div>
-                    )}
-                    {showExpense && (
-                      <div className={styles.summaryBarRow}>
-                        <div className={styles.summaryBarMeta}>
-                          <span className={styles.summaryBarLabel}>Expense</span>
-                          <span className={[styles.summaryBarAmount, styles.summaryExpenseAmount].join(' ')}>−{formatHUF(summaryExpense)}</span>
+                      {showBalance && (
+                        <div className={styles.summaryBarTrack}>
+                          <div className={[styles.summaryBarFill, styles.summaryBarFillExpense].join(' ')} style={{ width: `${summaryExpensePct}%` }} />
                         </div>
-                        {showBalance && (
-                          <div className={styles.summaryBarTrack}>
-                            <div className={[styles.summaryBarFill, styles.summaryBarFillExpense].join(' ')} style={{ width: `${summaryExpensePct}%` }} />
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* ── Selection bar ── */}
-              {selectedIds.size > 0 && (
-                <div className={styles.selectionBar}>
-                  <label className={styles.selectionLabel}>
-                    <input
-                      ref={selectAllRef}
-                      type="checkbox"
-                      className={styles.selectionCheckbox}
-                      checked={allSelected}
-                      onChange={toggleSelectAll}
-                      aria-label="Select all loaded transactions"
-                    />
-                    <span>{selectedIds.size} selected</span>
-                  </label>
-                  <div className={styles.bulkActions}>
-                    {selectedIds.size === 1 ? (() => {
-                      const tx = visibleTransactions.find(t => selectedIds.has(t.id));
-                      return tx ? (
-                        <Button size="sm" variant="secondary" onClick={() => { openEdit(tx); setSelectedIds(new Set()); }}>Edit</Button>
-                      ) : null;
-                    })() : (
-                      <>
-                        <Button size="sm" variant="secondary" onClick={openBulkEdit}>Edit</Button>
-                        <Button size="sm" variant="danger" onClick={() => setBulkAction('delete')}>Delete</Button>
-                      </>
-                    )}
-                    <Button size="sm" variant="secondary" onClick={() => setSelectedIds(allSelected ? new Set() : new Set(allVisibleIds))}>
-                      {allSelected ? 'Deselect all' : 'Select all'}
-                    </Button>
-                  </div>
-                  <button className={styles.selectionClear} onClick={() => setSelectedIds(new Set())} aria-label="Clear selection">✕</button>
-                </div>
-              )}
-
-              {loading ? (
-                <div className={styles.skeletonList}>
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className={styles.skeletonRow} />
-                  ))}
-                </div>
-              ) : groupedDays.length === 0 ? (
-                <div className={styles.emptyStateCard}>
-                  <span className={styles.emptyIcon}>🔍</span>
-                  <p className={styles.emptyTitle}>No transactions found</p>
-                  <p className={styles.emptyHint}>
-                    {hasActiveFilters
-                      ? 'No records match your current filters.'
-                      : 'Add your first transaction to get started.'}
-                  </p>
-                  {hasActiveFilters && (
-                    <Button variant="secondary" size="sm" onClick={resetFilters}>
-                      Clear filters
-                    </Button>
+                      )}
+                    </div>
                   )}
                 </div>
-              ) : (
-                <div className={[styles.groupedList, isFiltering ? styles.listFiltering : ''].filter(Boolean).join(' ')}>
-                  {isFiltering && <div className={styles.filteringBar}><span className={styles.spinner} />Filtering…</div>}
-                  {groupedDays.map(({ date, transactions: dayTxs, net }) => (
-                    <div key={date} className={styles.dayGroup}>
-                      <div className={styles.dayHeader}>
-                        <span className={styles.dayDate}>{formatDayHeader(date)}</span>
-                        <span className={[styles.dayNet, net >= 0 ? styles.dayNetPos : styles.dayNetNeg].join(' ')}>
-                          {net < 0 ? '−' : ''}{formatHUF(Math.abs(net))}
-                        </span>
-                      </div>
-                      <div className={styles.dayTxList}>
-                        {dayTxs.map(t => {
-                          const isTransfer = !!t.transfer_group_id;
-                          return (
-                            <div key={t.id} className={[styles.txRow, selectedIds.has(t.id) ? styles.txRowSelected : ''].filter(Boolean).join(' ')}>
-                              <div className={styles.txLeft}>
-                                <input
-                                  type="checkbox"
-                                  className={styles.txCheckbox}
-                                  checked={selectedIds.has(t.id)}
-                                  onChange={() => toggleSelect(t.id)}
-                                  aria-label="Select transaction"
-                                  onClick={e => e.stopPropagation()}
-                                />
-                                <div
-                                  className={styles.txIcon}
-                                  style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
-                                >
-                                  {isTransfer ? (t.payer ? (t.type === 'expense' ? '↑' : '↓') : '↔') : (t.category?.icon ?? '?')}
-                                </div>
-                                <div className={styles.txMain}>
-                                  <span className={styles.txCategory}>
-                                    {isTransfer
-                                      ? (t.payer ? t.payer : 'Transfer')
-                                      : (t.category?.name ?? 'Uncategorised')}
+              </div>
+            )}
+
+            {/* ── Selection bar ── */}
+            {selectedIds.size > 0 && (
+              <div className={styles.selectionBar}>
+                <label className={styles.selectionLabel}>
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    className={styles.selectionCheckbox}
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all loaded transactions"
+                  />
+                  <span>{selectedIds.size} selected</span>
+                </label>
+                <div className={styles.bulkActions}>
+                  {selectedIds.size === 1 ? (() => {
+                    const tx = visibleTransactions.find(t => selectedIds.has(t.id));
+                    return tx ? (
+                      <Button size="sm" variant="secondary" onClick={() => { openEdit(tx); setSelectedIds(new Set()); }}>Edit</Button>
+                    ) : null;
+                  })() : (
+                    <>
+                      <Button size="sm" variant="secondary" onClick={openBulkEdit}>Edit</Button>
+                      <Button size="sm" variant="danger" onClick={() => setBulkAction('delete')}>Delete</Button>
+                    </>
+                  )}
+                  <Button size="sm" variant="secondary" onClick={() => setSelectedIds(allSelected ? new Set() : new Set(allVisibleIds))}>
+                    {allSelected ? 'Deselect all' : 'Select all'}
+                  </Button>
+                </div>
+                <button className={styles.selectionClear} onClick={() => setSelectedIds(new Set())} aria-label="Clear selection">✕</button>
+              </div>
+            )}
+
+            {loading ? (
+              <div className={styles.skeletonList}>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className={styles.skeletonRow} />
+                ))}
+              </div>
+            ) : groupedDays.length === 0 ? (
+              <div className={styles.emptyStateCard}>
+                <span className={styles.emptyIcon}>🔍</span>
+                <p className={styles.emptyTitle}>No transactions found</p>
+                <p className={styles.emptyHint}>
+                  {hasActiveFilters
+                    ? 'No records match your current filters.'
+                    : 'Add your first transaction to get started.'}
+                </p>
+                {hasActiveFilters && (
+                  <Button variant="secondary" size="sm" onClick={resetFilters}>
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className={[styles.groupedList, isFiltering ? styles.listFiltering : ''].filter(Boolean).join(' ')}>
+                {isFiltering && <div className={styles.filteringBar}><span className={styles.spinner} />Filtering…</div>}
+                {groupedDays.map(({ date, transactions: dayTxs, net }) => (
+                  <div key={date} className={styles.dayGroup}>
+                    <div className={styles.dayHeader}>
+                      <span className={styles.dayDate}>{formatDayHeader(date)}</span>
+                      <span className={[styles.dayNet, net >= 0 ? styles.dayNetPos : styles.dayNetNeg].join(' ')}>
+                        {net < 0 ? '−' : ''}{formatHUF(Math.abs(net))}
+                      </span>
+                    </div>
+                    <div className={styles.dayTxList}>
+                      {dayTxs.map(t => {
+                        const isTransfer = !!t.transfer_group_id;
+                        return (
+                          <div key={t.id} className={[styles.txRow, selectedIds.has(t.id) ? styles.txRowSelected : ''].filter(Boolean).join(' ')}>
+                            <div className={styles.txLeft}>
+                              <input
+                                type="checkbox"
+                                className={styles.txCheckbox}
+                                checked={selectedIds.has(t.id)}
+                                onChange={() => toggleSelect(t.id)}
+                                aria-label="Select transaction"
+                                onClick={e => e.stopPropagation()}
+                              />
+                              <div
+                                className={styles.txIcon}
+                                style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
+                              >
+                                {isTransfer ? (t.payer ? (t.type === 'expense' ? '↑' : '↓') : '↔') : (t.category?.icon ?? '?')}
+                              </div>
+                              <div className={styles.txMain}>
+                                <span className={styles.txCategory}>
+                                  {isTransfer
+                                    ? (t.payer ? t.payer : 'Transfer')
+                                    : (t.category?.name ?? 'Uncategorised')}
+                                </span>
+                                {t.wallet && (
+                                  <span className={styles.txWallet}>
+                                    <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
+                                    {t.wallet.name}
                                   </span>
-                                  {t.wallet && (
-                                    <span className={styles.txWallet}>
-                                      <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
-                                      {t.wallet.name}
-                                    </span>
+                                )}
+                              </div>
+
+                              {t.labels && t.labels.length > 0 && t.notes && (
+                                <div className={styles.txDetails}>
+                                  {t.labels && t.labels.length > 0 && (
+                                    <div className={styles.txLabels}>
+                                      {t.labels.map(l => (
+                                        <span key={l.id} className={styles.txLabel}>
+                                          <span className={styles.txWalletDot} style={{ backgroundColor: l.color }} />
+                                          {l.name}
+                                        </span>
+                                      ))}
+                                    </div>
                                   )}
                                   {t.notes && (
                                     <span className={styles.txNotes}>{t.notes}</span>
                                   )}
                                 </div>
-                                {t.labels && t.labels.length > 0 && (
-                                  <div className={styles.txLabels}>
-                                    {t.labels.map(l => (
-                                      <span key={l.id} className={styles.txLabel}>
-                                        <span className={styles.txWalletDot} style={{ backgroundColor: l.color }} />
-                                        {l.name}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className={styles.txRight}>
-                                <button
-                                  className={styles.txEditBtn}
-                                  onClick={() => openEdit(t)}
-                                  aria-label="Edit transaction"
-                                >
-                                  Edit
-                                </button>
-                                <span className={[
-                                  styles.txAmount,
-                                  isTransfer ? styles.txTransfer : t.type === 'income' ? styles.txIncome : styles.txExpense,
-                                ].join(' ')}>
-                                  {isTransfer
-                                    ? (t.type === 'expense' ? '−' : '')
-                                    : (t.type === 'income' ? '' : '−')
-                                  }{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
-                                </span>
-                              </div>
+                              )}
                             </div>
-                          );
-                        })}
-                      </div>
+
+                            <div className={styles.txRight}>
+                              <button
+                                className={styles.txEditBtn}
+                                onClick={() => openEdit(t)}
+                                aria-label="Edit transaction"
+                              >
+                                Edit
+                              </button>
+                              <span className={[
+                                styles.txAmount,
+                                isTransfer ? styles.txTransfer : t.type === 'income' ? styles.txIncome : styles.txExpense,
+                              ].join(' ')}>
+                                {isTransfer
+                                  ? (t.type === 'expense' ? '−' : '')
+                                  : (t.type === 'income' ? '' : '−')
+                                }{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
-              )}
-              {hasMore && <div ref={sentinelRef} className={styles.sentinel} />}
-            </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {hasMore && <div ref={sentinelRef} className={styles.sentinel} />}
           </div>
         </div>
+      </div>
 
       {editingTransaction && (
         <TransactionForm

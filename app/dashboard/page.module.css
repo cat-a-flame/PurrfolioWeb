@@ -28,6 +28,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-4);
+  margin-bottom: var(--space-2);
 }
 
 .accountTile {
@@ -36,7 +37,6 @@
   align-items: center;
   gap: var(--space-3);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
   min-width: 190px;
@@ -45,7 +45,7 @@
 .accountIcon {
   width: 42px;
   height: 42px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -56,13 +56,12 @@
 .accountInfo {
   display: flex;
   flex-direction: column;
-  gap: 2px;
   min-width: 0;
 }
 
 .accountName {
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -71,7 +70,7 @@
 
 .accountBalance {
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 800;
   font-family: var(--font-nunito);
   color: var(--color-text);
   white-space: nowrap;
@@ -238,7 +237,6 @@
   display: flex;
   flex-direction: column;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
   box-shadow: var(--shadow-lg);
@@ -304,12 +302,13 @@
 .plannedTile {
   width: 42px;
   height: 42px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
   background: var(--color-accent-light);
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 2px;
   justify-content: center;
   line-height: 1;
 }
@@ -382,7 +381,7 @@
 .catIcon {
   width: 38px;
   height: 38px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -415,9 +414,7 @@
 /* ── Recent transactions ── */
 .recentCard {
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6) var(--space-2) var(--space-2);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
 }
 
@@ -425,7 +422,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-5) var(--space-3);
+  padding: var(--space-5) var(--space-5) var(--space-3);
 }
 
 .recentTitle {
@@ -453,11 +450,14 @@
 .txRow {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
   padding: var(--space-3) var(--space-5);
-  border-radius: var(--radius-md);
   cursor: pointer;
   transition: background var(--transition-fast);
+
+  &:not(:last-child) {
+    border-bottom: 1px solid var(--color-border-light);
+  }
 }
 
 .txRow:hover {
@@ -467,7 +467,7 @@
 .txIcon {
   width: 44px;
   height: 44px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -480,7 +480,6 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
 }
 
 .txName {
@@ -495,7 +494,7 @@
 .txMeta {
   color: var(--color-text-muted);
   font-size: 0.78125rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .txRight {

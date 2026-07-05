@@ -575,7 +575,7 @@ export default function DashboardPage() {
         <section className={styles.recentCard}>
           <div className={styles.recentHeader}>
             <h2 className={styles.recentTitle}>Recent transactions</h2>
-            <Link href="/transactions" className={styles.recentSeeAll}>See all ›</Link>
+            <Link href="/transactions" className={styles.recentSeeAll}>View all</Link>
           </div>
           {loading ? (
             <p className={styles.emptyState}>Loading…</p>
