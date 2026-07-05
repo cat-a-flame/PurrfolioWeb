@@ -812,13 +812,18 @@ export default function TransactionsPage() {
                                     {t.wallet.name}
                                   </span>
                                 )}
-                                {!isTransfer && t.payer && (
-                                  <span className={styles.txPayee}>{t.payer}</span>
-                                )}
                               </div>
 
-                              {t.labels && t.labels.length > 0 && t.notes && (
+                              {((!isTransfer && t.payer) || t.notes || (t.labels && t.labels.length > 0)) && (
                                 <div className={styles.txDetails}>
+                                  <div className={styles.txPayeeNote}>
+                                    {!isTransfer && t.payer && (
+                                      <span className={styles.txPayee}>{t.payer}</span>
+                                    )}
+                                    {t.notes && (
+                                      <span className={styles.txNotes}>{t.notes}</span>
+                                    )}
+                                  </div>
                                   {t.labels && t.labels.length > 0 && (
                                     <div className={styles.txLabels}>
                                       {t.labels.map(l => (
@@ -828,9 +833,6 @@ export default function TransactionsPage() {
                                         </span>
                                       ))}
                                     </div>
-                                  )}
-                                  {t.notes && (
-                                    <span className={styles.txNotes}>{t.notes}</span>
                                   )}
                                 </div>
                               )}

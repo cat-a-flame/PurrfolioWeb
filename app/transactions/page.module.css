@@ -481,10 +481,12 @@
 }
 
 .txNotes {
+  display: block;
   font-size: 0.8125rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .txLeft {
@@ -496,7 +498,19 @@
 }
 
 .txDetails {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   margin-left: var(--space-2);
+  min-width: 0;
+  flex: 1;
+}
+
+.txPayeeNote {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .txRight {
