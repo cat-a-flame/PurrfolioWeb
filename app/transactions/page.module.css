@@ -473,6 +473,12 @@
   flex-shrink: 0;
 }
 
+.txPayee {
+  font-size: .78125rem;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
 .txNotes {
   font-size: 0.8125rem;
   white-space: nowrap;

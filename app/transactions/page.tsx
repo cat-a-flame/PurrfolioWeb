@@ -808,6 +808,9 @@ export default function TransactionsPage() {
                                     {t.wallet.name}
                                   </span>
                                 )}
+                                {!isTransfer && t.payer && (
+                                  <span className={styles.txPayee}>{t.payer}</span>
+                                )}
                               </div>
 
                               {t.labels && t.labels.length > 0 && t.notes && (
@@ -841,10 +844,7 @@ export default function TransactionsPage() {
                                 styles.txAmount,
                                 isTransfer ? styles.txTransfer : t.type === 'income' ? styles.txIncome : styles.txExpense,
                               ].join(' ')}>
-                                {isTransfer
-                                  ? (t.type === 'expense' ? '−' : '')
-                                  : (t.type === 'income' ? '' : '−')
-                                }{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
+                                {t.type === 'income' ? '+' : '−'}{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
                               </span>
                             </div>
                           </div>
