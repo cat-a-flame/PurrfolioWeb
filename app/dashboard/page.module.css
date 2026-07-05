@@ -497,6 +497,61 @@
   font-weight: 700;
 }
 
+.txDetails {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+}
+
+.txPayeeNote {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.txPayee {
+  font-size: .78125rem;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.txNotes {
+  display: block;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.txLabels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.txLabel {
+  display: flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  gap: .3rem;
+  white-space: nowrap;
+}
+
+.txLabelDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
 .txRight {
   text-align: right;
   flex-shrink: 0;
