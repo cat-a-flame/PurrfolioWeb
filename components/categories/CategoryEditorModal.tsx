@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { FaTrash } from 'react-icons/fa';
 import Button from '@/components/ui/Button';
+import ColorSwatchField from '@/components/ui/ColorSwatchField';
 import Dialog from '@/components/ui/Dialog';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
@@ -134,21 +135,11 @@ export default function CategoryEditorModal({
 
         <div className={styles.section}>
           <FormLabel>Color</FormLabel>
-          <label className={styles.colorField}>
-            <span className={styles.colorSwatch} style={{ background: draft.color }}>
-              <input
-                type="color"
-                value={draft.color}
-                onChange={(e) => setDraft((d) => ({ ...d, color: e.target.value }))}
-                aria-label="Category color"
-                className={styles.colorInput}
-              />
-            </span>
-            <span>
-              <span className={styles.colorHex}>{draft.color.toUpperCase()}</span>
-              <span className={styles.colorHint}>Click to open color picker</span>
-            </span>
-          </label>
+          <ColorSwatchField
+            value={draft.color}
+            onChange={(color) => setDraft((d) => ({ ...d, color }))}
+            ariaLabel="Category color"
+          />
         </div>
 
         <div className={styles.subsHeader}>

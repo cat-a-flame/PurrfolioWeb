@@ -4,6 +4,7 @@ import { useState } from 'react';
 import ReactSelect from 'react-select';
 import { FaTrash } from 'react-icons/fa';
 import Button from '@/components/ui/Button';
+import ColorSwatchField from '@/components/ui/ColorSwatchField';
 import Dialog from '@/components/ui/Dialog';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
@@ -127,21 +128,11 @@ export default function WalletEditorModal({
 
         <div className={styles.section}>
           <FormLabel>Color</FormLabel>
-          <label className={styles.colorField}>
-            <span className={styles.colorSwatch} style={{ background: draft.color }}>
-              <input
-                type="color"
-                value={draft.color}
-                onChange={(e) => setDraft((d) => ({ ...d, color: e.target.value }))}
-                aria-label="Account color"
-                className={styles.colorInput}
-              />
-            </span>
-            <span>
-              <span className={styles.colorHex}>{draft.color.toUpperCase()}</span>
-              <span className={styles.colorHint}>Click to open color picker</span>
-            </span>
-          </label>
+          <ColorSwatchField
+            value={draft.color}
+            onChange={(color) => setDraft((d) => ({ ...d, color }))}
+            ariaLabel="Account color"
+          />
         </div>
 
         {isEdit && (
