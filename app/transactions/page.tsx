@@ -237,7 +237,10 @@ export default function TransactionsPage() {
   const summaryExpense = filteredTransactions
     .filter(t => t.type === 'expense' && !t.transfer_group_id)
     .reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
-  const summaryBalance = summaryIncome - summaryExpense;
+  const summaryBalance = filteredTransactions.reduce((s, t) => {
+    const huf = txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
+    return t.type === 'income' ? s + huf : s - huf;
+  }, 0);
   const summaryTotal = summaryIncome + summaryExpense;
   const summaryIncomePct = summaryTotal > 0 ? (summaryIncome / summaryTotal) * 100 : 0;
   const summaryExpensePct = summaryTotal > 0 ? (summaryExpense / summaryTotal) * 100 : 0;
