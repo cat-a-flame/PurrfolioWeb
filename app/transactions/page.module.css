@@ -610,6 +610,8 @@
 /* ── Cash flow summary card ── */
 .periodRow {
   display: flex;
+  justify-content: center;
+  margin-top: var(--space-2);
 }
 
 .summaryCard {
