@@ -90,6 +90,50 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
   );
 }
 
+// ─── stat card icons ────────────────────────────────────────────────────────
+function IncomeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  );
+}
+
+function ExpenseIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M12 5v14M19 12l-7 7-7-7" />
+    </svg>
+  );
+}
+
+function NetIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M7 7h12m0 0-4-4m4 4-4 4" />
+      <path d="M17 15H5m0 0 4 4m-4-4 4-4" />
+    </svg>
+  );
+}
+
+function TransactionsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none" />
+      <path d="M9 6h10.5" />
+      <circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <path d="M9 12h10.5" />
+      <circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none" />
+      <path d="M9 18h10.5" />
+    </svg>
+  );
+}
+
+function progressPct(actual: number, projected: number): number {
+  if (projected <= 0) return 0;
+  return Math.max(0, Math.min(100, (actual / projected) * 100));
+}
+
 // ─── page ────────────────────────────────────────────────────────────────────
 export default function StatisticsPage() {
   const [allTxs, setAllTxs]   = useState<Transaction[]>([]);
@@ -182,6 +226,8 @@ export default function StatisticsPage() {
   const expense = useMemo(() => periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
 
   const txCount = periodTxs.filter(t => !t.transfer_group_id).length;
+  const incomeCount  = periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).length;
+  const expenseCount = periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).length;
   const animatedIncome  = useCountUp(income);
   const animatedExpense = useCountUp(expense);
   const animatedNet     = useCountUp(income - expense);
@@ -366,28 +412,91 @@ export default function StatisticsPage() {
             const projExpense = cashFlowProjection.actualExpense + cashFlowProjection.plannedExpense;
             const projNet     = projIncome - projExpense;
             const hasPlanned  = recurringPayments.length > 0 && (cashFlowProjection.plannedIncome > 0 || cashFlowProjection.plannedExpense > 0);
+            const showIncomeProjection = hasPlanned && cashFlowProjection.plannedIncome > 0;
             return (
               <div className={styles.summaryRow}>
-                <div className={styles.summaryCard}>
-                  <span className={styles.summaryLabel}>Income</span>
-                  <span className={[styles.summaryAmount, styles.summaryIncome].join(' ')}>{formatHUF(animatedIncome)}</span>
-                  {hasPlanned && cashFlowProjection.plannedIncome > 0 && <span className={[styles.summaryProjected, styles.summaryProjectedIncome].join(' ')}>{formatHUF(projIncome)} projected</span>}
+                <div className={styles.statCard}>
+                  <div className={styles.statHead}>
+                    <div className={[styles.statIcon, styles.statIconIncome].join(' ')}><IncomeIcon /></div>
+                    <span className={styles.statLabel}>Income</span>
+                  </div>
+                  <div className={[styles.statAmount, styles.statAmountIncome].join(' ')}>{formatHUF(animatedIncome)}</div>
+                  <div className={styles.statDivider} />
+                  {showIncomeProjection ? (
+                    <div className={styles.statFooter}>
+                      <div className={styles.statFooterRow}>
+                        <span className={styles.statFooterLabel}>
+                          <span className={[styles.statDot, styles.statDotIncome].join(' ')} />Projected
+                        </span>
+                        <span className={[styles.statFooterValue, styles.statFooterValueIncome].join(' ')}>{formatHUF(projIncome)}</span>
+                      </div>
+                      <div className={styles.statBarTrack}>
+                        <div className={[styles.statBarFill, styles.statBarFillIncome].join(' ')} style={{ width: `${progressPct(income, projIncome)}%` }} />
+                      </div>
+                    </div>
+                  ) : (
+                    <p className={styles.statFooterEmpty}>No pending income</p>
+                  )}
                 </div>
-                <div className={styles.summaryCard}>
-                  <span className={styles.summaryLabel}>Expenses</span>
-                  <span className={[styles.summaryAmount, styles.summaryExpense].join(' ')}>{formatHUF(animatedExpense)}</span>
-                  {hasPlanned && <span className={[styles.summaryProjected, styles.summaryProjectedExpense].join(' ')}>{formatHUF(projExpense)} projected</span>}
+
+                <div className={styles.statCard}>
+                  <div className={styles.statHead}>
+                    <div className={[styles.statIcon, styles.statIconExpense].join(' ')}><ExpenseIcon /></div>
+                    <span className={styles.statLabel}>Expenses</span>
+                  </div>
+                  <div className={[styles.statAmount, styles.statAmountExpense].join(' ')}>{formatHUF(animatedExpense)}</div>
+                  <div className={styles.statDivider} />
+                  {hasPlanned ? (
+                    <div className={styles.statFooter}>
+                      <div className={styles.statFooterRow}>
+                        <span className={styles.statFooterLabel}>
+                          <span className={[styles.statDot, styles.statDotExpense].join(' ')} />Projected
+                        </span>
+                        <span className={[styles.statFooterValue, styles.statFooterValueExpense].join(' ')}>{formatHUF(projExpense)}</span>
+                      </div>
+                      <div className={styles.statBarTrack}>
+                        <div className={[styles.statBarFill, styles.statBarFillExpense].join(' ')} style={{ width: `${progressPct(expense, projExpense)}%` }} />
+                      </div>
+                    </div>
+                  ) : (
+                    <p className={styles.statFooterEmpty}>No pending expenses</p>
+                  )}
                 </div>
-                <div className={styles.summaryCard}>
-                  <span className={styles.summaryLabel}>Net</span>
-                  <span className={[styles.summaryAmount, income - expense >= 0 ? styles.summaryIncome : styles.summaryExpense].join(' ')}>
+
+                <div className={styles.statCard}>
+                  <div className={styles.statHead}>
+                    <div className={[styles.statIcon, styles.statIconNet].join(' ')}><NetIcon /></div>
+                    <span className={styles.statLabel}>Net</span>
+                  </div>
+                  <div className={styles.statAmount}>
                     {income - expense >= 0 ? '+' : ''}{formatHUF(animatedNet)}
-                  </span>
-                  {hasPlanned && <span className={[styles.summaryProjected, projNet >= 0 ? styles.summaryProjectedIncome : styles.summaryProjectedExpense].join(' ')}>{projNet >= 0 ? '+' : ''}{formatHUF(projNet)} projected</span>}
+                  </div>
+                  <div className={styles.statDivider} />
+                  {hasPlanned ? (
+                    <div className={styles.statFooter}>
+                      <div className={styles.statFooterRow}>
+                        <span className={styles.statFooterLabel}>
+                          <span className={[styles.statDot, styles.statDotNet].join(' ')} />Projected
+                        </span>
+                        <span className={[styles.statFooterValue, styles.statFooterValueNet].join(' ')}>{projNet >= 0 ? '+' : ''}{formatHUF(projNet)}</span>
+                      </div>
+                      <div className={styles.statBarTrack}>
+                        <div className={[styles.statBarFill, styles.statBarFillNet].join(' ')} style={{ width: `${progressPct(income - expense, projNet)}%` }} />
+                      </div>
+                    </div>
+                  ) : (
+                    <p className={styles.statFooterEmpty}>No projection</p>
+                  )}
                 </div>
-                <div className={styles.summaryCard}>
-                  <span className={styles.summaryLabel}>Transactions</span>
-                  <span className={styles.summaryAmount}>{animatedTxCount}</span>
+
+                <div className={styles.statCard}>
+                  <div className={styles.statHead}>
+                    <div className={[styles.statIcon, styles.statIconTx].join(' ')}><TransactionsIcon /></div>
+                    <span className={styles.statLabel}>Transactions</span>
+                  </div>
+                  <div className={styles.statAmount}>{animatedTxCount}</div>
+                  <div className={styles.statDivider} />
+                  <p className={styles.statFooterEmpty}>{expenseCount} expense · {incomeCount} income</p>
                 </div>
               </div>
             );

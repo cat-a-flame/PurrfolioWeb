@@ -44,43 +44,125 @@
   .summaryRow { grid-template-columns: repeat(2, 1fr); }
 }
 
-.summaryCard {
+.statCard {
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
   padding: var(--space-5) var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-3);
 }
 
-.summaryLabel {
-  font-size: 0.8125rem;
-  font-weight: 600;
+.statHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.statIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.statIconIncome  { background: var(--color-income-light);  color: var(--color-income); }
+.statIconExpense { background: var(--color-expense-light); color: var(--color-expense); }
+.statIconNet     { background: var(--color-accent-light);  color: var(--color-accent); }
+.statIconTx      { background: #fdf1de; color: #b3801f; }
+
+.statLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
 }
 
-.summaryAmount {
-  font-size: 1.375rem;
-  font-weight: 700;
+.statAmount {
+  font-size: 1.75rem;
+  font-weight: 800;
   font-family: var(--font-nunito);
   color: var(--color-text);
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
-.summaryIncome  { color: var(--color-income); }
-.summaryExpense { color: var(--color-expense); }
+.statAmountIncome  { color: var(--color-income); }
+.statAmountExpense { color: var(--color-expense); }
 
-.summaryProjected {
+.statDivider {
+  height: 1px;
+  background: var(--color-border-light);
+}
+
+.statFooter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.statFooterRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
   font-size: 0.8125rem;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text-muted);
-  margin-top: var(--space-1);
 }
-.summaryProjectedIncome  { color: color-mix(in srgb, var(--color-income)  60%, var(--color-text-muted)); }
-.summaryProjectedExpense { color: color-mix(in srgb, var(--color-expense) 60%, var(--color-text-muted)); }
+
+.statFooterLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.statFooterValue {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.statFooterValueIncome  { color: var(--color-income); }
+.statFooterValueExpense { color: var(--color-expense); }
+.statFooterValueNet     { color: var(--color-accent); }
+
+.statFooterEmpty {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.statDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.statDotIncome  { background: var(--color-income); }
+.statDotExpense { background: var(--color-expense); }
+.statDotNet     { background: var(--color-accent); }
+
+.statBarTrack {
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-light);
+  overflow: hidden;
+}
+
+.statBarFill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.4s ease;
+}
+
+.statBarFillIncome  { background: var(--color-income); }
+.statBarFillExpense { background: var(--color-expense); }
+.statBarFillNet     { background: var(--color-accent); }
 
 /* ── Card grid ── */
 .grid {
