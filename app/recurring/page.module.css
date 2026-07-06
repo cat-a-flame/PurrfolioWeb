@@ -41,7 +41,7 @@
 }
 
 .sectionTitle {
-  font-size: 0.875rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   color: var(--color-text-muted);
 }
@@ -103,10 +103,8 @@
 }
 
 .dueGroupLabel {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 1.0625rem;
+  font-weight: 700;
   color: var(--color-text-muted);
   padding-bottom: var(--space-1);
 }
