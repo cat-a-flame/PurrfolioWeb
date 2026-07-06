@@ -472,9 +472,9 @@ export default function StatisticsPage() {
             {/* ── Balance by currencies ── */}
             <div className={[styles.card, styles.cardBalances].join(' ')}>
               <h2 className={styles.cardTitle}>Balance by Currency</h2>
-              <p className={styles.cardSubtitle}>Current total across all wallets</p>
+              <p className={styles.cardSubtitle}>Current total across all accounts</p>
               {currencyBalances.length === 0 ? (
-                <p className={styles.empty}>No wallets yet.</p>
+                <p className={styles.empty}>No accounts yet.</p>
               ) : (
                 <div className={styles.balanceList}>
                   {(() => {

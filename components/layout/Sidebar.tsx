@@ -60,7 +60,7 @@ const navItems = [
 const settingsItems = [
   {
     label: 'Accounts',
-    href: '/settings/wallets',
+    href: '/settings/accounts',
     icon: (
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <rect x="3" y="6" width="18" height="14" rx="3" />

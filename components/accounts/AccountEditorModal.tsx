@@ -13,7 +13,7 @@ import Switch from '@/components/ui/Switch';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import type { Currency } from '@/lib/types';
 import { hexToRgba } from '@/lib/colorUtils';
-import styles from './WalletEditorModal.module.css';
+import styles from './AccountEditorModal.module.css';
 
 const CURRENCIES: Currency[] = ['HUF', 'USD', 'EUR'];
 const CURRENCY_LABELS: Record<Currency, string> = {
@@ -32,7 +32,7 @@ export interface WalletDraft {
   isArchived: boolean;
 }
 
-interface WalletEditorModalProps {
+interface AccountEditorModalProps {
   mode: 'create' | 'edit';
   initial: WalletDraft;
   canDelete: boolean;
@@ -44,9 +44,9 @@ interface WalletEditorModalProps {
   onToggleArchive: () => void;
 }
 
-export default function WalletEditorModal({
+export default function AccountEditorModal({
   mode, initial, canDelete, saving, onClose, onSave, onDelete, onSetDefault, onToggleArchive,
-}: WalletEditorModalProps) {
+}: AccountEditorModalProps) {
   const [draft, setDraft] = useState<WalletDraft>(initial);
   const isEdit = mode === 'edit';
 

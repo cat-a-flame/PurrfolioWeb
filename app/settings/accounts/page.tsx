@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import Button from '@/components/ui/Button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Toast from '@/components/ui/Toast';
-import WalletCard from '@/components/wallets/WalletCard';
-import WalletEditorModal, { type WalletDraft } from '@/components/wallets/WalletEditorModal';
+import AccountCard from '@/components/accounts/AccountCard';
+import AccountEditorModal, { type WalletDraft } from '@/components/accounts/AccountEditorModal';
 import { createClient } from '@/lib/supabase/client';
 import type { Wallet } from '@/lib/types';
 import styles from './page.module.css';
@@ -16,7 +16,7 @@ type ModalState =
 
 const DEFAULT_COLOR = '#7a5ce0';
 
-export default function WalletsSettingsPage() {
+export default function AccountsSettingsPage() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<ModalState | null>(null);
@@ -182,7 +182,7 @@ export default function WalletsSettingsPage() {
       ) : (
         <div className={styles.grid}>
           {activeWallets.map((w) => (
-            <WalletCard key={w.id} wallet={w} onEdit={openEdit} />
+            <AccountCard key={w.id} wallet={w} onEdit={openEdit} />
           ))}
         </div>
       )}
@@ -192,14 +192,14 @@ export default function WalletsSettingsPage() {
           <div className={styles.archivedTitle}>Archived accounts</div>
           <div className={styles.grid}>
             {archivedWallets.map((w) => (
-              <WalletCard key={w.id} wallet={w} onEdit={openEdit} />
+              <AccountCard key={w.id} wallet={w} onEdit={openEdit} />
             ))}
           </div>
         </div>
       )}
 
       {modal && draftInitial && (
-        <WalletEditorModal
+        <AccountEditorModal
           mode={modal.mode}
           initial={draftInitial}
           canDelete={modal.mode === 'edit' && !modal.wallet.is_default && !modal.wallet.is_archived && wallets.length > 1}

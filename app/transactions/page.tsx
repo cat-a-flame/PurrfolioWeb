@@ -614,12 +614,12 @@ export default function TransactionsPage() {
               })()}
             </div>
 
-            {/* Wallet */}
+            {/* Account */}
             <div className={styles.filterField}>
-              <FormLabel htmlFor="filter-wallet">Wallet</FormLabel>
+              <FormLabel htmlFor="filter-wallet">Account</FormLabel>
               {(() => {
                 const walletOptions = [
-                  { value: '', label: 'All wallets' },
+                  { value: '', label: 'All accounts' },
                   ...wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` })),
                 ];
                 return (

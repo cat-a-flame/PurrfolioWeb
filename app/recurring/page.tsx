@@ -283,7 +283,7 @@ export default function RecurringPage() {
     if (!form.name.trim()) return 'Name is required.';
     const amt = parseFloat(form.amount);
     if (!form.amount || isNaN(amt) || amt <= 0) return 'Enter a valid amount.';
-    if (!form.walletId) return 'Select a wallet.';
+    if (!form.walletId) return 'Select an account.';
     if (!form.startDate) return 'Start date is required.';
     return null;
   }
@@ -728,10 +728,10 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
             </div>
           </div>
 
-          {/* Wallet + Category */}
+          {/* Account + Category */}
           <div className={styles.twoCol}>
             <div className={styles.field}>
-              <FormLabel required>Wallet</FormLabel>
+              <FormLabel required>Account</FormLabel>
               <ReactSelect<{ value: string; label: string }>
                 options={walletOptions}
                 value={selectedWallet}
@@ -740,7 +740,7 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
                 styles={rsStyles}
                 theme={rsTheme}
                 menuPosition="fixed"
-                placeholder="Select wallet…"
+                placeholder="Select account…"
               />
             </div>
             <div className={styles.field}>

@@ -1,14 +1,14 @@
 import type { Wallet } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
 import { hexToRgba } from '@/lib/colorUtils';
-import styles from './WalletCard.module.css';
+import styles from './AccountCard.module.css';
 
-interface WalletCardProps {
+interface AccountCardProps {
   wallet: Wallet;
   onEdit: (wallet: Wallet) => void;
 }
 
-export default function WalletCard({ wallet, onEdit }: WalletCardProps) {
+export default function AccountCard({ wallet, onEdit }: AccountCardProps) {
   return (
     <div
       className={[styles.card, wallet.is_archived ? styles.cardArchived : ''].filter(Boolean).join(' ')}
