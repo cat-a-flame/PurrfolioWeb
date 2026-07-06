@@ -597,7 +597,12 @@ export default function DashboardPage() {
                       <span className={styles.txName}>
                         {isTransfer ? (t.payer ? t.payer : 'Transfer') : (t.category?.name ?? 'Uncategorised')}
                       </span>
-                      {t.wallet && <span className={styles.txMeta}>{t.wallet.name}</span>}
+                      {t.wallet && (
+                        <span className={styles.txMeta}>
+                          <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
+                          {t.wallet.name}
+                        </span>
+                      )}
                     </div>
 
                     {((!isTransfer && t.payer) || t.notes || (t.labels && t.labels.length > 0)) && (
@@ -628,10 +633,7 @@ export default function DashboardPage() {
                         styles.txAmount,
                         isTransfer ? styles.txTransfer : t.type === 'income' ? styles.amtIncome : styles.amtExpense,
                       ].join(' ')}>
-                        {isTransfer
-                          ? (t.type === 'expense' ? '−' : '')
-                          : (t.type === 'income' ? '' : '−')
-                        }{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
+                        {t.type === 'income' ? '+' : '−'}{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
                       </span>
                       <span className={styles.txDate}>{formatDayLabel(t.date)}</span>
                     </div>
