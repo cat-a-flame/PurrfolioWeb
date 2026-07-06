@@ -404,8 +404,10 @@ export default function RecurringPage() {
 
   // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-  const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
   const isCurrentMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth();
+  const monthLabel = isCurrentMonth
+    ? 'This month'
+    : new Date(viewYear, viewMonth, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
 
   function walletCurrency(walletId: string | null): 'HUF' | 'USD' | 'EUR' {
     return (wallets.find(w => w.id === walletId)?.currency ?? 'HUF') as 'HUF' | 'USD' | 'EUR';
