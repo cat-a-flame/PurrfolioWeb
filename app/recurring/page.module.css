@@ -105,6 +105,7 @@
 .dueGroup {
   display: flex;
   flex-direction: column;
+  gap: var(--space-2);
 }
 
 .dueGroupLabel {
@@ -116,96 +117,102 @@
   padding-bottom: var(--space-1);
 }
 
-/* ── Due card ── */
-.dueCard {
+/* ── Record card (matches the transactions page's day card + row) ── */
+.recordCard {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.record {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   cursor: pointer;
   transition: background var(--transition-fast);
+  position: relative;
 }
 
-.dueCard:not(:last-child) {
-  border-bottom: 1px solid var(--color-border-light);
+.record + .record {
+  border-top: 1px solid var(--color-border-light);
 }
 
-.dueCard:hover {
-  background: var(--color-surface-2);
+.record:hover {
+  background: var(--color-accent-light);
 }
 
-.dueIcon {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-sm);
+.recordInactive {
+  opacity: 0.55;
+}
+
+.recordIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 1.125rem;
 }
 
-.dueMeta {
+.recordMain {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1 1 auto;
   min-width: 0;
 }
 
-.dueName {
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--color-text);
-}
-
-.dueSub {
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-  margin-top: 2px;
+.recordTopRow {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
-.dueDateBadge {
-  display: inline-block;
-  padding: var(--space-1) 0 var(--sapce-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-alt);
-  font-weight: 500;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
+.recordTitle {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--color-text);
 }
 
-.dueMain {
-  min-width: 0;
-}
-
-.dueDetails {
+.recordMetaRow {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  flex: 1;
+  gap: var(--space-2);
   min-width: 0;
+  overflow: hidden;
 }
 
-.duePayeeNote {
+.recordMetaDot {
+  flex-shrink: 0;
+  color: var(--color-text-faint);
+  font-size: 0.75rem;
+}
+
+.recordTag {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.duePayee {
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
   font-size: .78125rem;
   color: var(--color-text-muted);
   font-weight: 700;
+  white-space: nowrap;
 }
 
-.dueNotes {
+.recordDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.recordNotes {
   display: block;
+  flex: 1 1 auto;
   font-size: 0.8125rem;
   color: var(--color-text-muted);
   white-space: nowrap;
@@ -214,13 +221,13 @@
   min-width: 0;
 }
 
-.dueLabels {
+.recordLabels {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
 }
 
-.dueLabel {
+.recordLabel {
   display: flex;
   align-items: center;
   padding: var(--space-1) var(--space-2);
@@ -232,30 +239,37 @@
   white-space: nowrap;
 }
 
-.dueLabelDot {
+.recordLabelDot {
   width: 8px;
   height: 8px;
   border-radius: var(--radius-full);
   flex-shrink: 0;
 }
 
-.dueDateBadgeOverdue {
-  background: color-mix(in srgb, var(--color-error, #ef4444) 15%, transparent);
-  color: var(--color-error, #ef4444);
-}
-
-.dueRight {
+.recordRight {
   display: flex;
-  align-items: center;
-  gap: var(--space-4);
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
   flex-shrink: 0;
 }
 
-.dueAmount {
-  font-size: 1rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+.recordAmount {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  font-family: var(--font-nunito);
   white-space: nowrap;
+}
+
+.dueDateBadge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.dueDateBadgeOverdue {
+  color: var(--color-error, #ef4444);
 }
 
 .dueDialogAmount {
@@ -266,123 +280,6 @@
   margin-bottom: var(--space-2);
 }
 
-/* ── Payment list ── */
-.paymentList {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.paymentRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg);
-  flex-wrap: wrap;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.paymentRowInactive {
-  opacity: 0.55;
-}
-
-.paymentMeta {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex: 1;
-  min-width: 0;
-}
-
-.paymentName {
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--color-text);
-}
-
-.paymentSub {
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-  margin-top: 2px;
-}
-
-.paymentMain {
-  min-width: 0;
-}
-
-.paymentDetails {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex: 1;
-  min-width: 0;
-}
-
-.paymentPayeeNote {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.paymentPayee {
-  font-size: .78125rem;
-  color: var(--color-text-muted);
-  font-weight: 700;
-}
-
-.paymentNotes {
-  display: block;
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.paymentLabels {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.paymentLabel {
-  display: flex;
-  align-items: center;
-  padding: var(--space-1) var(--space-2);
-  background: var(--color-surface-2);
-  border-radius: var(--radius-sm);
-  font-size: 0.75rem;
-  font-weight: 700;
-  gap: .3rem;
-  white-space: nowrap;
-}
-
-.paymentLabelDot {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-full);
-  flex-shrink: 0;
-}
-
-.paymentRight {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.paymentAmount {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
 .amtExpense { color: var(--color-expense, #ef4444); }
 .amtIncome  { color: var(--color-income, #22c55e); }
 
@@ -601,7 +498,6 @@
 
 @media (max-width: 600px) {
   .twoCol { grid-template-columns: 1fr; }
-  .dueCard, .paymentRow { gap: var(--space-2); }
-  .dueRight { width: 100%; justify-content: space-between; }
+  .record { gap: var(--space-2); }
   .modal { padding: var(--space-5); }
 }

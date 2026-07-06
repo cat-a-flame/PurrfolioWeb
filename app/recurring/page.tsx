@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { Fragment, useState, useEffect, useCallback } from 'react';
 import ReactSelect from 'react-select';
 import AppShell from '@/components/layout/AppShell';
 import Button from '@/components/ui/Button';
@@ -464,36 +464,42 @@ export default function RecurringPage() {
             {overdueItems.length > 0 && (
               <div className={styles.dueGroup}>
                 <p className={styles.dueGroupLabel}>Overdue</p>
-                {overdueItems.map(item => (
-                  <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
-                    item={item}
-                    onSelect={setDuePromptItem}
-                    currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
-                ))}
+                <div className={styles.recordCard}>
+                  {overdueItems.map(item => (
+                    <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
+                      item={item}
+                      onSelect={setDuePromptItem}
+                      currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
+                  ))}
+                </div>
               </div>
             )}
 
             {todayItems.length > 0 && (
               <div className={styles.dueGroup}>
                 <p className={styles.dueGroupLabel}>Due today</p>
-                {todayItems.map(item => (
-                  <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
-                    item={item}
-                    onSelect={setDuePromptItem}
-                    currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
-                ))}
+                <div className={styles.recordCard}>
+                  {todayItems.map(item => (
+                    <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
+                      item={item}
+                      onSelect={setDuePromptItem}
+                      currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
+                  ))}
+                </div>
               </div>
             )}
 
             {upcomingItems.length > 0 && (
               <div className={styles.dueGroup}>
                 {(overdueItems.length > 0 || todayItems.length > 0) && <p className={styles.dueGroupLabel}>Upcoming</p>}
-                {upcomingItems.map(item => (
-                  <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
-                    item={item}
-                    onSelect={setDuePromptItem}
-                    currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
-                ))}
+                <div className={styles.recordCard}>
+                  {upcomingItems.map(item => (
+                    <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
+                      item={item}
+                      onSelect={setDuePromptItem}
+                      currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
+                  ))}
+                </div>
               </div>
             )}
           </section>
@@ -509,7 +515,7 @@ export default function RecurringPage() {
             {FREQUENCIES.filter(f => payments.some(p => p.frequency === f.value)).map(f => (
               <div key={f.value} className={styles.dueGroup}>
                 <p className={styles.dueGroupLabel}>{f.label}</p>
-                <div className={styles.paymentList}>
+                <div className={styles.recordCard}>
                   {payments.filter(p => p.frequency === f.value).sort((a, b) => {
                     const na = nextDueDate(a)?.getTime() ?? Infinity;
                     const nb = nextDueDate(b)?.getTime() ?? Infinity;
@@ -517,46 +523,62 @@ export default function RecurringPage() {
                   }).map(p => {
                     const next = nextDueDate(p);
                     const currency = walletCurrency(p.wallet_id);
+                    const metaParts = [
+                      p.category && (
+                        <span key="category" className={styles.recordTag}>{p.category.icon} {p.category.name}</span>
+                      ),
+                      p.wallet && (
+                        <span key="wallet" className={styles.recordTag}>
+                          <span className={styles.recordDot} style={{ backgroundColor: p.wallet.color }} />
+                          {p.wallet.name}
+                        </span>
+                      ),
+                      p.payer && (
+                        <span key="payer" className={styles.recordTag}>{p.payer}</span>
+                      ),
+                      p.notes && (
+                        <span key="notes" className={styles.recordNotes}>{p.notes}</span>
+                      ),
+                    ].filter(Boolean);
                     return (
                       <div
                         key={p.id}
-                        className={[styles.paymentRow, !p.is_active ? styles.paymentRowInactive : ''].join(' ')}
+                        className={[styles.record, !p.is_active ? styles.recordInactive : ''].join(' ')}
                         onClick={() => openEdit(p)}
                       >
-                        <div className={styles.paymentMeta}>
-                          <div className={styles.paymentMain}>
-                            <p className={styles.paymentName}>{p.name}</p>
-                            <p className={styles.paymentSub}>
-                              {p.category && `${p.category.icon} ${p.category.name}`}
-                              {p.wallet && (p.category ? ' · ' : '') + p.wallet.name}
-                            </p>
-                          </div>
-
-                          {(p.payer || p.notes || (p.labels && p.labels.length > 0)) && (
-                            <div className={styles.paymentDetails}>
-                              <div className={styles.paymentPayeeNote}>
-                                {p.payer && (
-                                  <span className={styles.paymentPayee}>{p.payer}</span>
-                                )}
-                                {p.notes && (
-                                  <span className={styles.paymentNotes}>{p.notes}</span>
-                                )}
+                        <div
+                          className={styles.recordIcon}
+                          style={{ backgroundColor: (p.category?.color ?? '#94a3b8') + '22' }}
+                        >
+                          {p.category?.icon ?? '?'}
+                        </div>
+                        <div className={styles.recordMain}>
+                          <div className={styles.recordTopRow}>
+                            <span className={styles.recordTitle}>{p.name}</span>
+                            {p.labels && p.labels.length > 0 && (
+                              <div className={styles.recordLabels}>
+                                {p.labels.map(l => (
+                                  <span key={l.id} className={styles.recordLabel}>
+                                    <span className={styles.recordLabelDot} style={{ backgroundColor: l.color }} />
+                                    {l.name}
+                                  </span>
+                                ))}
                               </div>
-                              {p.labels && p.labels.length > 0 && (
-                                <div className={styles.paymentLabels}>
-                                  {p.labels.map(l => (
-                                    <span key={l.id} className={styles.paymentLabel}>
-                                      <span className={styles.paymentLabelDot} style={{ backgroundColor: l.color }} />
-                                      {l.name}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
+                            )}
+                          </div>
+                          {metaParts.length > 0 && (
+                            <div className={styles.recordMetaRow}>
+                              {metaParts.map((part, i) => (
+                                <Fragment key={i}>
+                                  {i > 0 && <span className={styles.recordMetaDot}>·</span>}
+                                  {part}
+                                </Fragment>
+                              ))}
                             </div>
                           )}
                         </div>
-                        <div className={styles.paymentRight}>
-                          <span className={[styles.paymentAmount, p.type === 'income' ? styles.amtIncome : styles.amtExpense].join(' ')}>
+                        <div className={styles.recordRight}>
+                          <span className={[styles.recordAmount, p.type === 'income' ? styles.amtIncome : styles.amtExpense].join(' ')}>
                             {p.type === 'expense' ? '−' : '+'}{formatCurrency(p.amount, currency)}
                           </span>
                           {next && p.is_active && (
@@ -810,51 +832,61 @@ function DueCard({ item, onSelect, currency, dueDateLabel }: {
 }) {
   const { payment } = item;
   const isOverdue = dueDateLabel.includes('overdue');
+  const metaParts = [
+    payment.category && (
+      <span key="category" className={styles.recordTag}>{payment.category.icon} {payment.category.name}</span>
+    ),
+    payment.wallet && (
+      <span key="wallet" className={styles.recordTag}>
+        <span className={styles.recordDot} style={{ backgroundColor: payment.wallet.color }} />
+        {payment.wallet.name}
+      </span>
+    ),
+    payment.payer && (
+      <span key="payer" className={styles.recordTag}>{payment.payer}</span>
+    ),
+    payment.notes && (
+      <span key="notes" className={styles.recordNotes}>{payment.notes}</span>
+    ),
+  ].filter(Boolean);
   return (
-    <div className={styles.dueCard} onClick={() => onSelect(item)}>
+    <div className={styles.record} onClick={() => onSelect(item)}>
       <div
-        className={styles.dueIcon}
+        className={styles.recordIcon}
         style={{ backgroundColor: (payment.category?.color ?? '#94a3b8') + '22' }}
       >
         {payment.category?.icon ?? '?'}
       </div>
-      <div className={styles.dueMeta}>
-        <div className={styles.dueMain}>
-          <p className={styles.dueName}>{payment.name}</p>
-          <p className={styles.dueSub}>
-            {payment.category && `${payment.category.icon} ${payment.category.name}`}
-            {payment.wallet && (payment.category ? ' · ' : '') + payment.wallet.name} ·
-            <span className={[styles.dueDateBadge, isOverdue ? styles.dueDateBadgeOverdue : ''].join(' ')}>{dueDateLabel}</span>
-          </p>
-        </div>
-
-        {(payment.payer || payment.notes || (payment.labels && payment.labels.length > 0)) && (
-          <div className={styles.dueDetails}>
-            <div className={styles.duePayeeNote}>
-              {payment.payer && (
-                <span className={styles.duePayee}>{payment.payer}</span>
-              )}
-              {payment.notes && (
-                <span className={styles.dueNotes}>{payment.notes}</span>
-              )}
+      <div className={styles.recordMain}>
+        <div className={styles.recordTopRow}>
+          <span className={styles.recordTitle}>{payment.name}</span>
+          {payment.labels && payment.labels.length > 0 && (
+            <div className={styles.recordLabels}>
+              {payment.labels.map(l => (
+                <span key={l.id} className={styles.recordLabel}>
+                  <span className={styles.recordLabelDot} style={{ backgroundColor: l.color }} />
+                  {l.name}
+                </span>
+              ))}
             </div>
-            {payment.labels && payment.labels.length > 0 && (
-              <div className={styles.dueLabels}>
-                {payment.labels.map(l => (
-                  <span key={l.id} className={styles.dueLabel}>
-                    <span className={styles.dueLabelDot} style={{ backgroundColor: l.color }} />
-                    {l.name}
-                  </span>
-                ))}
-              </div>
-            )}
+          )}
+        </div>
+        {metaParts.length > 0 && (
+          <div className={styles.recordMetaRow}>
+            {metaParts.map((part, i) => (
+              <Fragment key={i}>
+                {i > 0 && <span className={styles.recordMetaDot}>·</span>}
+                {part}
+              </Fragment>
+            ))}
           </div>
         )}
       </div>
-      <div className={styles.dueRight}>
-        <span className={[styles.dueAmount, payment.type === 'income' ? styles.amtIncome : styles.amtExpense].join(' ')}>
+      <div className={styles.recordRight}>
+        <span className={[styles.recordAmount, payment.type === 'income' ? styles.amtIncome : styles.amtExpense].join(' ')}>
           {payment.type === 'expense' ? '−' : '+'}{formatCurrency(payment.amount, currency)}
         </span>
+        <span className={[styles.dueDateBadge, isOverdue ? styles.dueDateBadgeOverdue : ''].join(' ')}>{dueDateLabel}</span>
       </div>
     </div>
   );
