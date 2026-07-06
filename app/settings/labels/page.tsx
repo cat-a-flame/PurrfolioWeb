@@ -6,9 +6,11 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Toast from '@/components/ui/Toast';
 import LabelCard from '@/components/labels/LabelCard';
 import LabelEditorModal, { type LabelDraft } from '@/components/labels/LabelEditorModal';
+import Skeleton from '@/components/ui/Skeleton';
 import { createClient } from '@/lib/supabase/client';
 import type { Label } from '@/lib/types';
 import styles from './page.module.css';
+import labelCardStyles from '@/components/labels/LabelCard.module.css';
 
 type ModalState =
   | { mode: 'create' }
@@ -114,7 +116,16 @@ export default function LabelsSettingsPage() {
       </div>
 
       {loading ? (
-        <p className={styles.emptyState}>Loading…</p>
+        <div className={styles.grid}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className={labelCardStyles.card}>
+              <div className={labelCardStyles.head}>
+                <Skeleton width={14} height={14} radius="50%" />
+                <Skeleton width="60%" height={15} radius={4} />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : labels.length === 0 ? (
         <p className={styles.emptyState}>No labels yet.</p>
       ) : (

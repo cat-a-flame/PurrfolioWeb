@@ -6,12 +6,6 @@
   gap: var(--space-6);
 }
 
-.loading {
-  color: var(--color-text-muted);
-  padding: var(--space-8);
-  text-align: center;
-}
-
 /* ── Page header ── */
 .pageHeader {
   display: flex;

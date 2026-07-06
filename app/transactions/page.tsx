@@ -110,7 +110,8 @@ export default function TransactionsPage() {
     sessionStorage.setItem('purrfolio_period', JSON.stringify(filterPeriod));
   }, [filterPeriod]);
 
-  // Brief loading indicator whenever a filter changes
+  // Brief loading indicator whenever a client-side filter changes (period changes
+  // trigger a real refetch instead — see isPeriodLoading below)
   const [isFiltering, setIsFiltering] = useState(false);
   useEffect(() => {
     if (loading) return;
@@ -118,7 +119,10 @@ export default function TransactionsPage() {
     const t = setTimeout(() => setIsFiltering(false), 200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterPeriod, filterSearch]);
+  }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterSearch]);
+
+  // Skeleton loading whenever the selected period changes and data is being refetched
+  const [isPeriodLoading, setIsPeriodLoading] = useState(false);
 
   // Exchange rates: date → { EUR: number, USD: number, … } (HUF per 1 unit)
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
@@ -181,7 +185,8 @@ export default function TransactionsPage() {
   }, [filterPeriod]);
 
   useEffect(() => {
-    fetchAll();
+    setIsPeriodLoading(true);
+    fetchAll().finally(() => setIsPeriodLoading(false));
     window.addEventListener('transaction-added', fetchAll);
     return () => window.removeEventListener('transaction-added', fetchAll);
   }, [fetchAll]);
@@ -671,7 +676,7 @@ export default function TransactionsPage() {
           {/* ── Content ── */}
           <div className={styles.contentArea}>
             {/* ── Cash flow summary ── */}
-            {!loading && filteredTransactions.length > 0 && filterType !== 'transfer' && (
+            {!loading && !isPeriodLoading && filteredTransactions.length > 0 && filterType !== 'transfer' && (
               <div className={styles.summaryCard}>
                 {showBalance && (
                   <div className={styles.summaryBalance}>
@@ -746,7 +751,7 @@ export default function TransactionsPage() {
               </div>
             )}
 
-            {loading ? (
+            {loading || isPeriodLoading ? (
               <div className={styles.skeletonList}>
                 {Array.from({ length: 5 }).map((_, i) => (
                   <div key={i} className={styles.skeletonRow} />

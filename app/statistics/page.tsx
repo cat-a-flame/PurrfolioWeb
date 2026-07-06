@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 import AppShell from '@/components/layout/AppShell';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
+import Skeleton from '@/components/ui/Skeleton';
 import { createClient } from '@/lib/supabase/client';
 import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
 import { fetchWalletBalanceSums } from '@/lib/supabase/fetchWalletBalanceSums';
@@ -141,6 +142,10 @@ export default function StatisticsPage() {
   const [walletBalanceSums, setWalletBalanceSums] = useState<Map<string, { income: number; expense: number }>>(new Map());
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
+  // True while a period change is being fetched (distinct from `loading`, which only
+  // covers the very first load) — lets us skeleton the content while keeping the
+  // header and period picker visible.
+  const [periodLoading, setPeriodLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [period, setPeriod]   = useState<PeriodValue>(defaultPeriod);
   const [todayRates, setTodayRates] = useState<Record<string, number>>({});
@@ -197,7 +202,8 @@ export default function StatisticsPage() {
   }, [period]);
 
   useEffect(() => {
-    fetchData();
+    setPeriodLoading(true);
+    fetchData().finally(() => setPeriodLoading(false));
     window.addEventListener('transaction-added', fetchData);
 
     const supabase = createClient();
@@ -381,10 +387,7 @@ export default function StatisticsPage() {
     }
   }, [periodTxs, period, ratesByDate]);
 
-  if (loading) return (
-    <AppShell><p className={styles.loading}>Loading…</p></AppShell>
-  );
-
+  const showSkeleton = loading || periodLoading;
   const prevLabel = period.tab === 'months' ? 'prev month' : period.tab === 'years' ? 'prev year' : period.tab === 'weeks' ? 'prev week' : 'prev period';
 
   return (
@@ -401,7 +404,21 @@ export default function StatisticsPage() {
           </div>
 
           {/* ── Summary row (with optional projected line) ── */}
-          {(() => {
+          {showSkeleton ? (
+            <div className={styles.summaryRow}>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className={styles.statCard}>
+                  <div className={styles.statHead}>
+                    <Skeleton width={38} height={38} radius="var(--radius-md)" />
+                    <Skeleton width={64} height={11} radius={4} />
+                  </div>
+                  <Skeleton width={110} height={26} radius={6} />
+                  <div className={styles.statDivider} />
+                  <Skeleton width="80%" height={12} radius={4} />
+                </div>
+              ))}
+            </div>
+          ) : (() => {
             const projIncome  = cashFlowProjection.actualIncome  + cashFlowProjection.plannedIncome;
             const projExpense = cashFlowProjection.actualExpense + cashFlowProjection.plannedExpense;
             const projNet     = projIncome - projExpense;
@@ -503,7 +520,18 @@ export default function StatisticsPage() {
             <div className={[styles.card, styles.cardDoughnut].join(' ')}>
               <h2 className={styles.cardTitle}>Expenses by category</h2>
               <p className={styles.cardSubtitle}>{period.label}</p>
-              {expenseSlices.length === 0 ? (
+              {showSkeleton ? (
+                <div className={styles.doughnutLayout}>
+                  <div className={styles.doughnutChart}>
+                    <Skeleton width={290} height={290} radius="50%" />
+                  </div>
+                  <div className={styles.doughnutLegend}>
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <Skeleton key={i} width="100%" height={16} radius={4} />
+                    ))}
+                  </div>
+                </div>
+              ) : expenseSlices.length === 0 ? (
                 <p className={styles.empty}>No expenses in this period.</p>
               ) : (
                 <div className={styles.doughnutLayout}>
@@ -575,7 +603,16 @@ export default function StatisticsPage() {
             <div className={[styles.card, styles.cardBalances].join(' ')}>
               <h2 className={styles.cardTitle}>Balance by currency</h2>
               <p className={styles.cardSubtitle}>Current total across all accounts</p>
-              {currencyBalances.length === 0 ? (
+              {loading ? (
+                <div className={styles.balanceList}>
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className={styles.balanceRow}>
+                      <Skeleton width="100%" height={16} radius={4} style={{ marginBottom: 8 }} />
+                      <Skeleton width="100%" height={8} radius="var(--radius-full)" />
+                    </div>
+                  ))}
+                </div>
+              ) : currencyBalances.length === 0 ? (
                 <p className={styles.empty}>No accounts yet.</p>
               ) : (
                 <div className={styles.balanceList}>
@@ -611,7 +648,9 @@ export default function StatisticsPage() {
             <div className={[styles.card, styles.cardWide].join(' ')}>
               <h2 className={styles.cardTitle}>Expense comparison by category</h2>
               <p className={styles.cardSubtitle}>{period.label} vs {prevLabel}</p>
-              {comparisonData.length === 0 ? (
+              {showSkeleton ? (
+                <Skeleton width="100%" height={260} radius={8} />
+              ) : comparisonData.length === 0 ? (
                 <p className={styles.empty}>No expense data to compare.</p>
               ) : mounted && (
                 <ResponsiveContainer width="100%" height={comparisonData.length * 52 + 40}>
@@ -637,7 +676,9 @@ export default function StatisticsPage() {
             <div className={[styles.card, styles.cardWide].join(' ')}>
               <h2 className={styles.cardTitle}>Income & expense trend</h2>
               <p className={styles.cardSubtitle}>{period.label}</p>
-              {trendData.every(d => d.income === 0 && d.expense === 0) ? (
+              {showSkeleton ? (
+                <Skeleton width="100%" height={220} radius={8} />
+              ) : trendData.every(d => d.income === 0 && d.expense === 0) ? (
                 <p className={styles.empty}>No data for this period.</p>
               ) : mounted && (
                 <ResponsiveContainer width="100%" height={220}>
