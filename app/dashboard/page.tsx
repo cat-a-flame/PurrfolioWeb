@@ -56,7 +56,7 @@ function getPrevRange(v: PeriodValue): { from: string; to: string } {
 }
 
 function formatDayLabel(dateStr: string): string {
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
 }
 
 export default function DashboardPage() {
