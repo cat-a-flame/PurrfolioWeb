@@ -9,14 +9,13 @@ import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
 import LabelSelect from '@/components/ui/LabelSelect';
+import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
 import Toast from '@/components/ui/Toast';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import { createClient } from '@/lib/supabase/client';
 import { formatCurrency } from '@/lib/utils';
-import { generateDueDates, frequencyLabel, nextDueDate, isoDate, monthBounds } from '@/lib/recurringUtils';
-import { FaChevronRight } from "react-icons/fa6";
-import { FaChevronLeft } from "react-icons/fa6";
+import { generateDueDates, frequencyLabel, nextDueDate, isoDate } from '@/lib/recurringUtils';
 import { BsThreeDotsVertical } from "react-icons/bs";
 import type {
   RecurringPayment, RecurringOccurrence, RecurrenceFrequency,
@@ -52,6 +51,16 @@ const EMPTY_FORM: FormFields = {
   labelIds: [],
 };
 
+function defaultPeriod(): PeriodValue {
+  const now = new Date();
+  return {
+    from: isoDate(new Date(now.getFullYear(), now.getMonth(), 1)),
+    to: isoDate(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
+    label: 'This month',
+    tab: 'months',
+  };
+}
+
 interface DueItem {
   payment: RecurringPayment;
   dueDate: Date;
@@ -86,10 +95,19 @@ export default function RecurringPage() {
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
   const dismissToast = useCallback(() => setToast(null), []);
 
-  // View month for due items (default: current month)
+  // Viewed period for due items (default: current month)
   const today = new Date();
-  const [viewYear, setViewYear]   = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth());
+  const [period, setPeriod] = useState<PeriodValue>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('purrfolio_period');
+      if (saved) try { return JSON.parse(saved) as PeriodValue; } catch {}
+    }
+    return defaultPeriod();
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem('purrfolio_period', JSON.stringify(period));
+  }, [period]);
 
   const fetchAll = useCallback(async () => {
     const supabase = createClient();
@@ -118,8 +136,9 @@ export default function RecurringPage() {
     if (catRes.data)    setCategories(catRes.data);
     if (lblRes.data)    setLabels(lblRes.data);
 
-    // Fetch occurrences for a wider window (3 months around view month)
-    const [from, to] = monthBounds(viewYear, viewMonth);
+    // Fetch occurrences for a wider window (1 month of padding around the viewed period)
+    const from = new Date(period.from + 'T00:00:00');
+    const to   = new Date(period.to + 'T00:00:00');
     const wideFrom = new Date(from); wideFrom.setMonth(wideFrom.getMonth() - 1);
     const wideTo   = new Date(to);   wideTo.setMonth(wideTo.getMonth() + 1);
 
@@ -132,7 +151,7 @@ export default function RecurringPage() {
     if (occData) setOccurrences(occData);
 
     setLoading(false);
-  }, [viewYear, viewMonth]);
+  }, [period]);
 
   useEffect(() => {
     fetchAll();
@@ -163,9 +182,10 @@ export default function RecurringPage() {
     return () => document.removeEventListener('click', close);
   }, [openMenuId]);
 
-  // Compute pending due items for the viewed month
+  // Compute pending due items for the viewed period
   const dueItems: DueItem[] = (() => {
-    const [from, to] = monthBounds(viewYear, viewMonth);
+    const from = new Date(period.from + 'T00:00:00');
+    const to   = new Date(period.to + 'T00:00:00');
     const actionedKeys = new Set(occurrences.map(o => `${o.recurring_payment_id}|${o.due_date.slice(0, 10)}`));
     const items: DueItem[] = [];
     for (const p of payments) {
@@ -181,16 +201,6 @@ export default function RecurringPage() {
   const overdueItems  = dueItems.filter(i => isoDate(i.dueDate) < todayIsoStr);
   const todayItems    = dueItems.filter(i => isoDate(i.dueDate) === todayIsoStr);
   const upcomingItems = dueItems.filter(i => isoDate(i.dueDate) > todayIsoStr);
-
-  // Month navigation
-  function prevMonth() {
-    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
-    else setViewMonth(m => m - 1);
-  }
-  function nextMonth() {
-    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); }
-    else setViewMonth(m => m + 1);
-  }
 
   // ─── Mark as paid ────────────────────────────────────────────────────────────
 
@@ -404,11 +414,6 @@ export default function RecurringPage() {
 
   // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-  const isCurrentMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth();
-  const monthLabel = isCurrentMonth
-    ? 'This month'
-    : new Date(viewYear, viewMonth, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
-
   function walletCurrency(walletId: string | null): 'HUF' | 'USD' | 'EUR' {
     return (wallets.find(w => w.id === walletId)?.currency ?? 'HUF') as 'HUF' | 'USD' | 'EUR';
   }
@@ -445,22 +450,18 @@ export default function RecurringPage() {
           </div>
 
           <div className={styles.periodRow}>
-            <div className={styles.monthNav}>
-              <button className={styles.monthNavBtn} onClick={prevMonth}><FaChevronLeft /></button>
-              <span className={styles.monthLabel}>{monthLabel}</span>
-              <button className={styles.monthNavBtn} onClick={nextMonth}><FaChevronRight /></button>
-            </div>
+            <PeriodPicker value={period} onChange={setPeriod} />
           </div>
 
-          {/* ── Due this month ── */}
+          {/* ── Due ── */}
           <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>Due this month</h2>
+            <h2 className={styles.sectionTitle}>Due</h2>
 
             {dueItems.length === 0 && (
               <p className={styles.empty}>
                 {payments.filter(p => p.is_active).length === 0
                   ? 'No recurring payments yet. Add one above.'
-                  : 'All payments for this month have been handled.'}
+                  : 'All payments for this period have been handled.'}
               </p>
             )}
 
