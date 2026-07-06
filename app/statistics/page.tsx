@@ -381,9 +381,6 @@ export default function StatisticsPage() {
     }
   }, [periodTxs, period, ratesByDate]);
 
-  // ── 5. Top categories by spend ────────────────────────────────────────
-  const topCategories = useMemo(() => expenseSlices.slice(0, 5), [expenseSlices]);
-
   if (loading) return (
     <AppShell><p className={styles.loading}>Loading…</p></AppShell>
   );
@@ -585,9 +582,14 @@ export default function StatisticsPage() {
                       <div key={currency} className={styles.balanceRow}>
                         <div className={styles.balanceMeta}>
                           <span className={styles.balanceCurrency}>{currency}</span>
-                          <span className={[styles.balanceAmount, balance >= 0 ? styles.balancePos : styles.balanceNeg].join(' ')}>
-                            {formatCurrency(balance, currency as Currency)}
-                          </span>
+                          <div className={styles.balanceAmountGroup}>
+                            <span className={[styles.balanceAmount, balance >= 0 ? styles.balancePos : styles.balanceNeg].join(' ')}>
+                              {formatCurrency(balance, currency as Currency)}
+                            </span>
+                            {currency !== 'HUF' && (
+                              <span className={styles.balanceHUF}>≈{formatHUF(Math.abs(balanceHUF))}</span>
+                            )}
+                          </div>
                         </div>
                         <div className={styles.balanceBar}>
                           <div
@@ -599,23 +601,6 @@ export default function StatisticsPage() {
                     ));
                   })()}
                 </div>
-              )}
-
-              {/* Top spenders */}
-              {topCategories.length > 0 && (
-                <>
-                  <h3 className={styles.cardSubheading}>Top Expense Categories</h3>
-                  <div className={styles.topList}>
-                    {topCategories.map((s, i) => (
-                      <div key={i} className={styles.topRow}>
-                        <span className={styles.topRank}>{i + 1}</span>
-                        <span className={styles.topDot} style={{ backgroundColor: s.color }} />
-                        <span className={styles.topName}>{s.name}</span>
-                        <span className={styles.topAmount}>{formatHUF(s.amount)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
               )}
             </div>
 
