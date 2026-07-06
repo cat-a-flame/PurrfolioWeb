@@ -103,7 +103,7 @@
 }
 
 .dueGroupLabel {
-  font-size: 1.0625rem;
+  font-size: 0.875rem;
   font-weight: 700;
   color: var(--color-text-muted);
   padding-bottom: var(--space-1);
