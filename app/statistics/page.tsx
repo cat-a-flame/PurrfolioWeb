@@ -9,6 +9,7 @@ import {
   type PieLabelRenderProps,
 } from 'recharts';
 import AppShell from '@/components/layout/AppShell';
+import EmptyState from '@/components/ui/EmptyState';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import Skeleton from '@/components/ui/Skeleton';
 import { createClient } from '@/lib/supabase/client';
@@ -532,7 +533,7 @@ export default function StatisticsPage() {
                   </div>
                 </div>
               ) : expenseSlices.length === 0 ? (
-                <p className={styles.empty}>No expenses in this period.</p>
+                <EmptyState compact icon="🍩" hint="No expenses in this period." />
               ) : (
                 <div className={styles.doughnutLayout}>
                   {mounted && (
@@ -613,7 +614,7 @@ export default function StatisticsPage() {
                   ))}
                 </div>
               ) : currencyBalances.length === 0 ? (
-                <p className={styles.empty}>No accounts yet.</p>
+                <EmptyState compact icon="💰" hint="No accounts yet." />
               ) : (
                 <div className={styles.balanceList}>
                   {(() => {
@@ -651,7 +652,7 @@ export default function StatisticsPage() {
               {showSkeleton ? (
                 <Skeleton width="100%" height={260} radius={8} />
               ) : comparisonData.length === 0 ? (
-                <p className={styles.empty}>No expense data to compare.</p>
+                <EmptyState compact icon="📊" hint="No expense data to compare." />
               ) : mounted && (
                 <ResponsiveContainer width="100%" height={comparisonData.length * 52 + 40}>
                   <BarChart data={comparisonData} layout="vertical" margin={{ left: 16, right: 24, top: 8, bottom: 8 }} barCategoryGap="30%">
@@ -679,7 +680,7 @@ export default function StatisticsPage() {
               {showSkeleton ? (
                 <Skeleton width="100%" height={220} radius={8} />
               ) : trendData.every(d => d.income === 0 && d.expense === 0) ? (
-                <p className={styles.empty}>No data for this period.</p>
+                <EmptyState compact icon="📈" hint="No data for this period." />
               ) : mounted && (
                 <ResponsiveContainer width="100%" height={220}>
                   <AreaChart data={trendData} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>

@@ -5,6 +5,7 @@ import { useCountUp } from '@/lib/useCountUp';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import Button from '@/components/ui/Button';
+import EmptyState from '@/components/ui/EmptyState';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import Skeleton from '@/components/ui/Skeleton';
 import TransactionForm, { TransactionFormData } from '@/components/transactions/TransactionForm';
@@ -569,7 +570,9 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : plannedDue.length === 0 ? (
-              <p className={styles.sideCardEmpty}>Nothing due this period.</p>
+              <div className={styles.sideCardEmptyWrap}>
+                <EmptyState compact icon="🎉" hint="Nothing due this period." />
+              </div>
             ) : (
               <div className={styles.sideCardList}>
                 {plannedDue.map(({ payment, dueDate }, i) => (
@@ -613,7 +616,9 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : topCategories.length === 0 ? (
-              <p className={styles.sideCardEmpty}>No expenses in this period.</p>
+              <div className={styles.sideCardEmptyWrap}>
+                <EmptyState compact icon="🐱" hint="No expenses in this period." />
+              </div>
             ) : (
               <div className={styles.sideCardList}>
                 {topCategories.map(({ category, total }) => (
@@ -652,7 +657,7 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : recentTransactions.length === 0 ? (
-            <p className={styles.emptyState}>No transactions in this period.</p>
+            <EmptyState icon="🐾" title="No transactions yet" hint="No transactions in this period." />
           ) : (
             <div className={styles.recentList}>
               {recentTransactions.map(t => {

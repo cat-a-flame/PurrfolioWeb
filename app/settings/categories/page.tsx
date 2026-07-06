@@ -6,6 +6,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Toast from '@/components/ui/Toast';
 import CategoryCard from '@/components/categories/CategoryCard';
 import CategoryEditorModal, { type CategoryDraft } from '@/components/categories/CategoryEditorModal';
+import EmptyState from '@/components/ui/EmptyState';
 import Skeleton from '@/components/ui/Skeleton';
 import { createClient } from '@/lib/supabase/client';
 import type { Category } from '@/lib/types';
@@ -175,7 +176,7 @@ export default function CategoriesSettingsPage() {
           ))}
         </div>
       ) : topLevel.length === 0 ? (
-        <p className={styles.emptyState}>No categories yet.</p>
+        <EmptyState icon="🏷️" title="No categories yet" hint="Click “+ New category” to organize your spending." />
       ) : (
         <div className={styles.grid}>
           {topLevel.map((c) => (

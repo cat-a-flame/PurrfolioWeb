@@ -5,6 +5,7 @@ import ReactSelect from 'react-select';
 import AppShell from '@/components/layout/AppShell';
 import Button from '@/components/ui/Button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import EmptyState from '@/components/ui/EmptyState';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
@@ -475,11 +476,11 @@ export default function RecurringPage() {
             ) : (
               <>
             {dueItems.length === 0 && (
-              <p className={styles.empty}>
-                {payments.filter(p => p.is_active).length === 0
-                  ? 'No recurring payments yet. Add one above.'
-                  : 'All payments for this period have been handled.'}
-              </p>
+              payments.filter(p => p.is_active).length === 0 ? (
+                <EmptyState icon="🔁" title="No recurring payments yet" hint="Add one above to start tracking planned income and expenses." />
+              ) : (
+                <EmptyState icon="✅" title="All caught up" hint="All payments for this period have been handled." />
+              )
             )}
 
             {overdueItems.length > 0 && (
@@ -547,7 +548,7 @@ export default function RecurringPage() {
             ) : (
               <>
             {payments.length === 0 && (
-              <p className={styles.empty}>No recurring payments defined yet.</p>
+              <EmptyState icon="📭" title="Nothing here yet" hint="No recurring payments defined yet." />
             )}
 
             {FREQUENCIES.filter(f => payments.some(p => p.frequency === f.value)).map(f => (

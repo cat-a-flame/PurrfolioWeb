@@ -6,6 +6,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Toast from '@/components/ui/Toast';
 import LabelCard from '@/components/labels/LabelCard';
 import LabelEditorModal, { type LabelDraft } from '@/components/labels/LabelEditorModal';
+import EmptyState from '@/components/ui/EmptyState';
 import Skeleton from '@/components/ui/Skeleton';
 import { createClient } from '@/lib/supabase/client';
 import type { Label } from '@/lib/types';
@@ -127,7 +128,7 @@ export default function LabelsSettingsPage() {
           ))}
         </div>
       ) : labels.length === 0 ? (
-        <p className={styles.emptyState}>No labels yet.</p>
+        <EmptyState icon="🔖" title="No labels yet" hint="Click “+ New label” to start tagging transactions." />
       ) : (
         <div className={styles.grid}>
           {labels.map((l) => (

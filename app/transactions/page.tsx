@@ -5,6 +5,7 @@ import ReactSelect from 'react-select';
 import AppShell from '@/components/layout/AppShell';
 import Button from '@/components/ui/Button';
 import Dialog from '@/components/ui/Dialog';
+import EmptyState from '@/components/ui/EmptyState';
 import Input from '@/components/ui/Input';
 import LabelSelect from '@/components/ui/LabelSelect';
 import Toast from '@/components/ui/Toast';
@@ -758,20 +759,18 @@ export default function TransactionsPage() {
                 ))}
               </div>
             ) : groupedDays.length === 0 ? (
-              <div className={styles.emptyStateCard}>
-                <span className={styles.emptyIcon}>🔍</span>
-                <p className={styles.emptyTitle}>No transactions found</p>
-                <p className={styles.emptyHint}>
-                  {hasActiveFilters
-                    ? 'No records match your current filters.'
-                    : 'Add your first transaction to get started.'}
-                </p>
-                {hasActiveFilters && (
+              <EmptyState
+                icon={hasActiveFilters ? '🔍' : '🐾'}
+                title="No transactions found"
+                hint={hasActiveFilters
+                  ? 'No records match your current filters.'
+                  : 'Add your first transaction to get started.'}
+                action={hasActiveFilters && (
                   <Button variant="secondary" size="sm" onClick={resetFilters}>
                     Clear filters
                   </Button>
                 )}
-              </div>
+              />
             ) : (
               <div className={[styles.groupedList, isFiltering ? styles.listFiltering : ''].filter(Boolean).join(' ')}>
                 {isFiltering && <div className={styles.filteringBar}><span className={styles.spinner} />Filtering…</div>}

@@ -6,6 +6,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Toast from '@/components/ui/Toast';
 import AccountCard from '@/components/accounts/AccountCard';
 import AccountEditorModal, { type WalletDraft } from '@/components/accounts/AccountEditorModal';
+import EmptyState from '@/components/ui/EmptyState';
 import Skeleton from '@/components/ui/Skeleton';
 import { createClient } from '@/lib/supabase/client';
 import type { Wallet } from '@/lib/types';
@@ -192,7 +193,7 @@ export default function AccountsSettingsPage() {
           ))}
         </div>
       ) : activeWallets.length === 0 ? (
-        <p className={styles.emptyState}>No accounts yet. Click &quot;+ New account&quot; to create one.</p>
+        <EmptyState icon="💳" title="No accounts yet" hint="Click “+ New account” to create one." />
       ) : (
         <div className={styles.grid}>
           {activeWallets.map((w) => (
