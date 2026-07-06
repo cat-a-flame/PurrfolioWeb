@@ -5,7 +5,7 @@
 
 .base {
   background-size: 800px 100%;
-  animation: shimmer 2.2s linear infinite;
+  animation: shimmer 3.5s linear infinite;
 }
 
 .default {
