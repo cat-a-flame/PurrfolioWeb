@@ -15,7 +15,7 @@ import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
 import { fetchWalletBalanceSums } from '@/lib/supabase/fetchWalletBalanceSums';
 import { getExchangeRates, toHUF, txToHUF } from '@/lib/exchangeRates';
 import { formatCurrency, formatHUF, formatNumber } from '@/lib/utils';
-import { generateDueDates, isoDate as recurringIsoDate, monthBounds } from '@/lib/recurringUtils';
+import { generateDueDates, isoDate as recurringIsoDate } from '@/lib/recurringUtils';
 import type { Transaction, Wallet, Currency, RecurringPayment, RecurringOccurrence } from '@/lib/types';
 import styles from './page.module.css';
 
@@ -175,8 +175,8 @@ export default function StatisticsPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const today = new Date();
-    const [from, to] = monthBounds(today.getFullYear(), today.getMonth());
+    const from = new Date(period.from + 'T00:00:00');
+    const to   = new Date(period.to   + 'T00:00:00');
     const prev = getPrevRange(period);
     const [transactions, prevTransactions, walletSums, wRes, pmtRes, occRes] = await Promise.all([
       fetchTransactions(user.id, period.from, period.to),
@@ -233,19 +233,12 @@ export default function StatisticsPage() {
   const animatedNet     = useCountUp(income - expense);
   const animatedTxCount = useCountUp(txCount);
 
-  // ── Cash flow projection (current month) ───────────────────────────────
+  // ── Cash flow projection (selected period) ──────────────────────────────
   const cashFlowProjection = useMemo(() => {
-    const now = new Date();
-    const [from, to] = monthBounds(now.getFullYear(), now.getMonth());
-    const monthFrom = recurringIsoDate(from);
-    const monthTo   = recurringIsoDate(to);
+    const from = new Date(period.from + 'T00:00:00');
+    const to   = new Date(period.to   + 'T00:00:00');
 
-    // Actual for the current month
-    const monthTxs = allTxs.filter(t => t.date >= monthFrom && t.date <= monthTo && !t.transfer_group_id);
-    const actualIncome  = monthTxs.filter(t => t.type === 'income').reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
-    const actualExpense = monthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
-
-    // Pending planned payments — convert to HUF using today's rates
+    // Pending planned payments due within the selected period — convert to HUF using today's rates
     const actionedKeys = new Set(recurringOccurrences.map(o => `${o.recurring_payment_id}|${o.due_date.slice(0, 10)}`));
     let plannedIncome  = 0;
     let plannedExpense = 0;
@@ -259,8 +252,9 @@ export default function StatisticsPage() {
       }
     }
 
-    return { actualIncome, actualExpense, plannedIncome, plannedExpense, monthLabel: from.toLocaleString('default', { month: 'long', year: 'numeric' }) };
-  }, [allTxs, recurringPayments, recurringOccurrences, ratesByDate, todayRates]);
+    // Actual for the period — periodTxs is already scoped to period.from/period.to
+    return { actualIncome: income, actualExpense: expense, plannedIncome, plannedExpense };
+  }, [period, income, expense, recurringPayments, recurringOccurrences, todayRates]);
 
   // ── 1. Balance by currency ──────────────────────────────────────────────
   const currencyBalances = useMemo(() => {
