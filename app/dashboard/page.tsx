@@ -475,7 +475,7 @@ export default function DashboardPage() {
         <div className={styles.topRow}>
           {/* Cash Flow card */}
           <div className={styles.cashFlowCard} ref={cashFlowRef}>
-            <p className={styles.cashFlowTitle}>Cash Flow</p>
+            <p className={styles.cashFlowTitle}>Cash flow</p>
             <div className={styles.cashFlowTop}>
               <div className={styles.cashFlowLeft}>
                 <span className={styles.cashFlowPeriodLabel}>{period.label}</span>

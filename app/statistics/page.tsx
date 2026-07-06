@@ -501,7 +501,7 @@ export default function StatisticsPage() {
 
             {/* ── Expenses structure ── */}
             <div className={[styles.card, styles.cardDoughnut].join(' ')}>
-              <h2 className={styles.cardTitle}>Expenses by Category</h2>
+              <h2 className={styles.cardTitle}>Expenses by category</h2>
               <p className={styles.cardSubtitle}>{period.label}</p>
               {expenseSlices.length === 0 ? (
                 <p className={styles.empty}>No expenses in this period.</p>
@@ -573,7 +573,7 @@ export default function StatisticsPage() {
 
             {/* ── Balance by currencies ── */}
             <div className={[styles.card, styles.cardBalances].join(' ')}>
-              <h2 className={styles.cardTitle}>Balance by Currency</h2>
+              <h2 className={styles.cardTitle}>Balance by currency</h2>
               <p className={styles.cardSubtitle}>Current total across all accounts</p>
               {currencyBalances.length === 0 ? (
                 <p className={styles.empty}>No accounts yet.</p>
@@ -609,7 +609,7 @@ export default function StatisticsPage() {
 
             {/* ── Period comparison ── */}
             <div className={[styles.card, styles.cardWide].join(' ')}>
-              <h2 className={styles.cardTitle}>Expense Comparison by Category</h2>
+              <h2 className={styles.cardTitle}>Expense comparison by category</h2>
               <p className={styles.cardSubtitle}>{period.label} vs {prevLabel}</p>
               {comparisonData.length === 0 ? (
                 <p className={styles.empty}>No expense data to compare.</p>
@@ -635,7 +635,7 @@ export default function StatisticsPage() {
 
             {/* ── Spending trend ── */}
             <div className={[styles.card, styles.cardWide].join(' ')}>
-              <h2 className={styles.cardTitle}>Income & Expense Trend</h2>
+              <h2 className={styles.cardTitle}>Income & expense trend</h2>
               <p className={styles.cardSubtitle}>{period.label}</p>
               {trendData.every(d => d.income === 0 && d.expense === 0) ? (
                 <p className={styles.empty}>No data for this period.</p>

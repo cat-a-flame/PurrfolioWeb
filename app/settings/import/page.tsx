@@ -332,7 +332,7 @@ export default function ImportPage() {
     if (!colMap.amount) return 'Select the Amount column.';
     if (!colMap.date) return 'Select the Date column.';
     if (colMap.typeSource === 'column') {
-      if (!colMap.typeCol) return 'Select the Transaction Type column or choose a fixed type.';
+      if (!colMap.typeCol) return 'Select the transaction type column or choose a fixed type.';
       const missing = Object.entries(colMap.typeMapping).find(([, v]) => !v);
       if (missing) return `Map type value "${missing[0]}" to Income, Expense, or Transfer.`;
     }
@@ -653,7 +653,7 @@ export default function ImportPage() {
   return (
     <div className={styles.container}>
       <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>Import Transactions</h1>
+        <h1 className={styles.pageTitle}>Import transactions</h1>
         <div className={styles.stepper}>
           {(['Upload', 'Map columns', 'Preview & import'] as const).map((label, i) => (
             <div
@@ -780,8 +780,8 @@ export default function ImportPage() {
                 {(() => {
                   const typeSourceOptions = [
                     { value: 'column', label: 'From column…' },
-                    { value: 'fixed-income', label: 'All Income' },
-                    { value: 'fixed-expense', label: 'All Expense' },
+                    { value: 'fixed-income', label: 'All income' },
+                    { value: 'fixed-expense', label: 'All expense' },
                   ];
                   return (
                     <div style={{ minWidth: 200 }}>
