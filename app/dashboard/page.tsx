@@ -454,6 +454,10 @@ export default function DashboardPage() {
           <Button variant="primary" size="lg" onClick={openAddDialog}>+ Add transaction</Button>
         </div>
 
+        <div className={styles.periodRow}>
+          <PeriodPicker value={period} onChange={setPeriod} />
+        </div>
+
         {walletSummaries.length > 0 && (
           <div className={styles.accountsStrip}>
             {walletSummaries.map(({ wallet, balance: wb }) => (
@@ -467,10 +471,6 @@ export default function DashboardPage() {
             ))}
           </div>
         )}
-
-        <div className={styles.periodRow}>
-          <PeriodPicker value={period} onChange={setPeriod} />
-        </div>
 
         <div className={styles.topRow}>
           {/* Cash Flow card */}

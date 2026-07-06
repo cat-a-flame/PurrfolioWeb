@@ -562,6 +562,10 @@ export default function TransactionsPage() {
           <Button variant="primary" size="lg" onClick={openAddDialog}>+ Add transaction</Button>
         </div>
 
+        <div className={styles.periodRow}>
+          <PeriodPicker value={filterPeriod} onChange={setFilterPeriod} />
+        </div>
+
         <div className={styles.bodyLayout}>
           {/* ── Filter sidebar ── */}
           <aside className={styles.filterSidebar}>
@@ -704,10 +708,6 @@ export default function TransactionsPage() {
                 </div>
               </div>
             )}
-
-            <div className={styles.periodRow}>
-              <PeriodPicker value={filterPeriod} onChange={setFilterPeriod} />
-            </div>
 
             {/* ── Selection bar ── */}
             {selectedIds.size > 0 && (

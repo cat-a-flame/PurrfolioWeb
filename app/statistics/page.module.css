@@ -28,6 +28,13 @@
   color: var(--color-text);
 }
 
+/* ── Period row ── */
+.periodRow {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-2);
+}
+
 /* ── Summary row ── */
 .summaryRow {
   display: grid;

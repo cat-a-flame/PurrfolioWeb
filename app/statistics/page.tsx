@@ -394,6 +394,9 @@ export default function StatisticsPage() {
           {/* ── Page header ── */}
           <div className={styles.pageHeader}>
             <h1 className={styles.pageTitle}>Statistics</h1>
+          </div>
+
+          <div className={styles.periodRow}>
             <PeriodPicker value={period} onChange={setPeriod} />
           </div>
 
