@@ -517,10 +517,9 @@ export default function StatisticsPage() {
                             nameKey="name"
                             innerRadius={60}
                             outerRadius={100}
-                            paddingAngle={7}
+                            paddingAngle={2}
                             startAngle={90}
                             endAngle={-270}
-                            cornerRadius={14}
                             label={renderExpenseLabel}
                             labelLine={false}
                           >
