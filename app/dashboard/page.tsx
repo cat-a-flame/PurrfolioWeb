@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useCountUp } from '@/lib/useCountUp';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
@@ -56,7 +56,7 @@ function getPrevRange(v: PeriodValue): { from: string; to: string } {
 }
 
 function formatDayLabel(dateStr: string): string {
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
 }
 
 export default function DashboardPage() {
@@ -454,6 +454,10 @@ export default function DashboardPage() {
           <Button variant="primary" size="lg" onClick={openAddDialog}>+ Add transaction</Button>
         </div>
 
+        <div className={styles.periodRow}>
+          <PeriodPicker value={period} onChange={setPeriod} />
+        </div>
+
         {walletSummaries.length > 0 && (
           <div className={styles.accountsStrip}>
             {walletSummaries.map(({ wallet, balance: wb }) => (
@@ -468,14 +472,10 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className={styles.periodRow}>
-          <PeriodPicker value={period} onChange={setPeriod} />
-        </div>
-
         <div className={styles.topRow}>
           {/* Cash Flow card */}
           <div className={styles.cashFlowCard} ref={cashFlowRef}>
-            <p className={styles.cashFlowTitle}>Cash Flow</p>
+            <p className={styles.cashFlowTitle}>Cash flow</p>
             <div className={styles.cashFlowTop}>
               <div className={styles.cashFlowLeft}>
                 <span className={styles.cashFlowPeriodLabel}>{period.label}</span>
@@ -594,22 +594,10 @@ export default function DashboardPage() {
                       {isTransfer ? (t.payer ? (t.type === 'expense' ? '↑' : '↓') : '↔') : (t.category?.icon ?? '?')}
                     </div>
                     <div className={styles.txMain}>
-                      <span className={styles.txName}>
-                        {isTransfer ? (t.payer ? t.payer : 'Transfer') : (t.category?.name ?? 'Uncategorised')}
-                      </span>
-                      {t.wallet && <span className={styles.txMeta}>{t.wallet.name}</span>}
-                    </div>
-
-                    {((!isTransfer && t.payer) || t.notes || (t.labels && t.labels.length > 0)) && (
-                      <div className={styles.txDetails}>
-                        <div className={styles.txPayeeNote}>
-                          {!isTransfer && t.payer && (
-                            <span className={styles.txPayee}>{t.payer}</span>
-                          )}
-                          {t.notes && (
-                            <span className={styles.txNotes}>{t.notes}</span>
-                          )}
-                        </div>
+                      <div className={styles.txTopRow}>
+                        <span className={styles.txName}>
+                          {isTransfer ? (t.payer ? t.payer : 'Transfer') : (t.category?.name ?? 'Uncategorised')}
+                        </span>
                         {t.labels && t.labels.length > 0 && (
                           <div className={styles.txLabels}>
                             {t.labels.map(l => (
@@ -621,17 +609,42 @@ export default function DashboardPage() {
                           </div>
                         )}
                       </div>
-                    )}
+
+                      {(() => {
+                        const metaParts = [
+                          t.wallet && (
+                            <span key="wallet" className={styles.txMeta}>
+                              <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
+                              {t.wallet.name}
+                            </span>
+                          ),
+                          !isTransfer && t.payer && (
+                            <span key="payer" className={styles.txPayee}>{t.payer}</span>
+                          ),
+                          t.notes && (
+                            <span key="notes" className={styles.txNotes}>{t.notes}</span>
+                          ),
+                        ].filter(Boolean);
+                        if (metaParts.length === 0) return null;
+                        return (
+                          <div className={styles.txMetaRow}>
+                            {metaParts.map((part, i) => (
+                              <Fragment key={i}>
+                                {i > 0 && <span className={styles.txMetaDot}>·</span>}
+                                {part}
+                              </Fragment>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
 
                     <div className={styles.txRight}>
                       <span className={[
                         styles.txAmount,
                         isTransfer ? styles.txTransfer : t.type === 'income' ? styles.amtIncome : styles.amtExpense,
                       ].join(' ')}>
-                        {isTransfer
-                          ? (t.type === 'expense' ? '−' : '')
-                          : (t.type === 'income' ? '' : '−')
-                        }{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
+                        {t.type === 'income' ? '+' : '−'}{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
                       </span>
                       <span className={styles.txDate}>{formatDayLabel(t.date)}</span>
                     </div>

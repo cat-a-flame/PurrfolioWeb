@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useRecurringAlert } from '@/contexts/RecurringAlertContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -60,7 +60,7 @@ const navItems = [
 const settingsItems = [
   {
     label: 'Accounts',
-    href: '/settings/wallets',
+    href: '/settings/accounts',
     icon: (
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <rect x="3" y="6" width="18" height="14" rx="3" />
@@ -103,28 +103,20 @@ const settingsItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const hasUrgentPlanned = useRecurringAlert();
   const { theme, toggleTheme } = useTheme();
   const [email, setEmail] = useState('');
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
+  const [username, setUsername] = useState('');
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       if (data.user?.email) setEmail(data.user.email);
+      if (data.user?.user_metadata?.username) setUsername(data.user.user_metadata.username as string);
     });
   }, []);
 
-  async function handleSignOut() {
-    setSigningOut(true);
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/login');
-  }
-
-  const initial = email ? email[0].toUpperCase() : '?';
+  const initial = (username || email) ? (username || email)[0].toUpperCase() : '?';
 
   return (
     <nav className={styles.nav} aria-label="Main navigation">
@@ -184,37 +176,13 @@ export default function Sidebar() {
       </button>
 
       <div className={styles.userArea}>
-        <button
-          className={styles.userBtn}
-          onClick={() => setDropdownOpen((o) => !o)}
-          aria-haspopup="true"
-          aria-expanded={dropdownOpen}
-          aria-label="User menu"
-        >
+        <Link href="/account" className={styles.userBtn}>
           <span className={styles.avatar}>{initial}</span>
           <span className={styles.userInfo}>
+            {username && <span className={styles.userName}>{username}</span>}
             <span className={styles.userEmail}>{email || 'Account'}</span>
           </span>
-          <span className={styles.chevron} aria-hidden>⌄</span>
-        </button>
-
-        {dropdownOpen && (
-          <>
-            <div className={styles.dropdownBackdrop} onClick={() => setDropdownOpen(false)} />
-            <div className={styles.dropdown} role="menu">
-              <Link href="/settings" className={styles.dropdownItem} role="menuitem" onClick={() => setDropdownOpen(false)}>
-                Settings
-              </Link>
-              <Link href="/account" className={styles.dropdownItem} role="menuitem" onClick={() => setDropdownOpen(false)}>
-                Account
-              </Link>
-              <div className={styles.dropdownDivider} />
-              <button className={styles.dropdownItem} role="menuitem" onClick={handleSignOut} disabled={signingOut}>
-                {signingOut ? 'Signing out…' : 'Sign out'}
-              </button>
-            </div>
-          </>
-        )}
+        </Link>
       </div>
     </nav>
   );

@@ -216,8 +216,8 @@ export default function TransactionForm({
                 return;
             }
 
-            if (!toWalletId) { setError('Please select a destination wallet.'); return; }
-            if (walletId === toWalletId) { setError('Source and destination wallets must be different.'); return; }
+            if (!toWalletId) { setError('Please select a destination account.'); return; }
+            if (walletId === toWalletId) { setError('Source and destination accounts must be different.'); return; }
             const parsedFrom = Number(amount);
             const parsedTo = Number(toAmount);
             if (!amount || isNaN(parsedFrom) || parsedFrom <= 0) { setError('Please enter a valid amount sent.'); return; }
@@ -242,7 +242,7 @@ export default function TransactionForm({
             return;
         }
 
-        if (!walletId) { setError('Please select a wallet.'); return; }
+        if (!walletId) { setError('Please select an account.'); return; }
         const parsedAmount = Number(amount);
         if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
             setError('Please enter a valid amount.');
@@ -361,7 +361,7 @@ export default function TransactionForm({
                                             styles={makeRsStyles()}
                                             theme={rsTheme}
                                             menuPosition="fixed"
-                                            placeholder="Select wallet…"
+                                            placeholder="Select account…"
                                         />
                                     </div>
 
@@ -400,7 +400,7 @@ export default function TransactionForm({
                                 </>
                             ) : (
                                 <>
-                                    {/* From wallet */}
+                                    {/* From account */}
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="from-wallet" required>From account</FormLabel>
                                         <ReactSelect<{ value: string; label: string }>
@@ -412,7 +412,7 @@ export default function TransactionForm({
                                             styles={makeRsStyles()}
                                             theme={rsTheme}
                                             menuPosition="fixed"
-                                            placeholder="Select wallet…"
+                                            placeholder="Select account…"
                                         />
                                     </div>
 
@@ -430,7 +430,7 @@ export default function TransactionForm({
                                         <span className={styles.transferArrow}>↓</span>
                                     </div>
 
-                                    {/* To wallet */}
+                                    {/* To account */}
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="to-wallet" required>To account</FormLabel>
                                         {(() => {
@@ -446,7 +446,7 @@ export default function TransactionForm({
                                                     styles={makeRsStyles()}
                                                     theme={rsTheme}
                                                     menuPosition="fixed"
-                                                    placeholder="Select wallet…"
+                                                    placeholder="Select account…"
                                                 />
                                             );
                                         })()}
@@ -497,7 +497,7 @@ export default function TransactionForm({
                                     </div>
                                 </div>
 
-                                {/* Account / Wallet */}
+                                {/* Account */}
                                 <div className={styles.field}>
                                     <FormLabel htmlFor="wallet" required>Account</FormLabel>
                                     <ReactSelect<{ value: string; label: string }>
@@ -509,7 +509,7 @@ export default function TransactionForm({
                                         styles={makeRsStyles()}
                                         theme={rsTheme}
                                         menuPosition="fixed"
-                                        placeholder="Select wallet…"
+                                        placeholder="Select account…"
                                     />
                                 </div>
 

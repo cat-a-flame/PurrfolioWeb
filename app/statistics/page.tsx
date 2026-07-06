@@ -15,7 +15,7 @@ import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
 import { fetchWalletBalanceSums } from '@/lib/supabase/fetchWalletBalanceSums';
 import { getExchangeRates, toHUF, txToHUF } from '@/lib/exchangeRates';
 import { formatCurrency, formatHUF, formatNumber } from '@/lib/utils';
-import { generateDueDates, isoDate as recurringIsoDate, monthBounds } from '@/lib/recurringUtils';
+import { generateDueDates, isoDate as recurringIsoDate } from '@/lib/recurringUtils';
 import type { Transaction, Wallet, Currency, RecurringPayment, RecurringOccurrence } from '@/lib/types';
 import styles from './page.module.css';
 
@@ -90,6 +90,50 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
   );
 }
 
+// ─── stat card icons ────────────────────────────────────────────────────────
+function IncomeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  );
+}
+
+function ExpenseIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M12 5v14M19 12l-7 7-7-7" />
+    </svg>
+  );
+}
+
+function NetIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M7 7h12m0 0-4-4m4 4-4 4" />
+      <path d="M17 15H5m0 0 4 4m-4-4 4-4" />
+    </svg>
+  );
+}
+
+function TransactionsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none" />
+      <path d="M9 6h10.5" />
+      <circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <path d="M9 12h10.5" />
+      <circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none" />
+      <path d="M9 18h10.5" />
+    </svg>
+  );
+}
+
+function progressPct(actual: number, projected: number): number {
+  if (projected <= 0) return 0;
+  return Math.max(0, Math.min(100, (actual / projected) * 100));
+}
+
 // ─── page ────────────────────────────────────────────────────────────────────
 export default function StatisticsPage() {
   const [allTxs, setAllTxs]   = useState<Transaction[]>([]);
@@ -131,8 +175,8 @@ export default function StatisticsPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const today = new Date();
-    const [from, to] = monthBounds(today.getFullYear(), today.getMonth());
+    const from = new Date(period.from + 'T00:00:00');
+    const to   = new Date(period.to   + 'T00:00:00');
     const prev = getPrevRange(period);
     const [transactions, prevTransactions, walletSums, wRes, pmtRes, occRes] = await Promise.all([
       fetchTransactions(user.id, period.from, period.to),
@@ -182,24 +226,19 @@ export default function StatisticsPage() {
   const expense = useMemo(() => periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
 
   const txCount = periodTxs.filter(t => !t.transfer_group_id).length;
+  const incomeCount  = periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).length;
+  const expenseCount = periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).length;
   const animatedIncome  = useCountUp(income);
   const animatedExpense = useCountUp(expense);
   const animatedNet     = useCountUp(income - expense);
   const animatedTxCount = useCountUp(txCount);
 
-  // ── Cash flow projection (current month) ───────────────────────────────
+  // ── Cash flow projection (selected period) ──────────────────────────────
   const cashFlowProjection = useMemo(() => {
-    const now = new Date();
-    const [from, to] = monthBounds(now.getFullYear(), now.getMonth());
-    const monthFrom = recurringIsoDate(from);
-    const monthTo   = recurringIsoDate(to);
+    const from = new Date(period.from + 'T00:00:00');
+    const to   = new Date(period.to   + 'T00:00:00');
 
-    // Actual for the current month
-    const monthTxs = allTxs.filter(t => t.date >= monthFrom && t.date <= monthTo && !t.transfer_group_id);
-    const actualIncome  = monthTxs.filter(t => t.type === 'income').reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
-    const actualExpense = monthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
-
-    // Pending planned payments — convert to HUF using today's rates
+    // Pending planned payments due within the selected period — convert to HUF using today's rates
     const actionedKeys = new Set(recurringOccurrences.map(o => `${o.recurring_payment_id}|${o.due_date.slice(0, 10)}`));
     let plannedIncome  = 0;
     let plannedExpense = 0;
@@ -213,8 +252,9 @@ export default function StatisticsPage() {
       }
     }
 
-    return { actualIncome, actualExpense, plannedIncome, plannedExpense, monthLabel: from.toLocaleString('default', { month: 'long', year: 'numeric' }) };
-  }, [allTxs, recurringPayments, recurringOccurrences, ratesByDate, todayRates]);
+    // Actual for the period — periodTxs is already scoped to period.from/period.to
+    return { actualIncome: income, actualExpense: expense, plannedIncome, plannedExpense };
+  }, [period, income, expense, recurringPayments, recurringOccurrences, todayRates]);
 
   // ── 1. Balance by currency ──────────────────────────────────────────────
   const currencyBalances = useMemo(() => {
@@ -341,9 +381,6 @@ export default function StatisticsPage() {
     }
   }, [periodTxs, period, ratesByDate]);
 
-  // ── 5. Top categories by spend ────────────────────────────────────────
-  const topCategories = useMemo(() => expenseSlices.slice(0, 5), [expenseSlices]);
-
   if (loading) return (
     <AppShell><p className={styles.loading}>Loading…</p></AppShell>
   );
@@ -357,6 +394,9 @@ export default function StatisticsPage() {
           {/* ── Page header ── */}
           <div className={styles.pageHeader}>
             <h1 className={styles.pageTitle}>Statistics</h1>
+          </div>
+
+          <div className={styles.periodRow}>
             <PeriodPicker value={period} onChange={setPeriod} />
           </div>
 
@@ -366,28 +406,91 @@ export default function StatisticsPage() {
             const projExpense = cashFlowProjection.actualExpense + cashFlowProjection.plannedExpense;
             const projNet     = projIncome - projExpense;
             const hasPlanned  = recurringPayments.length > 0 && (cashFlowProjection.plannedIncome > 0 || cashFlowProjection.plannedExpense > 0);
+            const showIncomeProjection = hasPlanned && cashFlowProjection.plannedIncome > 0;
             return (
               <div className={styles.summaryRow}>
-                <div className={styles.summaryCard}>
-                  <span className={styles.summaryLabel}>Income</span>
-                  <span className={[styles.summaryAmount, styles.summaryIncome].join(' ')}>{formatHUF(animatedIncome)}</span>
-                  {hasPlanned && cashFlowProjection.plannedIncome > 0 && <span className={[styles.summaryProjected, styles.summaryProjectedIncome].join(' ')}>{formatHUF(projIncome)} projected</span>}
+                <div className={styles.statCard}>
+                  <div className={styles.statHead}>
+                    <div className={[styles.statIcon, styles.statIconIncome].join(' ')}><IncomeIcon /></div>
+                    <span className={styles.statLabel}>Income</span>
+                  </div>
+                  <div className={[styles.statAmount, styles.statAmountIncome].join(' ')}>{formatHUF(animatedIncome)}</div>
+                  <div className={styles.statDivider} />
+                  {showIncomeProjection ? (
+                    <div className={styles.statFooter}>
+                      <div className={styles.statFooterRow}>
+                        <span className={styles.statFooterLabel}>
+                          <span className={[styles.statDot, styles.statDotIncome].join(' ')} />Projected
+                        </span>
+                        <span className={[styles.statFooterValue, styles.statFooterValueIncome].join(' ')}>{formatHUF(projIncome)}</span>
+                      </div>
+                      <div className={styles.statBarTrack}>
+                        <div className={[styles.statBarFill, styles.statBarFillIncome].join(' ')} style={{ width: `${progressPct(income, projIncome)}%` }} />
+                      </div>
+                    </div>
+                  ) : (
+                    <p className={styles.statFooterEmpty}>No pending income</p>
+                  )}
                 </div>
-                <div className={styles.summaryCard}>
-                  <span className={styles.summaryLabel}>Expenses</span>
-                  <span className={[styles.summaryAmount, styles.summaryExpense].join(' ')}>{formatHUF(animatedExpense)}</span>
-                  {hasPlanned && <span className={[styles.summaryProjected, styles.summaryProjectedExpense].join(' ')}>{formatHUF(projExpense)} projected</span>}
+
+                <div className={styles.statCard}>
+                  <div className={styles.statHead}>
+                    <div className={[styles.statIcon, styles.statIconExpense].join(' ')}><ExpenseIcon /></div>
+                    <span className={styles.statLabel}>Expenses</span>
+                  </div>
+                  <div className={[styles.statAmount, styles.statAmountExpense].join(' ')}>{formatHUF(animatedExpense)}</div>
+                  <div className={styles.statDivider} />
+                  {hasPlanned ? (
+                    <div className={styles.statFooter}>
+                      <div className={styles.statFooterRow}>
+                        <span className={styles.statFooterLabel}>
+                          <span className={[styles.statDot, styles.statDotExpense].join(' ')} />Projected
+                        </span>
+                        <span className={[styles.statFooterValue, styles.statFooterValueExpense].join(' ')}>{formatHUF(projExpense)}</span>
+                      </div>
+                      <div className={styles.statBarTrack}>
+                        <div className={[styles.statBarFill, styles.statBarFillExpense].join(' ')} style={{ width: `${progressPct(expense, projExpense)}%` }} />
+                      </div>
+                    </div>
+                  ) : (
+                    <p className={styles.statFooterEmpty}>No pending expenses</p>
+                  )}
                 </div>
-                <div className={styles.summaryCard}>
-                  <span className={styles.summaryLabel}>Net</span>
-                  <span className={[styles.summaryAmount, income - expense >= 0 ? styles.summaryIncome : styles.summaryExpense].join(' ')}>
+
+                <div className={styles.statCard}>
+                  <div className={styles.statHead}>
+                    <div className={[styles.statIcon, styles.statIconNet].join(' ')}><NetIcon /></div>
+                    <span className={styles.statLabel}>Net</span>
+                  </div>
+                  <div className={styles.statAmount}>
                     {income - expense >= 0 ? '+' : ''}{formatHUF(animatedNet)}
-                  </span>
-                  {hasPlanned && <span className={[styles.summaryProjected, projNet >= 0 ? styles.summaryProjectedIncome : styles.summaryProjectedExpense].join(' ')}>{projNet >= 0 ? '+' : ''}{formatHUF(projNet)} projected</span>}
+                  </div>
+                  <div className={styles.statDivider} />
+                  {hasPlanned ? (
+                    <div className={styles.statFooter}>
+                      <div className={styles.statFooterRow}>
+                        <span className={styles.statFooterLabel}>
+                          <span className={[styles.statDot, styles.statDotNet].join(' ')} />Projected
+                        </span>
+                        <span className={[styles.statFooterValue, styles.statFooterValueNet].join(' ')}>{projNet >= 0 ? '+' : ''}{formatHUF(projNet)}</span>
+                      </div>
+                      <div className={styles.statBarTrack}>
+                        <div className={[styles.statBarFill, styles.statBarFillNet].join(' ')} style={{ width: `${progressPct(income - expense, projNet)}%` }} />
+                      </div>
+                    </div>
+                  ) : (
+                    <p className={styles.statFooterEmpty}>No projection</p>
+                  )}
                 </div>
-                <div className={styles.summaryCard}>
-                  <span className={styles.summaryLabel}>Transactions</span>
-                  <span className={styles.summaryAmount}>{animatedTxCount}</span>
+
+                <div className={styles.statCard}>
+                  <div className={styles.statHead}>
+                    <div className={[styles.statIcon, styles.statIconTx].join(' ')}><TransactionsIcon /></div>
+                    <span className={styles.statLabel}>Transactions</span>
+                  </div>
+                  <div className={styles.statAmount}>{animatedTxCount}</div>
+                  <div className={styles.statDivider} />
+                  <p className={styles.statFooterEmpty}>{expenseCount} expense · {incomeCount} income</p>
                 </div>
               </div>
             );
@@ -398,7 +501,7 @@ export default function StatisticsPage() {
 
             {/* ── Expenses structure ── */}
             <div className={[styles.card, styles.cardDoughnut].join(' ')}>
-              <h2 className={styles.cardTitle}>Expenses by Category</h2>
+              <h2 className={styles.cardTitle}>Expenses by category</h2>
               <p className={styles.cardSubtitle}>{period.label}</p>
               {expenseSlices.length === 0 ? (
                 <p className={styles.empty}>No expenses in this period.</p>
@@ -414,10 +517,9 @@ export default function StatisticsPage() {
                             nameKey="name"
                             innerRadius={60}
                             outerRadius={100}
-                            paddingAngle={7}
+                            paddingAngle={2}
                             startAngle={90}
                             endAngle={-270}
-                            cornerRadius={14}
                             label={renderExpenseLabel}
                             labelLine={false}
                           >
@@ -471,10 +573,10 @@ export default function StatisticsPage() {
 
             {/* ── Balance by currencies ── */}
             <div className={[styles.card, styles.cardBalances].join(' ')}>
-              <h2 className={styles.cardTitle}>Balance by Currency</h2>
-              <p className={styles.cardSubtitle}>Current total across all wallets</p>
+              <h2 className={styles.cardTitle}>Balance by currency</h2>
+              <p className={styles.cardSubtitle}>Current total across all accounts</p>
               {currencyBalances.length === 0 ? (
-                <p className={styles.empty}>No wallets yet.</p>
+                <p className={styles.empty}>No accounts yet.</p>
               ) : (
                 <div className={styles.balanceList}>
                   {(() => {
@@ -483,9 +585,14 @@ export default function StatisticsPage() {
                       <div key={currency} className={styles.balanceRow}>
                         <div className={styles.balanceMeta}>
                           <span className={styles.balanceCurrency}>{currency}</span>
-                          <span className={[styles.balanceAmount, balance >= 0 ? styles.balancePos : styles.balanceNeg].join(' ')}>
-                            {formatCurrency(balance, currency as Currency)}
-                          </span>
+                          <div className={styles.balanceAmountGroup}>
+                            <span className={[styles.balanceAmount, balance >= 0 ? styles.balancePos : styles.balanceNeg].join(' ')}>
+                              {formatCurrency(balance, currency as Currency)}
+                            </span>
+                            {currency !== 'HUF' && (
+                              <span className={styles.balanceHUF}>≈{formatHUF(Math.abs(balanceHUF))}</span>
+                            )}
+                          </div>
                         </div>
                         <div className={styles.balanceBar}>
                           <div
@@ -498,28 +605,11 @@ export default function StatisticsPage() {
                   })()}
                 </div>
               )}
-
-              {/* Top spenders */}
-              {topCategories.length > 0 && (
-                <>
-                  <h3 className={styles.cardSubheading}>Top Expense Categories</h3>
-                  <div className={styles.topList}>
-                    {topCategories.map((s, i) => (
-                      <div key={i} className={styles.topRow}>
-                        <span className={styles.topRank}>{i + 1}</span>
-                        <span className={styles.topDot} style={{ backgroundColor: s.color }} />
-                        <span className={styles.topName}>{s.name}</span>
-                        <span className={styles.topAmount}>{formatHUF(s.amount)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
             </div>
 
             {/* ── Period comparison ── */}
             <div className={[styles.card, styles.cardWide].join(' ')}>
-              <h2 className={styles.cardTitle}>Expense Comparison by Category</h2>
+              <h2 className={styles.cardTitle}>Expense comparison by category</h2>
               <p className={styles.cardSubtitle}>{period.label} vs {prevLabel}</p>
               {comparisonData.length === 0 ? (
                 <p className={styles.empty}>No expense data to compare.</p>
@@ -545,7 +635,7 @@ export default function StatisticsPage() {
 
             {/* ── Spending trend ── */}
             <div className={[styles.card, styles.cardWide].join(' ')}>
-              <h2 className={styles.cardTitle}>Income & Expense Trend</h2>
+              <h2 className={styles.cardTitle}>Income & expense trend</h2>
               <p className={styles.cardSubtitle}>{period.label}</p>
               {trendData.every(d => d.income === 0 && d.expense === 0) ? (
                 <p className={styles.empty}>No data for this period.</p>

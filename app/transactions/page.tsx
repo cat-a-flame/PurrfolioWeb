@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { Fragment, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import ReactSelect from 'react-select';
 import AppShell from '@/components/layout/AppShell';
 import Button from '@/components/ui/Button';
@@ -9,6 +9,7 @@ import Input from '@/components/ui/Input';
 import LabelSelect from '@/components/ui/LabelSelect';
 import Toast from '@/components/ui/Toast';
 import TransactionForm, { TransactionFormData } from '@/components/transactions/TransactionForm';
+import { useAddRecord } from '@/components/transactions/AddRecordProvider';
 import FormLabel from '@/components/ui/FormLabel';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
@@ -28,7 +29,22 @@ function formatDayHeader(dateStr: string): string {
   });
 }
 
+function isoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function defaultPeriod(): PeriodValue {
+  const now = new Date();
+  return {
+    from: isoDate(new Date(now.getFullYear(), now.getMonth(), 1)),
+    to: isoDate(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
+    label: 'This month',
+    tab: 'months',
+  };
+}
+
 export default function TransactionsPage() {
+  const { openAddDialog } = useAddRecord();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [labels, setLabels] = useState<Label[]>([]);
@@ -64,12 +80,12 @@ export default function TransactionsPage() {
     }
     return '';
   });
-  const [filterPeriod, setFilterPeriod] = useState<PeriodValue | null>(() => {
+  const [filterPeriod, setFilterPeriod] = useState<PeriodValue>(() => {
     if (typeof window !== 'undefined') {
       const saved = sessionStorage.getItem('purrfolio_period');
       if (saved) try { return JSON.parse(saved) as PeriodValue; } catch { }
     }
-    return null;
+    return defaultPeriod();
   });
   const [filterSearch, setFilterSearch] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -91,11 +107,7 @@ export default function TransactionsPage() {
   }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterSearch]);
 
   useEffect(() => {
-    if (filterPeriod) {
-      sessionStorage.setItem('purrfolio_period', JSON.stringify(filterPeriod));
-    } else {
-      sessionStorage.removeItem('purrfolio_period');
-    }
+    sessionStorage.setItem('purrfolio_period', JSON.stringify(filterPeriod));
   }, [filterPeriod]);
 
   // Brief loading indicator whenever a filter changes
@@ -154,13 +166,8 @@ export default function TransactionsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const now = new Date();
-    const defaultFrom = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-    const from = filterPeriod?.from ?? `${defaultFrom.getFullYear()}-${String(defaultFrom.getMonth() + 1).padStart(2, '0')}-${String(defaultFrom.getDate()).padStart(2, '0')}`;
-    const to = filterPeriod?.to ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
     const [transactions, catRes, lblRes, walletRes] = await Promise.all([
-      fetchTransactions(user.id, from, to),
+      fetchTransactions(user.id, filterPeriod.from, filterPeriod.to),
       supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
       supabase.from('labels').select('*').eq('user_id', user.id).order('name'),
       supabase.from('wallets').select('*').eq('user_id', user.id).order('name'),
@@ -213,16 +220,16 @@ export default function TransactionsPage() {
     } else if (filterCategoryId && t.category_id !== filterCategoryId) return false;
     if (filterLabelId && !t.labels?.some(l => l.id === filterLabelId)) return false;
     if (filterWalletId && t.wallet_id !== filterWalletId) return false;
-    if (filterPeriod?.from && t.date < filterPeriod.from) return false;
-    if (filterPeriod?.to && t.date > filterPeriod.to) return false;
     if (filterSearch) {
       const q = filterSearch.toLowerCase();
-      if (!t.notes?.toLowerCase().includes(q)) return false;
+      const matchesNotes = t.notes?.toLowerCase().includes(q);
+      const matchesPayer = t.payer?.toLowerCase().includes(q);
+      if (!matchesNotes && !matchesPayer) return false;
     }
     return true;
   });
 
-  const hasActiveFilters = !!(filterType || filterCategoryId || filterLabelId || filterWalletId || filterPeriod || filterSearch);
+  const hasActiveFilters = !!(filterType || filterCategoryId || filterLabelId || filterWalletId || filterSearch);
 
   const summaryIncome = filteredTransactions
     .filter(t => t.type === 'income' && !t.transfer_group_id)
@@ -249,10 +256,8 @@ export default function TransactionsPage() {
     setFilterCategoryId('');
     setFilterLabelId('');
     setFilterWalletId('');
-    setFilterPeriod(null);
     setFilterSearch('');
     sessionStorage.removeItem('purrfolio_tx_filters');
-    sessionStorage.removeItem('purrfolio_period');
   }
 
   const hasMore = filteredTransactions.length > displayCount;
@@ -554,6 +559,11 @@ export default function TransactionsPage() {
       <div className={styles.container}>
         <div className={styles.pageHeader}>
           <h1 className={styles.pageTitle}>Transactions</h1>
+          <Button variant="primary" size="lg" onClick={openAddDialog}>+ Add transaction</Button>
+        </div>
+
+        <div className={styles.periodRow}>
+          <PeriodPicker value={filterPeriod} onChange={setFilterPeriod} />
         </div>
 
         <div className={styles.bodyLayout}>
@@ -611,12 +621,12 @@ export default function TransactionsPage() {
               })()}
             </div>
 
-            {/* Wallet */}
+            {/* Account */}
             <div className={styles.filterField}>
-              <FormLabel htmlFor="filter-wallet">Wallet</FormLabel>
+              <FormLabel htmlFor="filter-wallet">Account</FormLabel>
               {(() => {
                 const walletOptions = [
-                  { value: '', label: 'All wallets' },
+                  { value: '', label: 'All accounts' },
                   ...wallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` })),
                 ];
                 return (
@@ -634,27 +644,16 @@ export default function TransactionsPage() {
               })()}
             </div>
 
-            {/* Date */}
+            {/* Notes / payee search */}
             <div className={styles.filterField}>
-              <FormLabel>Date</FormLabel>
-              <PeriodPicker
-                value={filterPeriod ?? { from: '', to: '', label: 'Any date', tab: 'months' }}
-                onChange={setFilterPeriod}
-                onClear={() => setFilterPeriod(null)}
-                hideNav
-              />
-            </div>
-
-            {/* Notes search */}
-            <div className={styles.filterField}>
-              <FormLabel htmlFor="filter-search">Search notes</FormLabel>
+              <FormLabel htmlFor="filter-search">Search notes & payee</FormLabel>
               <div className={styles.searchWrapper}>
                 <span className={styles.searchIcon}>🔍</span>
                 <input
                   id="filter-search"
                   type="search"
                   className={styles.searchInput}
-                  placeholder="Search in notes…"
+                  placeholder="Search in notes or payee…"
                   value={filterSearch}
                   onChange={e => setFilterSearch(e.target.value)}
                 />
@@ -801,29 +800,12 @@ export default function TransactionsPage() {
                                 {isTransfer ? (t.payer ? (t.type === 'expense' ? '↑' : '↓') : '↔') : (t.category?.icon ?? '?')}
                               </div>
                               <div className={styles.txMain}>
-                                <span className={styles.txCategory}>
-                                  {isTransfer
-                                    ? (t.payer ? t.payer : 'Transfer')
-                                    : (t.category?.name ?? 'Uncategorised')}
-                                </span>
-                                {t.wallet && (
-                                  <span className={styles.txWallet}>
-                                    <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
-                                    {t.wallet.name}
+                                <div className={styles.txTopRow}>
+                                  <span className={styles.txCategory}>
+                                    {isTransfer
+                                      ? (t.payer ? t.payer : 'Transfer')
+                                      : (t.category?.name ?? 'Uncategorised')}
                                   </span>
-                                )}
-                              </div>
-
-                              {((!isTransfer && t.payer) || t.notes || (t.labels && t.labels.length > 0)) && (
-                                <div className={styles.txDetails}>
-                                  <div className={styles.txPayeeNote}>
-                                    {!isTransfer && t.payer && (
-                                      <span className={styles.txPayee}>{t.payer}</span>
-                                    )}
-                                    {t.notes && (
-                                      <span className={styles.txNotes}>{t.notes}</span>
-                                    )}
-                                  </div>
                                   {t.labels && t.labels.length > 0 && (
                                     <div className={styles.txLabels}>
                                       {t.labels.map(l => (
@@ -835,7 +817,35 @@ export default function TransactionsPage() {
                                     </div>
                                   )}
                                 </div>
-                              )}
+
+                                {(() => {
+                                  const metaParts = [
+                                    t.wallet && (
+                                      <span key="wallet" className={styles.txWallet}>
+                                        <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
+                                        {t.wallet.name}
+                                      </span>
+                                    ),
+                                    !isTransfer && t.payer && (
+                                      <span key="payer" className={styles.txPayee}>{t.payer}</span>
+                                    ),
+                                    t.notes && (
+                                      <span key="notes" className={styles.txNotes}>{t.notes}</span>
+                                    ),
+                                  ].filter(Boolean);
+                                  if (metaParts.length === 0) return null;
+                                  return (
+                                    <div className={styles.txMetaRow}>
+                                      {metaParts.map((part, i) => (
+                                        <Fragment key={i}>
+                                          {i > 0 && <span className={styles.txMetaDot}>·</span>}
+                                          {part}
+                                        </Fragment>
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
                             </div>
 
                             <div className={styles.txRight}>

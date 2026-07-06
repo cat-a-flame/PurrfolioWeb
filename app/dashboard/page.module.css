@@ -80,6 +80,7 @@
 .periodRow {
   display: flex;
   justify-content: center;
+  margin-top: var(--space-2);
 }
 
 /* ── Top row: Cash Flow + Planned payments + Top categories ── */
@@ -482,6 +483,13 @@
   flex-direction: column;
 }
 
+.txTopRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
 .txName {
   font-weight: 800;
   font-size: 0.9375rem;
@@ -491,35 +499,49 @@
   text-overflow: ellipsis;
 }
 
+.txMetaRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.txMetaDot {
+  flex-shrink: 0;
+  color: var(--color-text-faint);
+  font-size: 0.75rem;
+}
+
 .txMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
   color: var(--color-text-muted);
   font-size: 0.78125rem;
   font-weight: 700;
+  white-space: nowrap;
 }
 
-.txDetails {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex: 1;
-  min-width: 0;
-}
-
-.txPayeeNote {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+.txWalletDot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
 }
 
 .txPayee {
+  flex-shrink: 0;
   font-size: .78125rem;
   color: var(--color-text-muted);
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .txNotes {
   display: block;
+  flex: 1 1 auto;
   font-size: 0.8125rem;
   white-space: nowrap;
   overflow: hidden;
