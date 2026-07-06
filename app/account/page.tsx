@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import AppShell from '@/components/layout/AppShell';
 import Button from '@/components/ui/Button';
 import FormLabel from '@/components/ui/FormLabel';
@@ -10,9 +11,12 @@ import { createClient } from '@/lib/supabase/client';
 import styles from './page.module.css';
 
 export default function AccountPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [usernameLoading, setUsernameLoading] = useState(false);
   const [usernameError, setUsernameError] = useState('');
+  const [signingOut, setSigningOut] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -32,12 +36,20 @@ export default function AccountPage() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
+      if (user?.email) setEmail(user.email);
       if (user?.user_metadata?.username) {
         setUsername(user.user_metadata.username as string);
       }
     }
     loadProfile();
   }, []);
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/login');
+  }
 
   async function handleUsernameUpdate(e: React.FormEvent) {
     e.preventDefault();
@@ -97,6 +109,12 @@ export default function AccountPage() {
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Profile</h2>
             <form onSubmit={handleUsernameUpdate} className={styles.form}>
+              {email && (
+                <div className={styles.field}>
+                  <FormLabel>Email</FormLabel>
+                  <Input type="email" value={email} disabled />
+                </div>
+              )}
               <div className={styles.field}>
                 <FormLabel htmlFor="username">Username</FormLabel>
                 <Input
@@ -160,6 +178,16 @@ export default function AccountPage() {
                 </Button>
               </div>
             </form>
+          </section>
+
+          {/* Session section */}
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>Session</h2>
+            <div className={styles.formActions}>
+              <Button variant="danger" size="sm" onClick={handleSignOut} loading={signingOut}>
+                Sign out
+              </Button>
+            </div>
           </section>
       </div>
 

@@ -170,6 +170,7 @@
 .userBtn {
   width: 100%;
   text-align: left;
+  text-decoration: none;
   border: 1px solid var(--color-border);
   cursor: pointer;
   background: var(--color-surface);
@@ -205,10 +206,20 @@
   min-width: 0;
 }
 
+.userName {
+  display: block;
+  color: var(--color-text);
+  font-size: 0.84375rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .userEmail {
   display: block;
   color: var(--color-text-muted);
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -217,60 +228,8 @@
 
 .chevron {
   color: var(--color-text-faint);
-  font-size: 1rem;
+  font-size: 1.125rem;
   flex-shrink: 0;
-}
-
-.dropdownBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 10;
-}
-
-.dropdown {
-  position: absolute;
-  bottom: calc(100% + var(--space-2));
-  left: 0;
-  right: 0;
-  z-index: 20;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.dropdownItem {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: var(--space-3) var(--space-4);
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--color-text);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  text-decoration: none;
-  transition: background var(--transition-fast);
-  font-family: var(--font-nunito);
-}
-
-.dropdownItem:hover:not(:disabled) {
-  background: var(--color-surface-2);
-}
-
-.dropdownItem:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.dropdownDivider {
-  height: 1px;
-  background: var(--color-border);
-  margin: var(--space-1) 0;
 }
 
 @media (max-width: 768px) {
