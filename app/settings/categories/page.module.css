@@ -36,11 +36,3 @@
   align-items: start;
 }
 
-.emptyState {
-  font-size: 0.9375rem;
-  color: var(--color-text-muted);
-  padding: var(--space-8);
-  text-align: center;
-  border-radius: var(--radius-lg);
-  border: 1px dashed var(--color-border);
-}

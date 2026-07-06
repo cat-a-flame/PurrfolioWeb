@@ -5,11 +5,13 @@ import ReactSelect from 'react-select';
 import AppShell from '@/components/layout/AppShell';
 import Button from '@/components/ui/Button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import EmptyState from '@/components/ui/EmptyState';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
 import LabelSelect from '@/components/ui/LabelSelect';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
+import Skeleton from '@/components/ui/Skeleton';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
 import Toast from '@/components/ui/Toast';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
@@ -73,6 +75,10 @@ export default function RecurringPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [labels, setLabels]         = useState<Label[]>([]);
   const [loading, setLoading]       = useState(true);
+  // True while a period change is being fetched (distinct from `loading`, which only
+  // covers the very first load) — lets us skeleton the Due section while keeping the
+  // header, period picker, and full payments list visible.
+  const [periodLoading, setPeriodLoading] = useState(false);
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
@@ -154,7 +160,8 @@ export default function RecurringPage() {
   }, [period]);
 
   useEffect(() => {
-    fetchAll();
+    setPeriodLoading(true);
+    fetchAll().finally(() => setPeriodLoading(false));
     window.addEventListener('transaction-added', fetchAll);
 
     const supabase = createClient();
@@ -431,10 +438,6 @@ export default function RecurringPage() {
     return date.toLocaleDateString('default', { month: 'short', day: 'numeric' });
   }
 
-  if (loading) return (
-    <AppShell><p className={styles.loading}>Loading…</p></AppShell>
-  );
-
   return (
     <AppShell>
         <div className={styles.container}>
@@ -457,12 +460,27 @@ export default function RecurringPage() {
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Due</h2>
 
+            {loading || periodLoading ? (
+              <div className={styles.recordCard}>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className={styles.record}>
+                    <Skeleton width={38} height={38} radius="var(--radius-md)" />
+                    <div className={styles.recordMain}>
+                      <Skeleton width="50%" height={13} radius={4} style={{ marginBottom: 6 }} />
+                      <Skeleton width="30%" height={11} radius={4} />
+                    </div>
+                    <Skeleton width={70} height={13} radius={4} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <>
             {dueItems.length === 0 && (
-              <p className={styles.empty}>
-                {payments.filter(p => p.is_active).length === 0
-                  ? 'No recurring payments yet. Add one above.'
-                  : 'All payments for this period have been handled.'}
-              </p>
+              payments.filter(p => p.is_active).length === 0 ? (
+                <EmptyState icon="🔁" title="No recurring payments yet" hint="Add one above to start tracking planned income and expenses." />
+              ) : (
+                <EmptyState icon="✅" title="All caught up" hint="All payments for this period have been handled." />
+              )
             )}
 
             {overdueItems.length > 0 && (
@@ -506,14 +524,31 @@ export default function RecurringPage() {
                 </div>
               </div>
             )}
+              </>
+            )}
           </section>
 
           {/* ── All recurring payments ── */}
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>All recurring payments</h2>
 
+            {loading ? (
+              <div className={styles.recordCard}>
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className={styles.record}>
+                    <Skeleton width={38} height={38} radius="var(--radius-md)" />
+                    <div className={styles.recordMain}>
+                      <Skeleton width="40%" height={13} radius={4} style={{ marginBottom: 6 }} />
+                      <Skeleton width="60%" height={11} radius={4} />
+                    </div>
+                    <Skeleton width={70} height={13} radius={4} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <>
             {payments.length === 0 && (
-              <p className={styles.empty}>No recurring payments defined yet.</p>
+              <EmptyState icon="📭" title="Nothing here yet" hint="No recurring payments defined yet." />
             )}
 
             {FREQUENCIES.filter(f => payments.some(p => p.frequency === f.value)).map(f => (
@@ -610,6 +645,8 @@ export default function RecurringPage() {
                 </div>
               </div>
             ))}
+              </>
+            )}
           </section>
         </div>
 

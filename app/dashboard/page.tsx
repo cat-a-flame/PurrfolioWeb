@@ -5,7 +5,9 @@ import { useCountUp } from '@/lib/useCountUp';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import Button from '@/components/ui/Button';
+import EmptyState from '@/components/ui/EmptyState';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
+import Skeleton from '@/components/ui/Skeleton';
 import TransactionForm, { TransactionFormData } from '@/components/transactions/TransactionForm';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Toast from '@/components/ui/Toast';
@@ -71,6 +73,9 @@ export default function DashboardPage() {
   const [recurringPayments, setRecurringPayments] = useState<RecurringPayment[]>([]);
   const [recurringOccurrences, setRecurringOccurrences] = useState<RecurringOccurrence[]>([]);
   const [loading, setLoading] = useState(true);
+  // True while a period change is being fetched (distinct from `loading`, which only
+  // covers the very first load) — lets us skeleton just the period-dependent cards.
+  const [periodLoading, setPeriodLoading] = useState(false);
   const [period, setPeriod] = useState<PeriodValue>(() => {
     if (typeof window !== 'undefined') {
       const saved = sessionStorage.getItem('purrfolio_period');
@@ -163,7 +168,8 @@ export default function DashboardPage() {
   }, [period]);
 
   useEffect(() => {
-    fetchData();
+    setPeriodLoading(true);
+    fetchData().finally(() => setPeriodLoading(false));
     window.addEventListener('transaction-added', fetchData);
     return () => window.removeEventListener('transaction-added', fetchData);
   }, [fetchData]);
@@ -458,7 +464,19 @@ export default function DashboardPage() {
           <PeriodPicker value={period} onChange={setPeriod} />
         </div>
 
-        {walletSummaries.length > 0 && (
+        {loading ? (
+          <div className={styles.accountsStrip}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className={styles.accountTile}>
+                <Skeleton width={42} height={42} radius="var(--radius-sm)" />
+                <div className={styles.accountInfo}>
+                  <Skeleton width={70} height={11} radius={4} style={{ marginBottom: 6 }} />
+                  <Skeleton width={90} height={13} radius={4} />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : walletSummaries.length > 0 && (
           <div className={styles.accountsStrip}>
             {walletSummaries.map(({ wallet, balance: wb }) => (
               <div key={wallet.id} className={styles.accountTile}>
@@ -476,40 +494,61 @@ export default function DashboardPage() {
           {/* Cash Flow card */}
           <div className={styles.cashFlowCard} ref={cashFlowRef}>
             <p className={styles.cashFlowTitle}>Cash flow</p>
-            <div className={styles.cashFlowTop}>
-              <div className={styles.cashFlowLeft}>
-                <span className={styles.cashFlowPeriodLabel}>{period.label}</span>
-                <div className={styles.cashFlowBalance}>{formatHUF(animatedBalance)}</div>
-              </div>
-              {vsPct !== null && (
-                <div className={styles.cashFlowRight}>
-                  <span className={styles.vsLabel}>vs previous period</span>
-                  <span className={[styles.vsTag, vsPct >= 0 ? styles.vsTagPos : styles.vsTagNeg].join(' ')}>
-                    {vsPct >= 0 ? '↑' : '↓'} {Math.abs(vsPct)}%
-                  </span>
+            {loading || periodLoading ? (
+              <>
+                <div className={styles.cashFlowTop}>
+                  <div className={styles.cashFlowLeft}>
+                    <Skeleton variant="light" width={90} height={12} radius={4} style={{ marginBottom: 8 }} />
+                    <Skeleton variant="light" width={160} height={30} radius={6} />
+                  </div>
                 </div>
-              )}
-            </div>
-            <div className={styles.cashFlowBars}>
-              <div className={styles.barRow}>
-                <div className={styles.barMeta}>
-                  <span className={styles.barLabel}>Income</span>
-                  <span className={styles.barAmount}>{formatHUF(income)}</span>
+                <div className={styles.cashFlowBars}>
+                  <div className={styles.barRow}>
+                    <Skeleton variant="light" width="100%" height={8} radius="var(--radius-full)" />
+                  </div>
+                  <div className={styles.barRow}>
+                    <Skeleton variant="light" width="100%" height={8} radius="var(--radius-full)" />
+                  </div>
                 </div>
-                <div className={styles.barTrack}>
-                  <div className={[styles.barFill, styles.barFillIncome].join(' ')} style={{ width: `${incomePct}%` }} />
+              </>
+            ) : (
+              <>
+                <div className={styles.cashFlowTop}>
+                  <div className={styles.cashFlowLeft}>
+                    <span className={styles.cashFlowPeriodLabel}>{period.label}</span>
+                    <div className={styles.cashFlowBalance}>{formatHUF(animatedBalance)}</div>
+                  </div>
+                  {vsPct !== null && (
+                    <div className={styles.cashFlowRight}>
+                      <span className={styles.vsLabel}>vs previous period</span>
+                      <span className={[styles.vsTag, vsPct >= 0 ? styles.vsTagPos : styles.vsTagNeg].join(' ')}>
+                        {vsPct >= 0 ? '↑' : '↓'} {Math.abs(vsPct)}%
+                      </span>
+                    </div>
+                  )}
                 </div>
-              </div>
-              <div className={styles.barRow}>
-                <div className={styles.barMeta}>
-                  <span className={styles.barLabel}>Expense</span>
-                  <span className={styles.barAmount}>-{formatHUF(expense)}</span>
+                <div className={styles.cashFlowBars}>
+                  <div className={styles.barRow}>
+                    <div className={styles.barMeta}>
+                      <span className={styles.barLabel}>Income</span>
+                      <span className={styles.barAmount}>{formatHUF(income)}</span>
+                    </div>
+                    <div className={styles.barTrack}>
+                      <div className={[styles.barFill, styles.barFillIncome].join(' ')} style={{ width: `${incomePct}%` }} />
+                    </div>
+                  </div>
+                  <div className={styles.barRow}>
+                    <div className={styles.barMeta}>
+                      <span className={styles.barLabel}>Expense</span>
+                      <span className={styles.barAmount}>-{formatHUF(expense)}</span>
+                    </div>
+                    <div className={styles.barTrack}>
+                      <div className={[styles.barFill, styles.barFillExpense].join(' ')} style={{ width: `${expensePct}%` }} />
+                    </div>
+                  </div>
                 </div>
-                <div className={styles.barTrack}>
-                  <div className={[styles.barFill, styles.barFillExpense].join(' ')} style={{ width: `${expensePct}%` }} />
-                </div>
-              </div>
-            </div>
+              </>
+            )}
           </div>
 
           {/* Planned payments card */}
@@ -518,8 +557,22 @@ export default function DashboardPage() {
               <h2 className={styles.sideCardTitle}>Planned payments</h2>
               <Link href="/recurring" className={styles.sideCardLink}>All</Link>
             </div>
-            {plannedDue.length === 0 ? (
-              <p className={styles.sideCardEmpty}>Nothing due this period.</p>
+            {loading || periodLoading ? (
+              <div className={styles.sideCardList}>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className={styles.plannedRow}>
+                    <Skeleton width={42} height={42} radius="var(--radius-sm)" />
+                    <div className={styles.plannedInfo}>
+                      <Skeleton width="70%" height={13} radius={4} style={{ marginBottom: 6 }} />
+                      <Skeleton width="40%" height={11} radius={4} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : plannedDue.length === 0 ? (
+              <div className={styles.sideCardEmptyWrap}>
+                <EmptyState compact icon="🎉" hint="Nothing due this period." />
+              </div>
             ) : (
               <div className={styles.sideCardList}>
                 {plannedDue.map(({ payment, dueDate }, i) => (
@@ -551,8 +604,21 @@ export default function DashboardPage() {
               <h2 className={styles.sideCardTitle}>Top categories</h2>
               <Link href="/statistics" className={styles.sideCardLink}>All</Link>
             </div>
-            {topCategories.length === 0 ? (
-              <p className={styles.sideCardEmpty}>No expenses in this period.</p>
+            {loading || periodLoading ? (
+              <div className={styles.sideCardList}>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className={styles.catRow}>
+                    <Skeleton width={38} height={38} radius="var(--radius-sm)" />
+                    <div className={styles.catInfo}>
+                      <Skeleton width="60%" height={13} radius={4} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : topCategories.length === 0 ? (
+              <div className={styles.sideCardEmptyWrap}>
+                <EmptyState compact icon="🐱" hint="No expenses in this period." />
+              </div>
             ) : (
               <div className={styles.sideCardList}>
                 {topCategories.map(({ category, total }) => (
@@ -577,10 +643,21 @@ export default function DashboardPage() {
             <h2 className={styles.recentTitle}>Recent transactions</h2>
             <Link href="/transactions" className={styles.recentSeeAll}>View all</Link>
           </div>
-          {loading ? (
-            <p className={styles.emptyState}>Loading…</p>
+          {loading || periodLoading ? (
+            <div className={styles.recentList}>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className={styles.txRow}>
+                  <Skeleton width={44} height={44} radius="var(--radius-sm)" />
+                  <div className={styles.txMain}>
+                    <Skeleton width="45%" height={13} radius={4} style={{ marginBottom: 6 }} />
+                    <Skeleton width="65%" height={11} radius={4} />
+                  </div>
+                  <Skeleton width={60} height={13} radius={4} />
+                </div>
+              ))}
+            </div>
           ) : recentTransactions.length === 0 ? (
-            <p className={styles.emptyState}>No transactions in this period.</p>
+            <EmptyState icon="🐾" title="No transactions yet" hint="No transactions in this period." />
           ) : (
             <div className={styles.recentList}>
               {recentTransactions.map(t => {

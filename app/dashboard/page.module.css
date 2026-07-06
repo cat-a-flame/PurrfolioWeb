@@ -268,9 +268,11 @@
   text-decoration: underline;
 }
 
-.sideCardEmpty {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
+.sideCardEmptyWrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sideCardList {
@@ -599,13 +601,6 @@
   font-weight: 600;
 }
 
-/* ── Empty state ── */
-.emptyState {
-  font-size: 0.9375rem;
-  color: var(--color-text-muted);
-  padding: var(--space-8);
-  text-align: center;
-}
 
 @media (max-width: 768px) {
   .pageTitle {

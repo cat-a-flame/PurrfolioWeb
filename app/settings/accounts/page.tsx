@@ -6,9 +6,12 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Toast from '@/components/ui/Toast';
 import AccountCard from '@/components/accounts/AccountCard';
 import AccountEditorModal, { type WalletDraft } from '@/components/accounts/AccountEditorModal';
+import EmptyState from '@/components/ui/EmptyState';
+import Skeleton from '@/components/ui/Skeleton';
 import { createClient } from '@/lib/supabase/client';
 import type { Wallet } from '@/lib/types';
 import styles from './page.module.css';
+import accountCardStyles from '@/components/accounts/AccountCard.module.css';
 
 type ModalState =
   | { mode: 'create' }
@@ -176,9 +179,21 @@ export default function AccountsSettingsPage() {
       </div>
 
       {loading ? (
-        <p className={styles.emptyState}>Loading…</p>
+        <div className={styles.grid}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className={accountCardStyles.card}>
+              <div className={accountCardStyles.head}>
+                <Skeleton width={50} height={50} radius="var(--radius-lg)" />
+                <div className={accountCardStyles.info}>
+                  <Skeleton width="60%" height={16} radius={4} style={{ marginBottom: 8 }} />
+                  <Skeleton width="40%" height={12} radius={4} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : activeWallets.length === 0 ? (
-        <p className={styles.emptyState}>No accounts yet. Click &quot;+ New account&quot; to create one.</p>
+        <EmptyState icon="💳" title="No accounts yet" hint="Click “+ New account” to create one." />
       ) : (
         <div className={styles.grid}>
           {activeWallets.map((w) => (

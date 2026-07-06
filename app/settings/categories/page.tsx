@@ -6,9 +6,12 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Toast from '@/components/ui/Toast';
 import CategoryCard from '@/components/categories/CategoryCard';
 import CategoryEditorModal, { type CategoryDraft } from '@/components/categories/CategoryEditorModal';
+import EmptyState from '@/components/ui/EmptyState';
+import Skeleton from '@/components/ui/Skeleton';
 import { createClient } from '@/lib/supabase/client';
 import type { Category } from '@/lib/types';
 import styles from './page.module.css';
+import categoryCardStyles from '@/components/categories/CategoryCard.module.css';
 
 type CategoryWithChildren = Category & { children: Category[] };
 
@@ -160,9 +163,20 @@ export default function CategoriesSettingsPage() {
       </div>
 
       {loading ? (
-        <p className={styles.emptyState}>Loading…</p>
+        <div className={styles.grid}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className={categoryCardStyles.card}>
+              <div className={categoryCardStyles.head}>
+                <Skeleton width={50} height={50} radius="var(--radius-lg)" />
+                <div className={categoryCardStyles.info}>
+                  <Skeleton width="70%" height={16} radius={4} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : topLevel.length === 0 ? (
-        <p className={styles.emptyState}>No categories yet.</p>
+        <EmptyState icon="🏷️" title="No categories yet" hint="Click “+ New category” to organize your spending." />
       ) : (
         <div className={styles.grid}>
           {topLevel.map((c) => (

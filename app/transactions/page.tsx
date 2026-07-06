@@ -5,6 +5,7 @@ import ReactSelect from 'react-select';
 import AppShell from '@/components/layout/AppShell';
 import Button from '@/components/ui/Button';
 import Dialog from '@/components/ui/Dialog';
+import EmptyState from '@/components/ui/EmptyState';
 import Input from '@/components/ui/Input';
 import LabelSelect from '@/components/ui/LabelSelect';
 import Toast from '@/components/ui/Toast';
@@ -110,7 +111,8 @@ export default function TransactionsPage() {
     sessionStorage.setItem('purrfolio_period', JSON.stringify(filterPeriod));
   }, [filterPeriod]);
 
-  // Brief loading indicator whenever a filter changes
+  // Brief loading indicator whenever a client-side filter changes (period changes
+  // trigger a real refetch instead — see isPeriodLoading below)
   const [isFiltering, setIsFiltering] = useState(false);
   useEffect(() => {
     if (loading) return;
@@ -118,7 +120,10 @@ export default function TransactionsPage() {
     const t = setTimeout(() => setIsFiltering(false), 200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterPeriod, filterSearch]);
+  }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterSearch]);
+
+  // Skeleton loading whenever the selected period changes and data is being refetched
+  const [isPeriodLoading, setIsPeriodLoading] = useState(false);
 
   // Exchange rates: date → { EUR: number, USD: number, … } (HUF per 1 unit)
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
@@ -181,7 +186,8 @@ export default function TransactionsPage() {
   }, [filterPeriod]);
 
   useEffect(() => {
-    fetchAll();
+    setIsPeriodLoading(true);
+    fetchAll().finally(() => setIsPeriodLoading(false));
     window.addEventListener('transaction-added', fetchAll);
     return () => window.removeEventListener('transaction-added', fetchAll);
   }, [fetchAll]);
@@ -671,7 +677,7 @@ export default function TransactionsPage() {
           {/* ── Content ── */}
           <div className={styles.contentArea}>
             {/* ── Cash flow summary ── */}
-            {!loading && filteredTransactions.length > 0 && filterType !== 'transfer' && (
+            {!loading && !isPeriodLoading && filteredTransactions.length > 0 && filterType !== 'transfer' && (
               <div className={styles.summaryCard}>
                 {showBalance && (
                   <div className={styles.summaryBalance}>
@@ -746,27 +752,25 @@ export default function TransactionsPage() {
               </div>
             )}
 
-            {loading ? (
+            {loading || isPeriodLoading ? (
               <div className={styles.skeletonList}>
                 {Array.from({ length: 5 }).map((_, i) => (
                   <div key={i} className={styles.skeletonRow} />
                 ))}
               </div>
             ) : groupedDays.length === 0 ? (
-              <div className={styles.emptyStateCard}>
-                <span className={styles.emptyIcon}>🔍</span>
-                <p className={styles.emptyTitle}>No transactions found</p>
-                <p className={styles.emptyHint}>
-                  {hasActiveFilters
-                    ? 'No records match your current filters.'
-                    : 'Add your first transaction to get started.'}
-                </p>
-                {hasActiveFilters && (
+              <EmptyState
+                icon={hasActiveFilters ? '🔍' : '🐾'}
+                title="No transactions found"
+                hint={hasActiveFilters
+                  ? 'No records match your current filters.'
+                  : 'Add your first transaction to get started.'}
+                action={hasActiveFilters && (
                   <Button variant="secondary" size="sm" onClick={resetFilters}>
                     Clear filters
                   </Button>
                 )}
-              </div>
+              />
             ) : (
               <div className={[styles.groupedList, isFiltering ? styles.listFiltering : ''].filter(Boolean).join(' ')}>
                 {isFiltering && <div className={styles.filteringBar}><span className={styles.spinner} />Filtering…</div>}
