@@ -28,6 +28,20 @@ function formatDayHeader(dateStr: string): string {
   });
 }
 
+function isoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function defaultPeriod(): PeriodValue {
+  const now = new Date();
+  return {
+    from: isoDate(new Date(now.getFullYear(), now.getMonth(), 1)),
+    to: isoDate(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
+    label: 'This month',
+    tab: 'months',
+  };
+}
+
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -64,12 +78,12 @@ export default function TransactionsPage() {
     }
     return '';
   });
-  const [filterPeriod, setFilterPeriod] = useState<PeriodValue | null>(() => {
+  const [filterPeriod, setFilterPeriod] = useState<PeriodValue>(() => {
     if (typeof window !== 'undefined') {
       const saved = sessionStorage.getItem('purrfolio_period');
       if (saved) try { return JSON.parse(saved) as PeriodValue; } catch { }
     }
-    return null;
+    return defaultPeriod();
   });
   const [filterSearch, setFilterSearch] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -91,11 +105,7 @@ export default function TransactionsPage() {
   }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterSearch]);
 
   useEffect(() => {
-    if (filterPeriod) {
-      sessionStorage.setItem('purrfolio_period', JSON.stringify(filterPeriod));
-    } else {
-      sessionStorage.removeItem('purrfolio_period');
-    }
+    sessionStorage.setItem('purrfolio_period', JSON.stringify(filterPeriod));
   }, [filterPeriod]);
 
   // Brief loading indicator whenever a filter changes
@@ -154,13 +164,8 @@ export default function TransactionsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const now = new Date();
-    const defaultFrom = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-    const from = filterPeriod?.from ?? `${defaultFrom.getFullYear()}-${String(defaultFrom.getMonth() + 1).padStart(2, '0')}-${String(defaultFrom.getDate()).padStart(2, '0')}`;
-    const to = filterPeriod?.to ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
     const [transactions, catRes, lblRes, walletRes] = await Promise.all([
-      fetchTransactions(user.id, from, to),
+      fetchTransactions(user.id, filterPeriod.from, filterPeriod.to),
       supabase.from('categories').select('*').eq('user_id', user.id).order('name'),
       supabase.from('labels').select('*').eq('user_id', user.id).order('name'),
       supabase.from('wallets').select('*').eq('user_id', user.id).order('name'),
@@ -213,8 +218,6 @@ export default function TransactionsPage() {
     } else if (filterCategoryId && t.category_id !== filterCategoryId) return false;
     if (filterLabelId && !t.labels?.some(l => l.id === filterLabelId)) return false;
     if (filterWalletId && t.wallet_id !== filterWalletId) return false;
-    if (filterPeriod?.from && t.date < filterPeriod.from) return false;
-    if (filterPeriod?.to && t.date > filterPeriod.to) return false;
     if (filterSearch) {
       const q = filterSearch.toLowerCase();
       if (!t.notes?.toLowerCase().includes(q)) return false;
@@ -222,7 +225,7 @@ export default function TransactionsPage() {
     return true;
   });
 
-  const hasActiveFilters = !!(filterType || filterCategoryId || filterLabelId || filterWalletId || filterPeriod || filterSearch);
+  const hasActiveFilters = !!(filterType || filterCategoryId || filterLabelId || filterWalletId || filterSearch);
 
   const summaryIncome = filteredTransactions
     .filter(t => t.type === 'income' && !t.transfer_group_id)
@@ -249,10 +252,8 @@ export default function TransactionsPage() {
     setFilterCategoryId('');
     setFilterLabelId('');
     setFilterWalletId('');
-    setFilterPeriod(null);
     setFilterSearch('');
     sessionStorage.removeItem('purrfolio_tx_filters');
-    sessionStorage.removeItem('purrfolio_period');
   }
 
   const hasMore = filteredTransactions.length > displayCount;
@@ -634,17 +635,6 @@ export default function TransactionsPage() {
               })()}
             </div>
 
-            {/* Date */}
-            <div className={styles.filterField}>
-              <FormLabel>Date</FormLabel>
-              <PeriodPicker
-                value={filterPeriod ?? { from: '', to: '', label: 'Any date', tab: 'months' }}
-                onChange={setFilterPeriod}
-                onClear={() => setFilterPeriod(null)}
-                hideNav
-              />
-            </div>
-
             {/* Notes search */}
             <div className={styles.filterField}>
               <FormLabel htmlFor="filter-search">Search notes</FormLabel>
@@ -709,6 +699,10 @@ export default function TransactionsPage() {
                 </div>
               </div>
             )}
+
+            <div className={styles.periodRow}>
+              <PeriodPicker value={filterPeriod} onChange={setFilterPeriod} />
+            </div>
 
             {/* ── Selection bar ── */}
             {selectedIds.size > 0 && (
