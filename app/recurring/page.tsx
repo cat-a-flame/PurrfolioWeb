@@ -442,16 +442,17 @@ export default function RecurringPage() {
             </Button>
           </div>
 
+          <div className={styles.periodRow}>
+            <div className={styles.monthNav}>
+              <button className={styles.monthNavBtn} onClick={prevMonth}><FaChevronLeft /></button>
+              <span className={styles.monthLabel}>{monthLabel}</span>
+              <button className={styles.monthNavBtn} onClick={nextMonth}><FaChevronRight /></button>
+            </div>
+          </div>
+
           {/* ── Due this month ── */}
           <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>Due this month</h2>
-              <div className={styles.monthNav}>
-                <button className={styles.monthNavBtn} onClick={prevMonth}><FaChevronLeft /></button>
-                <span className={styles.monthLabel}>{monthLabel}</span>
-                <button className={styles.monthNavBtn} onClick={nextMonth}><FaChevronRight /></button>
-              </div>
-            </div>
+            <h2 className={styles.sectionTitle}>Due this month</h2>
 
             {dueItems.length === 0 && (
               <p className={styles.empty}>
@@ -464,42 +465,36 @@ export default function RecurringPage() {
             {overdueItems.length > 0 && (
               <div className={styles.dueGroup}>
                 <p className={styles.dueGroupLabel}>Overdue</p>
-                <div className={styles.recordCard}>
-                  {overdueItems.map(item => (
-                    <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
-                      item={item}
-                      onSelect={setDuePromptItem}
-                      currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
-                  ))}
-                </div>
+                {overdueItems.map(item => (
+                  <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
+                    item={item}
+                    onSelect={setDuePromptItem}
+                    currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
+                ))}
               </div>
             )}
 
             {todayItems.length > 0 && (
               <div className={styles.dueGroup}>
                 <p className={styles.dueGroupLabel}>Due today</p>
-                <div className={styles.recordCard}>
-                  {todayItems.map(item => (
-                    <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
-                      item={item}
-                      onSelect={setDuePromptItem}
-                      currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
-                  ))}
-                </div>
+                {todayItems.map(item => (
+                  <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
+                    item={item}
+                    onSelect={setDuePromptItem}
+                    currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
+                ))}
               </div>
             )}
 
             {upcomingItems.length > 0 && (
               <div className={styles.dueGroup}>
                 {(overdueItems.length > 0 || todayItems.length > 0) && <p className={styles.dueGroupLabel}>Upcoming</p>}
-                <div className={styles.recordCard}>
-                  {upcomingItems.map(item => (
-                    <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
-                      item={item}
-                      onSelect={setDuePromptItem}
-                      currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
-                  ))}
-                </div>
+                {upcomingItems.map(item => (
+                  <DueCard key={`${item.payment.id}|${isoDate(item.dueDate)}`}
+                    item={item}
+                    onSelect={setDuePromptItem}
+                    currency={walletCurrency(item.payment.wallet_id)} dueDateLabel={dueDateLabel(item.dueDate)} />
+                ))}
               </div>
             )}
           </section>
@@ -515,12 +510,11 @@ export default function RecurringPage() {
             {FREQUENCIES.filter(f => payments.some(p => p.frequency === f.value)).map(f => (
               <div key={f.value} className={styles.dueGroup}>
                 <p className={styles.dueGroupLabel}>{f.label}</p>
-                <div className={styles.recordCard}>
-                  {payments.filter(p => p.frequency === f.value).sort((a, b) => {
-                    const na = nextDueDate(a)?.getTime() ?? Infinity;
-                    const nb = nextDueDate(b)?.getTime() ?? Infinity;
-                    return na - nb;
-                  }).map(p => {
+                {payments.filter(p => p.frequency === f.value).sort((a, b) => {
+                  const na = nextDueDate(a)?.getTime() ?? Infinity;
+                  const nb = nextDueDate(b)?.getTime() ?? Infinity;
+                  return na - nb;
+                }).map(p => {
                     const next = nextDueDate(p);
                     const currency = walletCurrency(p.wallet_id);
                     const metaParts = [
@@ -603,7 +597,6 @@ export default function RecurringPage() {
                       </div>
                     );
                   })}
-                </div>
               </div>
             ))}
           </section>
