@@ -9,6 +9,7 @@ import Input from '@/components/ui/Input';
 import LabelSelect from '@/components/ui/LabelSelect';
 import Toast from '@/components/ui/Toast';
 import TransactionForm, { TransactionFormData } from '@/components/transactions/TransactionForm';
+import { useAddRecord } from '@/components/transactions/AddRecordProvider';
 import FormLabel from '@/components/ui/FormLabel';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
@@ -43,6 +44,7 @@ function defaultPeriod(): PeriodValue {
 }
 
 export default function TransactionsPage() {
+  const { openAddDialog } = useAddRecord();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [labels, setLabels] = useState<Label[]>([]);
@@ -557,6 +559,7 @@ export default function TransactionsPage() {
       <div className={styles.container}>
         <div className={styles.pageHeader}>
           <h1 className={styles.pageTitle}>Transactions</h1>
+          <Button variant="primary" size="lg" onClick={openAddDialog}>+ Add transaction</Button>
         </div>
 
         <div className={styles.bodyLayout}>
