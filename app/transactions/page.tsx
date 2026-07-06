@@ -220,7 +220,9 @@ export default function TransactionsPage() {
     if (filterWalletId && t.wallet_id !== filterWalletId) return false;
     if (filterSearch) {
       const q = filterSearch.toLowerCase();
-      if (!t.notes?.toLowerCase().includes(q)) return false;
+      const matchesNotes = t.notes?.toLowerCase().includes(q);
+      const matchesPayer = t.payer?.toLowerCase().includes(q);
+      if (!matchesNotes && !matchesPayer) return false;
     }
     return true;
   });
@@ -635,16 +637,16 @@ export default function TransactionsPage() {
               })()}
             </div>
 
-            {/* Notes search */}
+            {/* Notes / payee search */}
             <div className={styles.filterField}>
-              <FormLabel htmlFor="filter-search">Search notes</FormLabel>
+              <FormLabel htmlFor="filter-search">Search notes & payee</FormLabel>
               <div className={styles.searchWrapper}>
                 <span className={styles.searchIcon}>🔍</span>
                 <input
                   id="filter-search"
                   type="search"
                   className={styles.searchInput}
-                  placeholder="Search in notes…"
+                  placeholder="Search in notes or payee…"
                   value={filterSearch}
                   onChange={e => setFilterSearch(e.target.value)}
                 />
