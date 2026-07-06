@@ -226,12 +226,6 @@
   text-overflow: ellipsis;
 }
 
-.chevron {
-  color: var(--color-text-faint);
-  font-size: 1.125rem;
-  flex-shrink: 0;
-}
-
 @media (max-width: 768px) {
   .nav {
     display: none;

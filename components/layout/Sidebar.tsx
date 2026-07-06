@@ -182,7 +182,6 @@ export default function Sidebar() {
             {username && <span className={styles.userName}>{username}</span>}
             <span className={styles.userEmail}>{email || 'Account'}</span>
           </span>
-          <span className={styles.chevron} aria-hidden>›</span>
         </Link>
       </div>
     </nav>
