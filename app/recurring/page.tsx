@@ -524,14 +524,14 @@ export default function RecurringPage() {
                     const next = nextDueDate(p);
                     const currency = walletCurrency(p.wallet_id);
                     const metaParts = [
-                      p.category && (
-                        <span key="category" className={styles.recordTag}>{p.category.icon} {p.category.name}</span>
-                      ),
                       p.wallet && (
                         <span key="wallet" className={styles.recordTag}>
                           <span className={styles.recordDot} style={{ backgroundColor: p.wallet.color }} />
                           {p.wallet.name}
                         </span>
+                      ),
+                      p.category && (
+                        <span key="category" className={styles.recordTag}>{p.category.name}</span>
                       ),
                       p.payer && (
                         <span key="payer" className={styles.recordTag}>{p.payer}</span>
@@ -833,14 +833,14 @@ function DueCard({ item, onSelect, currency, dueDateLabel }: {
   const { payment } = item;
   const isOverdue = dueDateLabel.includes('overdue');
   const metaParts = [
-    payment.category && (
-      <span key="category" className={styles.recordTag}>{payment.category.icon} {payment.category.name}</span>
-    ),
     payment.wallet && (
       <span key="wallet" className={styles.recordTag}>
         <span className={styles.recordDot} style={{ backgroundColor: payment.wallet.color }} />
         {payment.wallet.name}
       </span>
+    ),
+    payment.category && (
+      <span key="category" className={styles.recordTag}>{payment.category.name}</span>
     ),
     payment.payer && (
       <span key="payer" className={styles.recordTag}>{payment.payer}</span>
