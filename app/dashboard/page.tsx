@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useCountUp } from '@/lib/useCountUp';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
@@ -594,27 +594,10 @@ export default function DashboardPage() {
                       {isTransfer ? (t.payer ? (t.type === 'expense' ? '↑' : '↓') : '↔') : (t.category?.icon ?? '?')}
                     </div>
                     <div className={styles.txMain}>
-                      <span className={styles.txName}>
-                        {isTransfer ? (t.payer ? t.payer : 'Transfer') : (t.category?.name ?? 'Uncategorised')}
-                      </span>
-                      {t.wallet && (
-                        <span className={styles.txMeta}>
-                          <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
-                          {t.wallet.name}
+                      <div className={styles.txTopRow}>
+                        <span className={styles.txName}>
+                          {isTransfer ? (t.payer ? t.payer : 'Transfer') : (t.category?.name ?? 'Uncategorised')}
                         </span>
-                      )}
-                    </div>
-
-                    {((!isTransfer && t.payer) || t.notes || (t.labels && t.labels.length > 0)) && (
-                      <div className={styles.txDetails}>
-                        <div className={styles.txPayeeNote}>
-                          {!isTransfer && t.payer && (
-                            <span className={styles.txPayee}>{t.payer}</span>
-                          )}
-                          {t.notes && (
-                            <span className={styles.txNotes}>{t.notes}</span>
-                          )}
-                        </div>
                         {t.labels && t.labels.length > 0 && (
                           <div className={styles.txLabels}>
                             {t.labels.map(l => (
@@ -626,7 +609,35 @@ export default function DashboardPage() {
                           </div>
                         )}
                       </div>
-                    )}
+
+                      {(() => {
+                        const metaParts = [
+                          t.wallet && (
+                            <span key="wallet" className={styles.txMeta}>
+                              <span className={styles.txWalletDot} style={{ backgroundColor: t.wallet.color }} />
+                              {t.wallet.name}
+                            </span>
+                          ),
+                          !isTransfer && t.payer && (
+                            <span key="payer" className={styles.txPayee}>{t.payer}</span>
+                          ),
+                          t.notes && (
+                            <span key="notes" className={styles.txNotes}>{t.notes}</span>
+                          ),
+                        ].filter(Boolean);
+                        if (metaParts.length === 0) return null;
+                        return (
+                          <div className={styles.txMetaRow}>
+                            {metaParts.map((part, i) => (
+                              <Fragment key={i}>
+                                {i > 0 && <span className={styles.txMetaDot}>·</span>}
+                                {part}
+                              </Fragment>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
 
                     <div className={styles.txRight}>
                       <span className={[
