@@ -10,6 +10,7 @@ import styles from '@/app/login/page.module.css';
 import signupStyles from './page.module.css';
 
 export default function SignupPage() {
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,6 +20,12 @@ export default function SignupPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+
+    if (!username.trim()) {
+      setError('Username cannot be empty.');
+      return;
+    }
+
     setLoading(true);
 
     const supabase = createClient();
@@ -26,6 +33,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
+        data: { username: username.trim() },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
@@ -71,6 +79,21 @@ export default function SignupPage() {
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <h2 className={styles.formTitle}>Create account</h2>
+
+          <div className={styles.field}>
+            <FormLabel htmlFor="username" required>
+              Username
+            </FormLabel>
+            <Input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Your display name"
+              autoComplete="username"
+              required
+            />
+          </div>
 
           <div className={styles.field}>
             <FormLabel htmlFor="email" required>
