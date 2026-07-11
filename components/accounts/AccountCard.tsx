@@ -1,6 +1,6 @@
 import type { Wallet } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
-import { hexToRgba } from '@/lib/colorUtils';
+import EmojiBox from '@/components/ui/EmojiBox';
 import styles from './AccountCard.module.css';
 
 interface AccountCardProps {
@@ -15,12 +15,7 @@ export default function AccountCard({ wallet, onEdit }: AccountCardProps) {
       onClick={() => onEdit(wallet)}
     >
       <div className={styles.head}>
-        <div
-          className={styles.iconTile}
-          style={{ background: hexToRgba(wallet.color, 0.25), boxShadow: `0 8px 16px -8px ${wallet.color}` }}
-        >
-          <span>{wallet.icon || '💰'}</span>
-        </div>
+        <EmojiBox emoji={wallet.icon || '💰'} color={wallet.color} size="lg" />
         <div className={styles.info}>
           <div className={styles.name}>{wallet.name}</div>
           <div className={styles.subLabel}>

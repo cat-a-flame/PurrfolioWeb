@@ -11,8 +11,8 @@ import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
 import Switch from '@/components/ui/Switch';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
+import EmojiBox from '@/components/ui/EmojiBox';
 import type { Currency } from '@/lib/types';
-import { hexToRgba } from '@/lib/colorUtils';
 import styles from './AccountEditorModal.module.css';
 
 const CURRENCIES: Currency[] = ['HUF', 'USD', 'EUR'];
@@ -61,14 +61,7 @@ export default function AccountEditorModal({
     <Dialog
       title={isEdit ? 'Edit account' : 'New account'}
       subtitle={isEdit ? 'Update icon, color and balance' : 'Set up an account to track balances'}
-      icon={
-        <div
-          className={styles.previewTile}
-          style={{ background: hexToRgba(draft.color, 0.25), boxShadow: `0 10px 22px -8px ${draft.color}` }}
-        >
-          {draft.icon || '💰'}
-        </div>
-      }
+      icon={<EmojiBox emoji={draft.icon || '💰'} color={draft.color} size="xl" />}
       onClose={onClose}
     >
       <form onSubmit={handleSubmit} className={styles.form}>

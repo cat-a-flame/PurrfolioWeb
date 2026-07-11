@@ -1,14 +1,3 @@
-.previewTile {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.8125rem;
-  transition: background var(--transition-base);
-}
-
 .form {
   display: flex;
   flex-direction: column;

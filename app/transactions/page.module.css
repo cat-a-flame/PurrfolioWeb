@@ -411,18 +411,6 @@
   background: var(--color-accent-light);
 }
 
-.txIcon {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.125rem;
-  flex-shrink: 0;
-  background: var(--color-accent-light);
-}
-
 .txMain {
   display: flex;
   flex-direction: column;
