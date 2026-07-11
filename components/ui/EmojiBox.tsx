@@ -16,7 +16,7 @@ export default function EmojiBox({ emoji, color, size = 'md', className, style }
   return (
     <div
       className={[styles.box, styles[size], className].filter(Boolean).join(' ')}
-      style={{ background: hexToRgba(color, 0.25), ...style }}
+      style={{ background: hexToRgba(color, 0.133), ...style }}
     >
       {emoji}
     </div>
