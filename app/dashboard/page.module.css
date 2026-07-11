@@ -42,17 +42,6 @@
   min-width: 190px;
 }
 
-.accountIcon {
-  width: 42px;
-  height: 42px;
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1875rem;
-}
-
 .accountInfo {
   display: flex;
   flex-direction: column;
@@ -381,17 +370,6 @@
   gap: var(--space-3);
 }
 
-.catIcon {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.0625rem;
-}
-
 .catInfo {
   flex: 1;
   min-width: 0;
@@ -465,17 +443,6 @@
 
 .txRow:hover {
   background: var(--color-surface-2);
-}
-
-.txIcon {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
 }
 
 .txMain {

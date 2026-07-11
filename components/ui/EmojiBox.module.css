@@ -1,0 +1,32 @@
+.box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+}
+
+.sm {
+  width: 38px;
+  height: 38px;
+  font-size: 1.125rem;
+}
+
+.md {
+  width: 44px;
+  height: 44px;
+  font-size: 1.25rem;
+}
+
+.lg {
+  width: 50px;
+  height: 50px;
+  font-size: 1.5rem;
+}
+
+.xl {
+  width: 56px;
+  height: 56px;
+  font-size: 1.8125rem;
+}

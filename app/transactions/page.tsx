@@ -5,6 +5,7 @@ import ReactSelect from 'react-select';
 import AppShell from '@/components/layout/AppShell';
 import Button from '@/components/ui/Button';
 import Dialog from '@/components/ui/Dialog';
+import EmojiBox from '@/components/ui/EmojiBox';
 import EmptyState from '@/components/ui/EmptyState';
 import Input from '@/components/ui/Input';
 import LabelSelect from '@/components/ui/LabelSelect';
@@ -800,12 +801,12 @@ export default function TransactionsPage() {
                                 aria-label="Select transaction"
                                 onClick={e => e.stopPropagation()}
                               />
-                              <div
-                                className={styles.txIcon}
-                                style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
-                              >
-                                {isTransfer ? (t.payer ? (t.type === 'expense' ? '↑' : '↓') : '↔') : (t.category?.icon ?? '?')}
-                              </div>
+                              <EmojiBox
+                                emoji={isTransfer ? (t.payer ? (t.type === 'expense' ? '↑' : '↓') : '↔') : (t.category?.icon ?? '?')}
+                                color={t.category?.color ?? '#94a3b8'}
+                                size="sm"
+                                style={isTransfer ? { background: 'var(--color-accent-light)' } : undefined}
+                              />
                               <div className={styles.txMain}>
                                 <div className={styles.txTopRow}>
                                   <span className={styles.txCategory}>

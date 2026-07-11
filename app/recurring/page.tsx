@@ -5,6 +5,7 @@ import ReactSelect from 'react-select';
 import AppShell from '@/components/layout/AppShell';
 import Button from '@/components/ui/Button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import EmojiBox from '@/components/ui/EmojiBox';
 import EmptyState from '@/components/ui/EmptyState';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
@@ -585,12 +586,7 @@ export default function RecurringPage() {
                         className={[styles.record, !p.is_active ? styles.recordInactive : ''].join(' ')}
                         onClick={() => openEdit(p)}
                       >
-                        <div
-                          className={styles.recordIcon}
-                          style={{ backgroundColor: (p.category?.color ?? '#94a3b8') + '22' }}
-                        >
-                          {p.category?.icon ?? '?'}
-                        </div>
+                        <EmojiBox emoji={p.category?.icon ?? '?'} color={p.category?.color ?? '#94a3b8'} size="sm" />
                         <div className={styles.recordMain}>
                           <div className={styles.recordTopRow}>
                             <span className={styles.recordTitle}>{p.name}</span>
@@ -892,12 +888,7 @@ function DueCard({ item, onSelect, currency, dueDateLabel }: {
   ].filter(Boolean);
   return (
     <div className={styles.record} onClick={() => onSelect(item)}>
-      <div
-        className={styles.recordIcon}
-        style={{ backgroundColor: (payment.category?.color ?? '#94a3b8') + '22' }}
-      >
-        {payment.category?.icon ?? '?'}
-      </div>
+      <EmojiBox emoji={payment.category?.icon ?? '?'} color={payment.category?.color ?? '#94a3b8'} size="sm" />
       <div className={styles.recordMain}>
         <div className={styles.recordTopRow}>
           <span className={styles.recordTitle}>{payment.name}</span>

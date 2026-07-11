@@ -1,5 +1,5 @@
 import type { Category } from '@/lib/types';
-import { hexToRgba } from '@/lib/colorUtils';
+import EmojiBox from '@/components/ui/EmojiBox';
 import styles from './CategoryCard.module.css';
 
 interface CategoryCardProps {
@@ -13,12 +13,7 @@ export default function CategoryCard({ category, onEdit }: CategoryCardProps) {
   return (
     <div className={styles.card} onClick={() => onEdit(category)}>
       <div className={styles.head}>
-        <div
-          className={styles.iconTile}
-          style={{ background: hexToRgba(category.color, 0.25), boxShadow: `0 8px 16px -8px ${category.color}` }}
-        >
-          <span>{category.icon || '📁'}</span>
-        </div>
+        <EmojiBox emoji={category.icon || '📁'} color={category.color} size="lg" />
         <div className={styles.info}>
           <div className={styles.name}>{category.name}</div>
           <div className={styles.subLabel}>

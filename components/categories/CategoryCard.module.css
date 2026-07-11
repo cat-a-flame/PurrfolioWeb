@@ -21,17 +21,6 @@
   gap: var(--space-3);
 }
 
-.iconTile {
-  width: 50px;
-  height: 50px;
-  border-radius: var(--radius-lg);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-}
-
 .info {
   flex: 1;
   min-width: 0;

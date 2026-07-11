@@ -5,6 +5,7 @@ import { useCountUp } from '@/lib/useCountUp';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import Button from '@/components/ui/Button';
+import EmojiBox from '@/components/ui/EmojiBox';
 import EmptyState from '@/components/ui/EmptyState';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import Skeleton from '@/components/ui/Skeleton';
@@ -480,7 +481,7 @@ export default function DashboardPage() {
           <div className={styles.accountsStrip}>
             {walletSummaries.map(({ wallet, balance: wb }) => (
               <div key={wallet.id} className={styles.accountTile}>
-                <div className={styles.accountIcon} style={{ backgroundColor: wallet.color + '22' }}>{wallet.icon}</div>
+                <EmojiBox emoji={wallet.icon} color={wallet.color} size="md" />
                 <div className={styles.accountInfo}>
                   <span className={styles.accountName}>{wallet.name}</span>
                   <span className={styles.accountBalance}>{formatCurrency(wb, wallet.currency)}</span>
@@ -623,9 +624,7 @@ export default function DashboardPage() {
               <div className={styles.sideCardList}>
                 {topCategories.map(({ category, total }) => (
                   <div key={category?.id ?? 'uncategorised'} className={styles.catRow}>
-                    <div className={styles.catIcon} style={{ backgroundColor: (category?.color ?? '#94a3b8') + '22' }}>
-                      {category?.icon ?? '?'}
-                    </div>
+                    <EmojiBox emoji={category?.icon ?? '?'} color={category?.color ?? '#94a3b8'} size="sm" />
                     <div className={styles.catInfo}>
                       <span className={styles.catName}>{category?.name ?? 'Uncategorised'}</span>
                     </div>
@@ -664,12 +663,12 @@ export default function DashboardPage() {
                 const isTransfer = !!t.transfer_group_id;
                 return (
                   <div key={t.id} className={styles.txRow} onClick={() => openEdit(t)}>
-                    <div
-                      className={styles.txIcon}
-                      style={{ backgroundColor: isTransfer ? 'var(--color-accent-light)' : (t.category?.color ?? '#94a3b8') + '22' }}
-                    >
-                      {isTransfer ? (t.payer ? (t.type === 'expense' ? '↑' : '↓') : '↔') : (t.category?.icon ?? '?')}
-                    </div>
+                    <EmojiBox
+                      emoji={isTransfer ? (t.payer ? (t.type === 'expense' ? '↑' : '↓') : '↔') : (t.category?.icon ?? '?')}
+                      color={t.category?.color ?? '#94a3b8'}
+                      size="md"
+                      style={isTransfer ? { background: 'var(--color-accent-light)' } : undefined}
+                    />
                     <div className={styles.txMain}>
                       <div className={styles.txTopRow}>
                         <span className={styles.txName}>

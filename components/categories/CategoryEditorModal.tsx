@@ -7,8 +7,8 @@ import ColorSwatchField from '@/components/ui/ColorSwatchField';
 import Dialog from '@/components/ui/Dialog';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
+import EmojiBox from '@/components/ui/EmojiBox';
 import type { TransactionType } from '@/lib/types';
-import { hexToRgba } from '@/lib/colorUtils';
 import styles from './CategoryEditorModal.module.css';
 
 export type CategoryDraftType = TransactionType | 'both';
@@ -68,14 +68,7 @@ export default function CategoryEditorModal({
     <Dialog
       title={isEdit ? 'Edit category' : 'New category'}
       subtitle={isEdit ? 'Update icon, color and subcategories' : 'Set up a category to organize transactions'}
-      icon={
-        <div
-          className={styles.previewTile}
-          style={{ background: hexToRgba(draft.color, 0.25), boxShadow: `0 10px 22px -8px ${draft.color}` }}
-        >
-          {draft.icon || '🙂'}
-        </div>
-      }
+      icon={<EmojiBox emoji={draft.icon || '🙂'} color={draft.color} size="xl" />}
       onClose={onClose}
     >
       <form onSubmit={handleSubmit} className={styles.form}>
