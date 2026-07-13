@@ -569,7 +569,7 @@ export default function TransactionsPage() {
       <div className={styles.container}>
         <div className={styles.pageHeader}>
           <h1 className={styles.pageTitle}>Transactions</h1>
-          <Button variant="primary" size="lg" onClick={openAddDialog}>+ Add transaction</Button>
+          <Button variant="primary" size="lg" onClick={openAddDialog} className={styles.headerAddBtn}>+ Add transaction</Button>
         </div>
 
         <div className={styles.periodRow}>
