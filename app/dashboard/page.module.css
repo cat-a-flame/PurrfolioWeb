@@ -49,6 +49,27 @@
   min-width: 190px;
 }
 
+@media (max-width: 768px) {
+  .accountsStrip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 calc(var(--space-4) * -1) var(--space-2);
+    padding: 0 var(--space-4);
+  }
+
+  .accountsStrip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .accountTile {
+    scroll-snap-align: start;
+    min-width: 170px;
+  }
+}
+
 .accountInfo {
   display: flex;
   flex-direction: column;
