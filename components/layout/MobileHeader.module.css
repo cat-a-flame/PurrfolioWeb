@@ -152,3 +152,63 @@
   display: flex;
   flex-shrink: 0;
 }
+
+.drawerFooter {
+  margin-top: auto;
+  padding: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.themeToggle {
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  transition: background var(--transition-fast);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.themeToggle:hover {
+  background: var(--color-surface-2);
+}
+
+.themeLabel {
+  flex: 1;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+}
+
+.toggleTrack {
+  width: 36px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  position: relative;
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+}
+
+.toggleTrackOn {
+  background: var(--color-accent);
+}
+
+.toggleThumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform var(--transition-fast);
+}
+
+.toggleThumbOn {
+  transform: translateX(16px);
+}

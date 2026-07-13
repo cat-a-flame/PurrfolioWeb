@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTheme } from '@/contexts/ThemeContext';
 import styles from './MobileHeader.module.css';
 
 const settingsItems = [
@@ -51,6 +52,7 @@ const settingsItems = [
 
 export default function MobileHeader() {
   const pathname = usePathname();
+  const { theme, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -118,6 +120,20 @@ export default function MobileHeader() {
                   </Link>
                 );
               })}
+            </div>
+
+            <div className={styles.drawerFooter}>
+              <button
+                type="button"
+                className={styles.themeToggle}
+                onClick={toggleTheme}
+                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              >
+                <span className={styles.themeLabel}>{theme === 'dark' ? 'Dark mode' : 'Light mode'}</span>
+                <span className={[styles.toggleTrack, theme === 'dark' ? styles.toggleTrackOn : ''].filter(Boolean).join(' ')}>
+                  <span className={[styles.toggleThumb, theme === 'dark' ? styles.toggleThumbOn : ''].filter(Boolean).join(' ')} />
+                </span>
+              </button>
             </div>
           </nav>
         </div>
