@@ -12,6 +12,7 @@ import Skeleton from '@/components/ui/Skeleton';
 import TransactionForm, { TransactionFormData } from '@/components/transactions/TransactionForm';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Toast from '@/components/ui/Toast';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { useAddRecord } from '@/components/transactions/AddRecordProvider';
 import { createClient } from '@/lib/supabase/client';
 import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
@@ -21,6 +22,8 @@ import { getExchangeRates, txToHUF } from '@/lib/exchangeRates';
 import { generateDueDates, frequencyLabel, isoDate } from '@/lib/recurringUtils';
 import type { Transaction, Wallet, Category, Label, RecurringPayment, RecurringOccurrence } from '@/lib/types';
 import styles from './page.module.css';
+
+const NUMBER_MASK = '★★★★';
 
 function defaultPeriod(): PeriodValue {
   const now = new Date();
@@ -88,6 +91,14 @@ export default function DashboardPage() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
   const [editingTransferPair, setEditingTransferPair] = useState<Transaction | undefined>();
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
+
+  const [hideNumbers, setHideNumbers] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('purrfolio_hide_numbers') === '1';
+    return false;
+  });
+  useEffect(() => {
+    localStorage.setItem('purrfolio_hide_numbers', hideNumbers ? '1' : '0');
+  }, [hideNumbers]);
 
   const [plannedDialogItem, setPlannedDialogItem] = useState<{ payment: RecurringPayment; dueDate: Date } | undefined>();
   const [plannedActionLoading, setPlannedActionLoading] = useState(false);
@@ -462,7 +473,18 @@ export default function DashboardPage() {
         </div>
 
         <div className={styles.periodRow}>
+          <div />
           <PeriodPicker value={period} onChange={setPeriod} />
+          <button
+            type="button"
+            className={[styles.hideNumbersBtn, hideNumbers ? styles.hideNumbersBtnActive : ''].filter(Boolean).join(' ')}
+            onClick={() => setHideNumbers(h => !h)}
+            aria-pressed={hideNumbers}
+            aria-label={hideNumbers ? 'Show numbers' : 'Hide numbers'}
+            title={hideNumbers ? 'Show numbers' : 'Hide numbers'}
+          >
+            {hideNumbers ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+          </button>
         </div>
 
         {loading ? (
@@ -484,7 +506,7 @@ export default function DashboardPage() {
                 <EmojiBox emoji={wallet.icon} color={wallet.color} size="md" />
                 <div className={styles.accountInfo}>
                   <span className={styles.accountName}>{wallet.name}</span>
-                  <span className={styles.accountBalance}>{formatCurrency(wb, wallet.currency)}</span>
+                  <span className={styles.accountBalance}>{hideNumbers ? NUMBER_MASK : formatCurrency(wb, wallet.currency)}</span>
                 </div>
               </div>
             ))}
@@ -517,13 +539,13 @@ export default function DashboardPage() {
                 <div className={styles.cashFlowTop}>
                   <div className={styles.cashFlowLeft}>
                     <span className={styles.cashFlowPeriodLabel}>{period.label}</span>
-                    <div className={styles.cashFlowBalance}>{formatHUF(animatedBalance)}</div>
+                    <div className={styles.cashFlowBalance}>{hideNumbers ? NUMBER_MASK : formatHUF(animatedBalance)}</div>
                   </div>
                   {vsPct !== null && (
                     <div className={styles.cashFlowRight}>
                       <span className={styles.vsLabel}>vs previous period</span>
                       <span className={[styles.vsTag, vsPct >= 0 ? styles.vsTagPos : styles.vsTagNeg].join(' ')}>
-                        {vsPct >= 0 ? '↑' : '↓'} {Math.abs(vsPct)}%
+                        {hideNumbers ? NUMBER_MASK : <>{vsPct >= 0 ? '↑' : '↓'} {Math.abs(vsPct)}%</>}
                       </span>
                     </div>
                   )}
@@ -532,7 +554,7 @@ export default function DashboardPage() {
                   <div className={styles.barRow}>
                     <div className={styles.barMeta}>
                       <span className={styles.barLabel}>Income</span>
-                      <span className={styles.barAmount}>{formatHUF(income)}</span>
+                      <span className={styles.barAmount}>{hideNumbers ? NUMBER_MASK : formatHUF(income)}</span>
                     </div>
                     <div className={styles.barTrack}>
                       <div className={[styles.barFill, styles.barFillIncome].join(' ')} style={{ width: `${incomePct}%` }} />
@@ -541,7 +563,7 @@ export default function DashboardPage() {
                   <div className={styles.barRow}>
                     <div className={styles.barMeta}>
                       <span className={styles.barLabel}>Expense</span>
-                      <span className={styles.barAmount}>-{formatHUF(expense)}</span>
+                      <span className={styles.barAmount}>{hideNumbers ? NUMBER_MASK : `-${formatHUF(expense)}`}</span>
                     </div>
                     <div className={styles.barTrack}>
                       <div className={[styles.barFill, styles.barFillExpense].join(' ')} style={{ width: `${expensePct}%` }} />
