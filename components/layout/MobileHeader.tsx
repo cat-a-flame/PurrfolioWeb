@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import styles from './SettingsDrawer.module.css';
+import styles from './MobileHeader.module.css';
 
 const settingsItems = [
   {
@@ -49,7 +49,7 @@ const settingsItems = [
   },
 ];
 
-export default function SettingsDrawer() {
+export default function MobileHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -72,19 +72,26 @@ export default function SettingsDrawer() {
 
   return (
     <>
-      <button
-        type="button"
-        className={styles.trigger}
-        onClick={() => setOpen(true)}
-        aria-label="Open settings menu"
-        aria-expanded={open}
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <line x1="3" y1="12" x2="21" y2="12" />
-          <line x1="3" y1="18" x2="21" y2="18" />
-        </svg>
-      </button>
+      <header className={styles.header}>
+        <button
+          type="button"
+          className={styles.trigger}
+          onClick={() => setOpen(true)}
+          aria-label="Open settings menu"
+          aria-expanded={open}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+
+        <Link href="/dashboard" className={styles.brand}>
+          <img src="/logo.png" alt="Purrfolio logo" className={styles.logo} />
+          <span className={styles.brandName}>Purrfolio</span>
+        </Link>
+      </header>
 
       {open && (
         <div className={styles.overlay} onClick={() => setOpen(false)}>
