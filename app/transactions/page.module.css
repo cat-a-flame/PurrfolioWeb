@@ -14,6 +14,13 @@
   gap: var(--space-4);
 }
 
+/* Hidden on mobile: the bottom nav bar already provides an add-record CTA there */
+@media (max-width: 768px) {
+  .headerAddBtn {
+    display: none;
+  }
+}
+
 .pageTitle {
   font-family: var(--font-lora);
   font-size: 1.75rem;

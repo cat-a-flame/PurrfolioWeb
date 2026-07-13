@@ -13,6 +13,7 @@
 @media (max-width: 768px) {
   .main {
     padding: var(--space-4);
+    padding-top: calc(56px + env(safe-area-inset-top) + var(--space-4));
     padding-bottom: calc(60px + env(safe-area-inset-bottom) + var(--space-4));
   }
 }

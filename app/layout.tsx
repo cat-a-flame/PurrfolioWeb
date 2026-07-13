@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Lora, Nunito } from 'next/font/google';
 import AddRecordProvider from '@/components/transactions/AddRecordProvider';
 import BottomNav from '@/components/layout/BottomNav';
+import MobileHeader from '@/components/layout/MobileHeader';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { RecurringAlertProvider } from '@/contexts/RecurringAlertContext';
 import './globals.css';
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <RecurringAlertProvider>
             <AddRecordProvider>
+              <MobileHeader />
               {children}
               <BottomNav />
             </AddRecordProvider>
