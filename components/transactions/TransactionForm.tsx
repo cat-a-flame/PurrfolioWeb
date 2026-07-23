@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ReactSelect from 'react-select';
 import Button from '@/components/ui/Button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
@@ -89,14 +89,25 @@ export default function TransactionForm({
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    const dirty = transaction != null
-        || amount !== ''
-        || notes !== ''
-        || payer !== ''
-        || categoryId !== ''
-        || labelIds.length > 0
-        || (mode === 'transfer' && transferScope === 'internal' && (toWalletId !== '' || toAmount !== ''))
-        || (mode === 'transfer' && transferScope === 'external' && externalAccount !== '');
+    // Snapshot of the form's starting values, so "dirty" reflects actual edits
+    // rather than just whether we're editing an existing record.
+    const initial = useRef({
+        mode, walletId, amount, categoryId, date, notes, payer,
+        labelIds: [...labelIds].sort(),
+        toWalletId, toAmount, transferScope, externalDirection, externalAccount,
+    }).current;
+
+    const dirty = mode !== initial.mode
+        || walletId !== initial.walletId
+        || amount !== initial.amount
+        || categoryId !== initial.categoryId
+        || date !== initial.date
+        || notes !== initial.notes
+        || payer !== initial.payer
+        || JSON.stringify([...labelIds].sort()) !== JSON.stringify(initial.labelIds)
+        || (mode === 'transfer' && transferScope === 'internal' && (toWalletId !== initial.toWalletId || toAmount !== initial.toAmount))
+        || (mode === 'transfer' && transferScope === 'external' && (externalDirection !== initial.externalDirection || externalAccount !== initial.externalAccount))
+        || (mode === 'transfer' && transferScope !== initial.transferScope);
 
     function handleClose() {
         if (dirty) {
