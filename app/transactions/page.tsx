@@ -45,6 +45,10 @@ function defaultPeriod(): PeriodValue {
   };
 }
 
+// Distinct from '' (the untouched default) so the bulk-edit category select
+// doesn't render "Remove category" as pre-selected before the user picks anything.
+const BULK_REMOVE_CATEGORY = '__bulk_remove_category__';
+
 export default function TransactionsPage() {
   const { openAddDialog } = useAddRecord();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -360,7 +364,7 @@ export default function TransactionsPage() {
       } else if (bulkAction === 'edit') {
         const patch: Record<string, unknown> = {};
         if (bulkDate) patch.date = bulkDate;
-        if (bulkCategoryTouched) patch.category_id = bulkCategoryId || null;
+        if (bulkCategoryTouched) patch.category_id = (bulkCategoryId && bulkCategoryId !== BULK_REMOVE_CATEGORY) ? bulkCategoryId : null;
         if (bulkNoteTouched) patch.notes = bulkNote || null;
         if (bulkPayeeTouched) patch.payer = bulkPayee || null;
         if (Object.keys(patch).length > 0) {
@@ -918,7 +922,7 @@ export default function TransactionsPage() {
                 <FormLabel htmlFor="bulk-category">Category</FormLabel>
                 <SearchableSelect
                   id="bulk-category"
-                  options={[{ value: '', label: '— Remove category' }, ...categoryFilterOptions.filter(o => o.value !== '' && o.value !== '__none__')]}
+                  options={[{ value: BULK_REMOVE_CATEGORY, label: '— Remove category' }, ...categoryFilterOptions.filter(o => o.value !== '' && o.value !== '__none__')]}
                   value={bulkCategoryId}
                   onChange={value => { setBulkCategoryId(value); setBulkCategoryTouched(true); }}
                   placeholder="Leave unchanged"
