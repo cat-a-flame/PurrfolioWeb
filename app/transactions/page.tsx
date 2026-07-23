@@ -165,6 +165,10 @@ export default function TransactionsPage() {
   const [bulkLabelIds, setBulkLabelIds] = useState<string[]>([]);
   const [bulkNote, setBulkNote] = useState('');
   const [bulkPayee, setBulkPayee] = useState('');
+  const [bulkCategoryTouched, setBulkCategoryTouched] = useState(false);
+  const [bulkLabelsTouched, setBulkLabelsTouched] = useState(false);
+  const [bulkNoteTouched, setBulkNoteTouched] = useState(false);
+  const [bulkPayeeTouched, setBulkPayeeTouched] = useState(false);
   const [isBulkSaving, setIsBulkSaving] = useState(false);
 
   const fetchAll = useCallback(async () => {
@@ -331,6 +335,10 @@ export default function TransactionsPage() {
     setBulkLabelIds([]);
     setBulkNote('');
     setBulkPayee('');
+    setBulkCategoryTouched(false);
+    setBulkLabelsTouched(false);
+    setBulkNoteTouched(false);
+    setBulkPayeeTouched(false);
     setBulkAction('edit');
   }
 
@@ -350,18 +358,21 @@ export default function TransactionsPage() {
         for (const gid of transferGroupIds) await supabase.from('transactions').delete().eq('transfer_group_id', gid);
         setToast({ message: `${ids.length} transaction${ids.length !== 1 ? 's' : ''} deleted.`, variant: 'success' });
       } else if (bulkAction === 'edit') {
-        const patch: Record<string, unknown> = {
-          category_id: bulkCategoryId || null,
-          notes: bulkNote || null,
-          payer: bulkPayee || null,
-        };
+        const patch: Record<string, unknown> = {};
         if (bulkDate) patch.date = bulkDate;
-        await supabase.from('transactions').update(patch).in('id', ids);
-        await supabase.from('transaction_labels').delete().in('transaction_id', ids);
-        if (bulkLabelIds.length > 0) {
-          await supabase.from('transaction_labels').insert(
-            ids.flatMap(tid => bulkLabelIds.map(lid => ({ transaction_id: tid, label_id: lid })))
-          );
+        if (bulkCategoryTouched) patch.category_id = bulkCategoryId || null;
+        if (bulkNoteTouched) patch.notes = bulkNote || null;
+        if (bulkPayeeTouched) patch.payer = bulkPayee || null;
+        if (Object.keys(patch).length > 0) {
+          await supabase.from('transactions').update(patch).in('id', ids);
+        }
+        if (bulkLabelsTouched) {
+          await supabase.from('transaction_labels').delete().in('transaction_id', ids);
+          if (bulkLabelIds.length > 0) {
+            await supabase.from('transaction_labels').insert(
+              ids.flatMap(tid => bulkLabelIds.map(lid => ({ transaction_id: tid, label_id: lid })))
+            );
+          }
         }
         setToast({ message: `${ids.length} transaction${ids.length !== 1 ? 's' : ''} updated.`, variant: 'success' });
       }
@@ -909,13 +920,13 @@ export default function TransactionsPage() {
                   id="bulk-category"
                   options={[{ value: '', label: '— Remove category' }, ...categoryFilterOptions.filter(o => o.value !== '' && o.value !== '__none__')]}
                   value={bulkCategoryId}
-                  onChange={setBulkCategoryId}
-                  placeholder="Choose category"
+                  onChange={value => { setBulkCategoryId(value); setBulkCategoryTouched(true); }}
+                  placeholder="Leave unchanged"
                 />
               </div>
               <div className={styles.bulkField}>
                 <FormLabel>Labels</FormLabel>
-                <LabelSelect labels={labels} selectedIds={bulkLabelIds} onChange={setBulkLabelIds} />
+                <LabelSelect labels={labels} selectedIds={bulkLabelIds} onChange={value => { setBulkLabelIds(value); setBulkLabelsTouched(true); }} />
               </div>
             </div>
             <div className={styles.bulkCol}>
@@ -926,14 +937,14 @@ export default function TransactionsPage() {
                   id="bulk-note"
                   className={styles.bulkTextarea}
                   rows={4}
-                  placeholder="Leave empty to clear"
+                  placeholder="Leave unchanged"
                   value={bulkNote}
-                  onChange={e => setBulkNote(e.target.value)}
+                  onChange={e => { setBulkNote(e.target.value); setBulkNoteTouched(true); }}
                 />
               </div>
               <div className={styles.bulkField}>
                 <FormLabel htmlFor="bulk-payee">Payee</FormLabel>
-                <Input id="bulk-payee" type="text" value={bulkPayee} onChange={e => setBulkPayee(e.target.value)} placeholder="Leave empty to clear" />
+                <Input id="bulk-payee" type="text" value={bulkPayee} onChange={e => { setBulkPayee(e.target.value); setBulkPayeeTouched(true); }} placeholder="Leave unchanged" />
               </div>
             </div>
           </div>
