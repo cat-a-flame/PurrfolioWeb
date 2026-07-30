@@ -230,7 +230,7 @@ export default function RecurringPage() {
         amount: item.payment.amount,
         wallet_id: item.payment.wallet_id,
         category_id: item.payment.category_id,
-        date: isoDate(item.dueDate),
+        date: isoDate(new Date()),
         notes: item.payment.notes,
         payer: item.payment.payer,
       })
