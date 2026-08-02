@@ -1,7 +1,7 @@
 'use client';
 
 import ReactSelect, { SingleValue, StylesConfig, GroupBase } from 'react-select';
-import { makeRsStyles, makePillRsStyles, rsTheme } from './rsStyles';
+import { makeRsStyles, rsTheme } from './rsStyles';
 
 export interface SelectOption {
   value: string;
@@ -16,8 +16,6 @@ interface SearchableSelectProps {
   placeholder?: string;
   id?: string;
   size?: 'sm' | 'md';
-  variant?: 'default' | 'pill';
-  openMenuOnFocus?: boolean;
 }
 
 // Convert flat options with optional group into react-select grouped format
@@ -48,14 +46,12 @@ export default function SearchableSelect({
   placeholder = 'Choose',
   id,
   size = 'md',
-  variant = 'default',
-  openMenuOnFocus,
 }: SearchableSelectProps) {
   const rsOptions = toRsOptions(options);
   // Find selected option (search both ungrouped and inside groups)
   const selected = options.find(o => o.value === value) ?? null;
 
-  const styles = variant === 'pill' ? makePillRsStyles<SelectOption>() : makeRsStyles<SelectOption>(size);
+  const styles = makeRsStyles<SelectOption>(size);
 
   return (
     <ReactSelect<SelectOption>
@@ -65,7 +61,6 @@ export default function SearchableSelect({
       onChange={(opt: SingleValue<SelectOption>) => onChange(opt?.value ?? '')}
       placeholder={placeholder}
       isSearchable
-      openMenuOnFocus={openMenuOnFocus}
       styles={styles as StylesConfig<SelectOption, false, GroupBase<SelectOption>>}
       theme={rsTheme}
       menuPosition="fixed"

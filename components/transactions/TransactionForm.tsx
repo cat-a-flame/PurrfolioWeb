@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import ReactSelect from 'react-select';
-import { FiPlus, FiSliders, FiCreditCard, FiCalendar, FiCheck } from 'react-icons/fi';
+import { FiSliders } from 'react-icons/fi';
 import Button from '@/components/ui/Button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import FormLabel from '@/components/ui/FormLabel';
@@ -10,7 +10,7 @@ import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
 import LabelSelect from '@/components/ui/LabelSelect';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
-import { makeRsStyles, makePlainRsStyles, rsTheme } from '@/components/ui/rsStyles';
+import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import type { Transaction, Category, Label, TransactionType, Wallet } from '@/lib/types';
 import { todayInputDate } from '@/lib/utils';
 import styles from './TransactionForm.module.css';
@@ -531,54 +531,31 @@ export default function TransactionForm({
                             </div>
 
                             {/* Category */}
-                            <label htmlFor="category" className={styles.categoryPill}>
-                                {!categoryId && <span className={styles.categoryPillIcon}><FiPlus /></span>}
-                                <div className={styles.categoryPillSelect}>
-                                    <SearchableSelect
-                                        id="category"
-                                        options={categoryOptions}
-                                        value={categoryId}
-                                        onChange={setCategoryId}
-                                        placeholder="Add category"
-                                        variant="pill"
-                                        openMenuOnFocus
-                                    />
-                                </div>
-                            </label>
+                            <div className={styles.field}>
+                                <FormLabel htmlFor="category">Category</FormLabel>
+                                <SearchableSelect id="category" options={categoryOptions} value={categoryId} onChange={setCategoryId} placeholder="Choose category" />
+                            </div>
 
                             {/* Account + Date */}
                             <div className={styles.miniFieldsRow}>
-                                <div className={styles.miniField}>
-                                    <span className={styles.miniFieldIcon}><FiCreditCard /></span>
-                                    <div className={styles.miniFieldBody}>
-                                        <label htmlFor="wallet" className={styles.miniFieldLabel}>Account</label>
-                                        <ReactSelect<{ value: string; label: string }>
-                                            inputId="wallet"
-                                            options={activeWallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` }))}
-                                            value={selectedWallet ? { value: walletId, label: `${selectedWallet.icon} ${selectedWallet.name}` } : null}
-                                            onChange={(opt) => opt && setWalletId(opt.value)}
-                                            isSearchable
-                                            styles={makePlainRsStyles()}
-                                            theme={rsTheme}
-                                            menuPosition="fixed"
-                                            placeholder="Select account…"
-                                        />
-                                    </div>
+                                <div className={styles.field}>
+                                    <FormLabel htmlFor="wallet" required>Account</FormLabel>
+                                    <ReactSelect<{ value: string; label: string }>
+                                        inputId="wallet"
+                                        options={activeWallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }))}
+                                        value={selectedWallet ? { value: walletId, label: `${selectedWallet.icon} ${selectedWallet.name} (${selectedWallet.currency})` } : null}
+                                        onChange={(opt) => opt && setWalletId(opt.value)}
+                                        isSearchable
+                                        styles={makeRsStyles()}
+                                        theme={rsTheme}
+                                        menuPosition="fixed"
+                                        placeholder="Select account…"
+                                    />
                                 </div>
 
-                                <div className={styles.miniField}>
-                                    <span className={styles.miniFieldIcon}><FiCalendar /></span>
-                                    <div className={styles.miniFieldBody}>
-                                        <label htmlFor="date" className={styles.miniFieldLabel}>Date</label>
-                                        <Input
-                                            id="date"
-                                            type="date"
-                                            value={date}
-                                            onChange={e => setDate(e.target.value)}
-                                            required
-                                            className={styles.miniDateInput}
-                                        />
-                                    </div>
+                                <div className={styles.field}>
+                                    <FormLabel htmlFor="date" required>Date</FormLabel>
+                                    <Input id="date" type="date" value={date} onChange={e => setDate(e.target.value)} required />
                                 </div>
                             </div>
 
@@ -628,7 +605,6 @@ export default function TransactionForm({
                             </Button>
                         )}
                         <Button type="submit" variant="primary" size="lg" loading={saving}>
-                            <FiCheck />
                             {mode === 'transfer' ? 'Transfer' : transaction ? 'Save changes' : 'Add record'}
                         </Button>
                     </div>
