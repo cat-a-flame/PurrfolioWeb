@@ -9,7 +9,7 @@ import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
 import LabelSelect from '@/components/ui/LabelSelect';
-import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
+import CategoryPicker from '@/components/ui/CategoryPicker';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import type { Transaction, Category, Label, TransactionType, Wallet } from '@/lib/types';
 import { todayInputDate } from '@/lib/utils';
@@ -164,27 +164,6 @@ export default function TransactionForm({
         if (newFromWallet && toWallet && newFromWallet.currency === toWallet.currency) {
             setToAmount(amount);
         }
-    }
-
-    const matchesMode = (c: Category) => c.type === 'both' || c.type === mode;
-
-    const parentCategories = categories.filter(c => !c.parent_id);
-    const childCategories = categories.filter(c => c.parent_id);
-    const categoryOptions: SelectOption[] = [];
-    for (const parent of parentCategories) {
-        const children = childCategories.filter(c => c.parent_id === parent.id);
-        if (children.length > 0) {
-            // Parent has children → heading only, matching children are the selectable items
-            for (const child of children.filter(matchesMode)) {
-                categoryOptions.push({ value: child.id, label: `${child.icon} ${child.name}`, group: `${parent.icon} ${parent.name}` });
-            }
-        } else if (matchesMode(parent)) {
-            // Parent has no children → selectable on its own
-            categoryOptions.push({ value: parent.id, label: `${parent.icon} ${parent.name}` });
-        }
-    }
-    for (const child of childCategories.filter(c => !parentCategories.find(p => p.id === c.parent_id) && matchesMode(c))) {
-        categoryOptions.push({ value: child.id, label: `${child.icon} ${child.name}` });
     }
 
     // Clear a selected category that no longer matches the active mode (e.g. after switching tabs)
@@ -533,7 +512,14 @@ export default function TransactionForm({
                             {/* Category */}
                             <div className={styles.field}>
                                 <FormLabel htmlFor="category">Category</FormLabel>
-                                <SearchableSelect id="category" options={categoryOptions} value={categoryId} onChange={setCategoryId} placeholder="Choose category" />
+                                <CategoryPicker
+                                    id="category"
+                                    categories={categories}
+                                    mode={mode}
+                                    value={categoryId}
+                                    onChange={setCategoryId}
+                                    placeholder="Choose category"
+                                />
                             </div>
 
                             {/* Account + Date */}
