@@ -69,6 +69,116 @@ export function makeRsStyles<
   };
 }
 
+// Pill-shaped control used for the "Add category" trigger — borderless,
+// tinted background, bold placeholder, no visible field chrome.
+export function makePillRsStyles<
+  Option = unknown,
+  IsMulti extends boolean = false,
+>(): StylesConfig<Option, IsMulti, GroupBase<Option>> {
+  return {
+    control: (base) => ({
+      ...base,
+      minHeight: '40px',
+      background: 'transparent',
+      border: 'none',
+      boxShadow: 'none',
+      fontFamily: 'var(--font-nunito)',
+      fontSize: '1rem',
+      cursor: 'pointer',
+    }),
+    valueContainer: (base) => ({ ...base, padding: '0 4px' }),
+    singleValue: (base) => ({ ...base, color: 'var(--color-text)', fontWeight: 600 }),
+    placeholder: (base) => ({ ...base, color: 'var(--color-accent)', fontWeight: 700 }),
+    input: (base) => ({ ...base, color: 'var(--color-text)', fontFamily: 'var(--font-nunito)', margin: 0, padding: 0 }),
+    menu: (base) => ({
+      ...base,
+      background: 'var(--color-surface)',
+      border: '1px solid var(--color-border)',
+      borderRadius: 'var(--radius-lg)',
+      boxShadow: 'var(--shadow-md)',
+      zIndex: 400,
+    }),
+    menuList: (base) => ({ ...base, padding: '4px 0' }),
+    option: (base, state) => ({
+      ...base,
+      background: state.isSelected
+        ? 'var(--color-accent-light)'
+        : state.isFocused
+        ? 'var(--color-surface-2)'
+        : 'transparent',
+      color: state.isSelected ? 'var(--color-accent)' : 'var(--color-text)',
+      fontFamily: 'var(--font-nunito)',
+      fontSize: '0.9375rem',
+      fontWeight: state.isSelected ? 600 : 400,
+      cursor: 'pointer',
+      padding: '8px 12px',
+    }),
+    groupHeading: (base) => ({
+      ...base,
+      color: 'var(--color-text-faint)',
+      fontFamily: 'var(--font-nunito)',
+      fontSize: '0.75rem',
+      fontWeight: 700,
+      textTransform: 'uppercase',
+      letterSpacing: '0.05em',
+      padding: '8px 12px 4px',
+    }),
+    indicatorSeparator: () => ({ display: 'none' }),
+    dropdownIndicator: (base) => ({ ...base, color: 'var(--color-accent)', padding: '0 8px' }),
+    clearIndicator: (base) => ({ ...base, color: 'var(--color-text-muted)' }),
+  };
+}
+
+// Minimal control used for the compact Account field inside the
+// account/date mini-field row — no border, no background, no arrow.
+export function makePlainRsStyles<
+  Option = unknown,
+  IsMulti extends boolean = false,
+>(): StylesConfig<Option, IsMulti, GroupBase<Option>> {
+  return {
+    control: (base) => ({
+      ...base,
+      minHeight: '22px',
+      background: 'transparent',
+      border: 'none',
+      boxShadow: 'none',
+      fontFamily: 'var(--font-nunito)',
+      fontSize: '0.9375rem',
+      fontWeight: 700,
+      cursor: 'pointer',
+    }),
+    valueContainer: (base) => ({ ...base, padding: 0 }),
+    singleValue: (base) => ({ ...base, color: 'var(--color-text)', fontWeight: 700 }),
+    placeholder: (base) => ({ ...base, color: 'var(--color-text-faint)' }),
+    input: (base) => ({ ...base, color: 'var(--color-text)', fontFamily: 'var(--font-nunito)', margin: 0, padding: 0 }),
+    indicatorsContainer: () => ({ display: 'none' }),
+    menu: (base) => ({
+      ...base,
+      background: 'var(--color-surface)',
+      border: '1px solid var(--color-border)',
+      borderRadius: 'var(--radius-lg)',
+      boxShadow: 'var(--shadow-md)',
+      zIndex: 400,
+      minWidth: '220px',
+    }),
+    menuList: (base) => ({ ...base, padding: '4px 0' }),
+    option: (base, state) => ({
+      ...base,
+      background: state.isSelected
+        ? 'var(--color-accent-light)'
+        : state.isFocused
+        ? 'var(--color-surface-2)'
+        : 'transparent',
+      color: state.isSelected ? 'var(--color-accent)' : 'var(--color-text)',
+      fontFamily: 'var(--font-nunito)',
+      fontSize: '0.9375rem',
+      fontWeight: state.isSelected ? 600 : 400,
+      cursor: 'pointer',
+      padding: '8px 12px',
+    }),
+  };
+}
+
 export function rsTheme(theme: Theme): Theme {
   return {
     ...theme,
