@@ -99,6 +99,8 @@ export default function RecurringPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null); // due item key
   const [duePromptItem, setDuePromptItem] = useState<DueItem | null>(null);
 
+  const [view, setView] = useState<'due' | 'all'>('due');
+
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
   const dismissToast = useCallback(() => setToast(null), []);
 
@@ -453,14 +455,30 @@ export default function RecurringPage() {
             </Button>
           </div>
 
+          <div className={styles.filterTabs}>
+            <button
+              className={[styles.filterTab, view === 'due' ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
+              onClick={() => setView('due')}
+            >
+              Due{!loading && !periodLoading && ` (${dueItems.length})`}
+            </button>
+            <button
+              className={[styles.filterTab, view === 'all' ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
+              onClick={() => setView('all')}
+            >
+              All{!loading && ` (${payments.length})`}
+            </button>
+          </div>
+
+          {view === 'due' && (
           <div className={styles.periodRow}>
             <PeriodPicker value={period} onChange={setPeriod} />
           </div>
+          )}
 
           {/* ── Due ── */}
+          {view === 'due' && (
           <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>Due</h2>
-
             {loading || periodLoading ? (
               <div className={styles.recordCard}>
                 {Array.from({ length: 3 }).map((_, i) => (
@@ -528,11 +546,11 @@ export default function RecurringPage() {
               </>
             )}
           </section>
+          )}
 
           {/* ── All recurring payments ── */}
+          {view === 'all' && (
           <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>All recurring payments</h2>
-
             {loading ? (
               <div className={styles.recordCard}>
                 {Array.from({ length: 4 }).map((_, i) => (
@@ -644,6 +662,7 @@ export default function RecurringPage() {
               </>
             )}
           </section>
+          )}
         </div>
 
       {showAddDialog && (

@@ -21,6 +21,45 @@
   color: var(--color-text);
 }
 
+/* ── Filter tabs ── */
+.filterTabs {
+  display: flex;
+  align-self: center;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.filterTab {
+  height: 36px;
+  padding: 0 var(--space-4);
+  background: transparent;
+  border: none;
+  font-family: var(--font-nunito);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.filterTab + .filterTab {
+  border-left: 1px solid var(--color-border);
+}
+
+.filterTab:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.filterTabActive {
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
 /* ── Period row ── */
 .periodRow {
   display: flex;
@@ -33,12 +72,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-}
-
-.sectionTitle {
-  font-size: 1.0625rem;
-  font-weight: 700;
-  color: var(--color-text-muted);
 }
 
 /* ── Due group ── */
