@@ -23,7 +23,7 @@
 
 /* ── Filter tabs ── */
 .filterTabs {
-  display: flex;
+  display: inline-flex;
   align-self: center;
   background: var(--color-surface-2);
   border-radius: var(--radius-md);
@@ -36,7 +36,6 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  flex: 1;
   height: 38px;
   padding: 0 var(--space-4);
   border-radius: calc(var(--radius-md) - 2px);
@@ -51,13 +50,13 @@
   white-space: nowrap;
 }
 
-.filterTab:hover {
+.filterTab:hover:not(.filterTabActive) {
   color: var(--color-text);
 }
 
 .filterTabActive {
-  background: var(--gradient-accent);
-  color: #fff;
+  background: var(--color-accent-light);
+  color: var(--color-accent);
 }
 
 .filterTabIcon {
@@ -80,8 +79,8 @@
 }
 
 .filterTabActive .filterTabCount {
-  background: rgba(255, 255, 255, 0.25);
-  color: #fff;
+  background: var(--color-accent-glow);
+  color: var(--color-accent);
 }
 
 /* ── Period row ── */
