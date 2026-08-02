@@ -31,7 +31,7 @@
   box-shadow: var(--shadow-lg);
   padding: var(--space-8);
   width: 100%;
-  max-width: 780px;
+  max-width: 480px;
   max-height: 90vh;
   overflow-y: auto;
   display: flex;
@@ -98,31 +98,10 @@
   box-shadow: 0 0 0 3px var(--color-accent-light);
 }
 
-.columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-8);
-}
-
-@media (max-width: 600px) {
-  .columns {
-    grid-template-columns: 1fr;
-  }
-}
-
-.leftCol,
-.rightCol {
+.recordFields {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
-}
-
-.rightColTitle {
-  font-family: var(--font-nunito);
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-text);
-  margin: 0;
 }
 
 .field {
@@ -190,10 +169,6 @@
   flex: 1;
 }
 
-.currencyInput input {
-  text-align: end;
-}
-
 .currencyBadge {
   margin-left: 8px;
   font-size: 0.875rem;
@@ -204,6 +179,99 @@
   align-items: center;
   justify-content: center;
   letter-spacing: 0.03em;
+}
+
+/* Big centered amount display */
+.amountDisplay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.amountDisplayLabel {
+  font-family: var(--font-nunito);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+}
+
+.amountDisplayRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-2);
+  max-width: 100%;
+}
+
+.amountSign {
+  font-family: var(--font-nunito);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-text-faint);
+}
+
+.amountSignExpense {
+  color: var(--color-expense);
+}
+
+.amountSignIncome {
+  color: var(--color-income);
+}
+
+.amountUnit {
+  font-family: var(--font-nunito);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.amountBigInput,
+.amountBigInput:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  height: auto !important;
+}
+
+/* Account / Date row */
+.miniFieldsRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+/* More options */
+.moreOptionsToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  background: none;
+  border: none;
+  padding: var(--space-2);
+  font-family: var(--font-nunito);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.moreOptionsToggle:hover {
+  color: var(--color-text);
+}
+
+.moreOptionsPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
 }
 
 .select {
@@ -354,12 +422,12 @@
 
 .actions {
   display: flex;
-  justify-content: end;
+  flex-direction: column;
   gap: var(--space-3);
 }
 
-.actions > :only-child {
-  margin-left: auto;
+.actions > * {
+  width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -377,20 +445,11 @@
     animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .columns {
-    grid-template-columns: 1fr;
-    gap: var(--space-5);
-  }
-
   .transferGrid {
     max-width: 100%;
   }
 
-  .actions {
-    justify-content: stretch;
-  }
-
-  .actions > * {
-    flex: 1;
+  .miniFieldsRow {
+    gap: var(--space-2);
   }
 }

@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import ReactSelect from 'react-select';
+import { FiSliders } from 'react-icons/fi';
 import Button from '@/components/ui/Button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
 import LabelSelect from '@/components/ui/LabelSelect';
-import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
+import CategoryPicker from '@/components/ui/CategoryPicker';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import type { Transaction, Category, Label, TransactionType, Wallet } from '@/lib/types';
 import { todayInputDate } from '@/lib/utils';
@@ -88,6 +89,9 @@ export default function TransactionForm({
     const [error, setError] = useState('');
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showMoreOptions, setShowMoreOptions] = useState(
+        !!(transaction?.payer || transaction?.notes || transaction?.labels?.length)
+    );
 
     // Snapshot of the form's starting values, so "dirty" reflects actual edits
     // rather than just whether we're editing an existing record.
@@ -160,27 +164,6 @@ export default function TransactionForm({
         if (newFromWallet && toWallet && newFromWallet.currency === toWallet.currency) {
             setToAmount(amount);
         }
-    }
-
-    const matchesMode = (c: Category) => c.type === 'both' || c.type === mode;
-
-    const parentCategories = categories.filter(c => !c.parent_id);
-    const childCategories = categories.filter(c => c.parent_id);
-    const categoryOptions: SelectOption[] = [];
-    for (const parent of parentCategories) {
-        const children = childCategories.filter(c => c.parent_id === parent.id);
-        if (children.length > 0) {
-            // Parent has children → heading only, matching children are the selectable items
-            for (const child of children.filter(matchesMode)) {
-                categoryOptions.push({ value: child.id, label: `${child.icon} ${child.name}`, group: `${parent.icon} ${parent.name}` });
-            }
-        } else if (matchesMode(parent)) {
-            // Parent has no children → selectable on its own
-            categoryOptions.push({ value: parent.id, label: `${parent.icon} ${parent.name}` });
-        }
-    }
-    for (const child of childCategories.filter(c => !parentCategories.find(p => p.id === c.parent_id) && matchesMode(c))) {
-        categoryOptions.push({ value: child.id, label: `${child.icon} ${child.name}` });
     }
 
     // Clear a selected category that no longer matches the active mode (e.g. after switching tabs)
@@ -496,19 +479,51 @@ export default function TransactionForm({
                         </div>
                     ) : (
                         /* ── Income / Expense form ── */
-                        <div className={styles.columns}>
-                            {/* Left column */}
-                            <div className={styles.leftCol}>
-                                {/* Amount */}
-                                <div className={styles.field}>
-                                    <FormLabel htmlFor="amount" required>Amount</FormLabel>
-                                    <div className={`${styles.amountRow} ${styles.currencyInput}`}>
-                                        <NumberInput id="amount" value={amount} onChange={setAmount} placeholder="0" required autoFocus />
-                                        <span className={styles.currencyBadge}>{selectedWallet?.currency ?? ''}</span>
-                                    </div>
+                        <div className={styles.recordFields}>
+                            {/* Amount */}
+                            <div className={styles.amountDisplay}>
+                                <label htmlFor="amount" className={styles.amountDisplayLabel}>Amount</label>
+                                <div className={styles.amountDisplayRow}>
+                                    <span className={[styles.amountSign, mode === 'expense' ? styles.amountSignExpense : styles.amountSignIncome].join(' ')}>
+                                        {mode === 'expense' ? '−' : '+'}
+                                    </span>
+                                    <NumberInput
+                                        id="amount"
+                                        value={amount}
+                                        onChange={setAmount}
+                                        placeholder="0"
+                                        required
+                                        autoFocus
+                                        size={Math.max((amount || '0').length + 1, 2)}
+                                        className={styles.amountBigInput}
+                                        style={{
+                                            width: 'auto',
+                                            fontFamily: 'var(--font-nunito)',
+                                            fontSize: '3rem',
+                                            fontWeight: 800,
+                                            color: 'var(--color-text)',
+                                            textAlign: 'center',
+                                        }}
+                                    />
+                                    <span className={styles.amountUnit}>{selectedWallet?.currency ?? ''}</span>
                                 </div>
+                            </div>
 
-                                {/* Account */}
+                            {/* Category */}
+                            <div className={styles.field}>
+                                <FormLabel htmlFor="category">Category</FormLabel>
+                                <CategoryPicker
+                                    id="category"
+                                    categories={categories}
+                                    mode={mode}
+                                    value={categoryId}
+                                    onChange={setCategoryId}
+                                    placeholder="Choose category"
+                                />
+                            </div>
+
+                            {/* Account + Date */}
+                            <div className={styles.miniFieldsRow}>
                                 <div className={styles.field}>
                                     <FormLabel htmlFor="wallet" required>Account</FormLabel>
                                     <ReactSelect<{ value: string; label: string }>
@@ -524,37 +539,41 @@ export default function TransactionForm({
                                     />
                                 </div>
 
-                                {/* Category */}
-                                <div className={styles.field}>
-                                    <FormLabel htmlFor="category">Category</FormLabel>
-                                    <SearchableSelect id="category" options={categoryOptions} value={categoryId} onChange={setCategoryId} placeholder="Choose category" />
-                                </div>
-
-                                {/* Date */}
                                 <div className={styles.field}>
                                     <FormLabel htmlFor="date" required>Date</FormLabel>
                                     <Input id="date" type="date" value={date} onChange={e => setDate(e.target.value)} required />
                                 </div>
                             </div>
 
-                            {/* Right column */}
-                            <div className={styles.rightCol}>
-                                {/* Labels */}
-                                {labels.length > 0 && (
+                            {/* More options toggle */}
+                            <button
+                                type="button"
+                                className={styles.moreOptionsToggle}
+                                onClick={() => setShowMoreOptions(v => !v)}
+                                aria-expanded={showMoreOptions}
+                            >
+                                <FiSliders />
+                                {showMoreOptions ? 'Fewer options' : 'More options'}
+                            </button>
+
+                            {showMoreOptions && (
+                                <div className={styles.moreOptionsPanel}>
+                                    {labels.length > 0 && (
+                                        <div className={styles.field}>
+                                            <FormLabel>Labels</FormLabel>
+                                            <LabelSelect labels={labels} selectedIds={labelIds} onChange={setLabelIds} />
+                                        </div>
+                                    )}
                                     <div className={styles.field}>
-                                        <FormLabel>Labels</FormLabel>
-                                        <LabelSelect labels={labels} selectedIds={labelIds} onChange={setLabelIds} />
+                                        <FormLabel htmlFor="payer">Payee</FormLabel>
+                                        <Input id="payer" type="text" value={payer} onChange={e => setPayer(e.target.value)} />
                                     </div>
-                                )}
-                                <div className={styles.field}>
-                                    <FormLabel htmlFor="payer">Payee</FormLabel>
-                                    <Input id="payer" type="text" value={payer} onChange={e => setPayer(e.target.value)} />
+                                    <div className={styles.field}>
+                                        <FormLabel htmlFor="notes">Notes</FormLabel>
+                                        <textarea id="notes" className={styles.textarea} value={notes} onChange={e => setNotes(e.target.value)} rows={4} />
+                                    </div>
                                 </div>
-                                <div className={styles.field}>
-                                    <FormLabel htmlFor="notes">Notes</FormLabel>
-                                    <textarea id="notes" className={styles.textarea} value={notes} onChange={e => setNotes(e.target.value)} rows={4} />
-                                </div>
-                            </div>
+                            )}
                         </div>
                     )}
 
@@ -571,7 +590,7 @@ export default function TransactionForm({
                                 Delete
                             </Button>
                         )}
-                        <Button type="submit" variant="primary" loading={saving}>
+                        <Button type="submit" variant="primary" size="lg" loading={saving}>
                             {mode === 'transfer' ? 'Transfer' : transaction ? 'Save changes' : 'Add record'}
                         </Button>
                     </div>
