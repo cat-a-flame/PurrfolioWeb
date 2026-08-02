@@ -26,38 +26,62 @@
   display: flex;
   align-self: center;
   background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  padding: 3px;
+  gap: 2px;
 }
 
 .filterTab {
-  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  flex: 1;
+  height: 38px;
   padding: 0 var(--space-4);
-  background: transparent;
+  border-radius: calc(var(--radius-md) - 2px);
   border: none;
+  background: transparent;
   font-family: var(--font-nunito);
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 0.9375rem;
+  font-weight: 600;
   color: var(--color-text-muted);
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
   white-space: nowrap;
 }
 
-.filterTab + .filterTab {
-  border-left: 1px solid var(--color-border);
-}
-
 .filterTab:hover {
-  background: var(--color-surface);
   color: var(--color-text);
 }
 
 .filterTabActive {
+  background: var(--gradient-accent);
+  color: #fff;
+}
+
+.filterTabIcon {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.filterTabCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
   background: var(--color-surface);
-  color: var(--color-text);
-  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.filterTabActive .filterTabCount {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
 }
 
 /* ── Period row ── */

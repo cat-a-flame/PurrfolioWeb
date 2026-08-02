@@ -20,6 +20,7 @@ import { createClient } from '@/lib/supabase/client';
 import { formatCurrency } from '@/lib/utils';
 import { generateDueDates, frequencyLabel, nextDueDate, isoDate } from '@/lib/recurringUtils';
 import { BsThreeDotsVertical } from "react-icons/bs";
+import { FiClock, FiList } from "react-icons/fi";
 import type {
   RecurringPayment, RecurringOccurrence, RecurrenceFrequency,
   Wallet, Category, Label, TransactionType,
@@ -460,13 +461,17 @@ export default function RecurringPage() {
               className={[styles.filterTab, view === 'due' ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
               onClick={() => setView('due')}
             >
-              Due{!loading && !periodLoading && ` (${dueItems.length})`}
+              <FiClock className={styles.filterTabIcon} size={16} />
+              Due
+              {!loading && !periodLoading && <span className={styles.filterTabCount}>{dueItems.length}</span>}
             </button>
             <button
               className={[styles.filterTab, view === 'all' ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
               onClick={() => setView('all')}
             >
-              All{!loading && ` (${payments.length})`}
+              <FiList className={styles.filterTabIcon} size={16} />
+              All
+              {!loading && <span className={styles.filterTabCount}>{payments.length}</span>}
             </button>
           </div>
 
