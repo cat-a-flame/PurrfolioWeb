@@ -432,9 +432,9 @@
 }
 
 .predictionTitle {
-  font-family: var(--font-lora);
+  font-family: var(--font-nunito);
   color: var(--color-text);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 0.9375rem;
   white-space: nowrap;
   overflow: hidden;
@@ -443,6 +443,7 @@
 
 .predictionSubtitle {
   font-size: 0.75rem;
+  font-weight: 700;
   color: var(--color-text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -459,7 +460,7 @@
 
 .predictionConfidenceLabel {
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text-muted);
   white-space: nowrap;
 }
@@ -501,6 +502,7 @@
   width: 100%;
   text-align: right;
   font-size: 0.6875rem;
+  font-weight: 700;
   color: var(--color-text-faint);
 }
 

@@ -820,6 +820,20 @@ export default function StatisticsPage() {
               )}
             </div>
 
+            {/* ── Predicted transactions ── */}
+            <PredictionPanel
+              variant="expense"
+              title="Expected expenses"
+              items={predictions.expense}
+              loading={showSkeleton}
+            />
+            <PredictionPanel
+              variant="income"
+              title="Expected income"
+              items={predictions.income}
+              loading={showSkeleton}
+            />
+
             {/* ── Period comparison ── */}
             <div className={[styles.card, styles.cardWide].join(' ')}>
               <h2 className={styles.cardTitle}>Expense comparison by category</h2>
@@ -847,20 +861,6 @@ export default function StatisticsPage() {
                 </div>
               )}
             </div>
-
-            {/* ── Predicted transactions ── */}
-            <PredictionPanel
-              variant="expense"
-              title="Expected expenses"
-              items={predictions.expense}
-              loading={showSkeleton}
-            />
-            <PredictionPanel
-              variant="income"
-              title="Expected income"
-              items={predictions.income}
-              loading={showSkeleton}
-            />
 
           </div>
 
