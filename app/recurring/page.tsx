@@ -401,7 +401,55 @@ export default function RecurringPage() {
 
   async function handleToggleActive(p: RecurringPayment) {
     const supabase = createClient();
-    await supabase.from('recurring_payments').update({ is_active: !p.is_active }).eq('id', p.id);
+
+    if (p.is_active) {
+      await supabase.from('recurring_payments').update({ is_active: false }).eq('id', p.id);
+      setToast({ message: `${p.name} paused.`, variant: 'success' });
+      fetchAll();
+      return;
+    }
+
+    // Resuming: while paused, no due dates were generated, but generateDueDates
+    // has no memory of that — it just walks forward from start_date. Without this,
+    // every date that fell inside the paused window reappears as a pending item
+    // the user has to skip by hand. Auto-skip that backlog so resuming starts clean.
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const todayIso = isoDate(new Date());
+    const pastDueDates = generateDueDates({ ...p, is_active: true }, new Date(p.start_date + 'T00:00:00'), new Date())
+      .filter(d => isoDate(d) <= todayIso);
+
+    let skippedCount = 0;
+    if (pastDueDates.length > 0) {
+      const { data: existing } = await supabase
+        .from('recurring_occurrences')
+        .select('due_date')
+        .eq('recurring_payment_id', p.id);
+      const actioned = new Set((existing ?? []).map(o => o.due_date.slice(0, 10)));
+      const toSkip = pastDueDates.filter(d => !actioned.has(isoDate(d)));
+
+      if (toSkip.length > 0) {
+        const { error } = await supabase.from('recurring_occurrences').insert(
+          toSkip.map(d => ({
+            recurring_payment_id: p.id,
+            user_id: user.id,
+            due_date: isoDate(d),
+            status: 'skipped' as const,
+            transaction_id: null,
+          }))
+        );
+        if (!error) skippedCount = toSkip.length;
+      }
+    }
+
+    await supabase.from('recurring_payments').update({ is_active: true }).eq('id', p.id);
+    setToast({
+      message: skippedCount > 0
+        ? `${p.name} resumed — ${skippedCount} missed occurrence${skippedCount === 1 ? '' : 's'} skipped.`
+        : `${p.name} resumed.`,
+      variant: 'success',
+    });
     fetchAll();
   }
 

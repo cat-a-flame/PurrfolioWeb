@@ -5,7 +5,6 @@ import { useCountUp } from '@/lib/useCountUp';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  AreaChart, Area,
   type PieLabelRenderProps,
 } from 'recharts';
 import AppShell from '@/components/layout/AppShell';
@@ -71,10 +70,6 @@ function getPrevRange(v: PeriodValue): { from: string; to: string } {
 
 function filterRange(txs: Transaction[], from: string, to: string) {
   return txs.filter(t => t.date >= from && t.date <= to);
-}
-
-function shortMonth(iso: string) {
-  return new Date(iso + '-15').toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
 }
 
 // ─── custom tooltip ─────────────────────────────────────────────────────────
@@ -271,12 +266,12 @@ export default function StatisticsPage() {
       const bal = w.starting_balance + sums.income - sums.expense;
       map.set(w.currency, (map.get(w.currency) ?? 0) + bal);
     }
-    return Array.from(map.entries()).map(([currency, balance], i) => ({
-      currency,
-      balance,
-      balanceHUF: toHUF(balance, currency, todayRates),
-      fill: PALETTE[i % PALETTE.length],
-    }));
+    const entries = Array.from(map.entries()).map(([currency, balance], i) => {
+      const balanceHUF = toHUF(balance, currency, todayRates);
+      return { currency, balance, absHUF: Math.abs(balanceHUF), fill: PALETTE[i % PALETTE.length] };
+    });
+    const total = entries.reduce((s, e) => s + e.absHUF, 0);
+    return entries.map(e => ({ ...e, pct: total > 0 ? Math.round((e.absHUF / total) * 100) : 0 }));
   }, [walletBalanceSums, wallets, todayRates]);
 
   // ── 2. Expenses structure (doughnut) ──────────────────────────────────
@@ -345,48 +340,6 @@ export default function StatisticsPage() {
       .map(([name, v]) => ({ name, current: Math.round(v.current), prev: Math.round(v.prev) }))
       .reverse(); // bottom-up for horizontal bar
   }, [periodTxs, prevTxs, ratesByDate]);
-
-  // ── 4. Spending trend ─────────────────────────────────────────────────
-  const trendData = useMemo(() => {
-    const fromDate = new Date(period.from + 'T12:00:00');
-    const toDate   = new Date(period.to   + 'T12:00:00');
-    const days     = Math.round((toDate.getTime() - fromDate.getTime()) / 86400000) + 1;
-    const byMonth  = days > 62;
-
-    if (byMonth) {
-      const map = new Map<string, { income: number; expense: number }>();
-      let cur = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
-      while (cur <= toDate) {
-        map.set(isoDate(cur).slice(0, 7), { income: 0, expense: 0 });
-        cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
-      }
-      for (const t of periodTxs) {
-        if (t.transfer_group_id) continue;
-        const key = t.date.slice(0, 7);
-        const v   = map.get(key);
-        if (!v) continue;
-        if (t.type === 'income')  v.income  += txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
-        if (t.type === 'expense') v.expense += txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
-      }
-      return Array.from(map.entries()).map(([k, v]) => ({ label: shortMonth(k), income: Math.round(v.income), expense: Math.round(v.expense) }));
-    } else {
-      const map = new Map<string, { income: number; expense: number }>();
-      for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
-        map.set(isoDate(new Date(d)), { income: 0, expense: 0 });
-      }
-      for (const t of periodTxs) {
-        if (t.transfer_group_id) continue;
-        const v = map.get(t.date);
-        if (!v) continue;
-        if (t.type === 'income')  v.income  += txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
-        if (t.type === 'expense') v.expense += txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
-      }
-      return Array.from(map.entries()).map(([k, v]) => ({
-        label: new Date(k + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        income: Math.round(v.income), expense: Math.round(v.expense),
-      }));
-    }
-  }, [periodTxs, period, ratesByDate]);
 
   const showSkeleton = loading || periodLoading;
   const prevLabel = period.tab === 'months' ? 'prev month' : period.tab === 'years' ? 'prev year' : period.tab === 'weeks' ? 'prev week' : 'prev period';
@@ -605,42 +558,44 @@ export default function StatisticsPage() {
               <h2 className={styles.cardTitle}>Balance by currency</h2>
               <p className={styles.cardSubtitle}>Current total across all accounts</p>
               {loading ? (
-                <div className={styles.balanceList}>
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className={styles.balanceRow}>
-                      <Skeleton width="100%" height={16} radius={4} style={{ marginBottom: 8 }} />
-                      <Skeleton width="100%" height={8} radius="var(--radius-full)" />
-                    </div>
-                  ))}
-                </div>
+                <Skeleton width="100%" height={240} radius={8} />
               ) : currencyBalances.length === 0 ? (
                 <EmptyState compact icon="💰" hint="No accounts yet." />
               ) : (
-                <div className={styles.balanceList}>
-                  {(() => {
-                    const maxHUF = Math.max(...currencyBalances.map(c => Math.abs(c.balanceHUF)));
-                    return currencyBalances.map(({ currency, balance, balanceHUF, fill }) => (
-                      <div key={currency} className={styles.balanceRow}>
-                        <div className={styles.balanceMeta}>
-                          <span className={styles.balanceCurrency}>{currency}</span>
-                          <div className={styles.balanceAmountGroup}>
-                            <span className={[styles.balanceAmount, balance >= 0 ? styles.balancePos : styles.balanceNeg].join(' ')}>
-                              {formatCurrency(balance, currency as Currency)}
-                            </span>
-                            {currency !== 'HUF' && (
-                              <span className={styles.balanceHUF}>≈{formatHUF(Math.abs(balanceHUF))}</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className={styles.balanceBar}>
-                          <div
-                            className={styles.balanceBarFill}
-                            style={{ width: `${maxHUF > 0 ? Math.min(100, Math.abs(balanceHUF) / maxHUF * 100) : 100}%`, backgroundColor: fill }}
-                          />
-                        </div>
+                <div className={styles.doughnutLayout}>
+                  {mounted && (
+                    <div className={styles.doughnutChart}>
+                      <ResponsiveContainer width="100%" height={240}>
+                        <PieChart>
+                          <Pie
+                            data={currencyBalances}
+                            dataKey="absHUF"
+                            nameKey="currency"
+                            innerRadius={60}
+                            outerRadius={100}
+                            paddingAngle={2}
+                            startAngle={90}
+                            endAngle={-270}
+                          >
+                            {currencyBalances.map((c, i) => <Cell key={i} fill={c.fill} />)}
+                          </Pie>
+                          <Tooltip content={<ChartTooltip />} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                  <div className={styles.doughnutLegend}>
+                    {currencyBalances.map((c, i) => (
+                      <div key={i} className={styles.legendRow}>
+                        <span className={styles.legendDot} style={{ backgroundColor: c.fill }} />
+                        <span className={styles.legendName}>{c.currency}</span>
+                        <span className={styles.legendPct}>{c.pct}%</span>
+                        <span className={[styles.legendAmount, c.balance >= 0 ? styles.balancePos : styles.balanceNeg].join(' ')}>
+                          {formatCurrency(c.balance, c.currency as Currency)}
+                        </span>
                       </div>
-                    ));
-                  })()}
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -671,42 +626,6 @@ export default function StatisticsPage() {
                   <span className={styles.compDot} style={{ backgroundColor: '#7e5ec4' }} /><span style={{ color: 'var(--color-text-muted)' }}>{prevLabel}</span>
                 </div>
               )}
-            </div>
-
-            {/* ── Spending trend ── */}
-            <div className={[styles.card, styles.cardWide].join(' ')}>
-              <h2 className={styles.cardTitle}>Income & expense trend</h2>
-              <p className={styles.cardSubtitle}>{period.label}</p>
-              {showSkeleton ? (
-                <Skeleton width="100%" height={220} radius={8} />
-              ) : trendData.every(d => d.income === 0 && d.expense === 0) ? (
-                <EmptyState compact icon="📈" hint="No data for this period." />
-              ) : mounted && (
-                <ResponsiveContainer width="100%" height={220}>
-                  <AreaChart data={trendData} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#16a34a" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#16a34a" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="gradExpense" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#dc2626" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#dc2626" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--color-text-faint)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-                    <YAxis tick={{ fontSize: 11, fill: 'var(--color-text-faint)' }} tickFormatter={v => formatHUF(v)} axisLine={false} tickLine={false} width={70} />
-                    <Tooltip content={<ChartTooltip />} />
-                    <Area type="monotone" dataKey="income" name="Income" stroke="#16a34a" strokeWidth={2} fill="url(#gradIncome)" dot={false} />
-                    <Area type="monotone" dataKey="expense" name="Expense" stroke="#dc2626" strokeWidth={2} fill="url(#gradExpense)" dot={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-              <div className={styles.compLegend}>
-                <span className={styles.compDot} style={{ backgroundColor: '#16a34a' }} /><span>Income</span>
-                <span className={styles.compDot} style={{ backgroundColor: '#dc2626' }} /><span>Expense</span>
-              </div>
             </div>
 
           </div>
