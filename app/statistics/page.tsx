@@ -163,10 +163,9 @@ function sampleStats(samples: number[]): { mean: number; cv: number } {
 }
 
 // ─── prediction panel ───────────────────────────────────────────────────────
-function PredictionPanel({ variant, title, total, items, loading }: {
+function PredictionPanel({ variant, title, items, loading }: {
   variant: 'income' | 'expense';
   title: string;
-  total: number;
   items: PredictionItem[];
   loading: boolean;
 }) {
@@ -179,11 +178,6 @@ function PredictionPanel({ variant, title, total, items, loading }: {
           <span className={styles.predictionBannerIcon}>{isIncome ? <IncomeIcon /> : <ExpenseIcon />}</span>
           <span className={styles.predictionBannerTitle}>{title}</span>
         </div>
-        {!loading && (
-          <span className={[styles.predictionBannerAmount, isIncome ? styles.predictionBannerAmountIncome : styles.predictionBannerAmountExpense].join(' ')}>
-            {sign}{formatHUF(total)}
-          </span>
-        )}
       </div>
       {loading ? (
         <div className={styles.predictionList}>
@@ -468,7 +462,7 @@ export default function StatisticsPage() {
   // pattern rather than a one-off transaction, and the most reliable patterns
   // (highest confidence, then largest typical amount) win the limited slots.
   const predictions = useMemo(() => {
-    if (!historyRange) return { income: [] as PredictionItem[], expense: [] as PredictionItem[], totalIncome: 0, totalExpense: 0 };
+    if (!historyRange) return { income: [] as PredictionItem[], expense: [] as PredictionItem[] };
 
     const histFrom = new Date(historyRange.from + 'T00:00:00');
     const histTo   = new Date(historyRange.to   + 'T00:00:00');
@@ -564,8 +558,6 @@ export default function StatisticsPage() {
     return {
       income:  [...income].sort(byReliability).slice(0, MAX_PREDICTIONS_PER_TYPE),
       expense: [...expense].sort(byReliability).slice(0, MAX_PREDICTIONS_PER_TYPE),
-      totalIncome:  income.reduce((s, i) => s + i.predictedAmount, 0),
-      totalExpense: expense.reduce((s, i) => s + i.predictedAmount, 0),
     };
   }, [historyTxs, historyRange, period, ratesByDate]);
 
@@ -860,14 +852,12 @@ export default function StatisticsPage() {
             <PredictionPanel
               variant="expense"
               title="Expected expenses"
-              total={predictions.totalExpense}
               items={predictions.expense}
               loading={showSkeleton}
             />
             <PredictionPanel
               variant="income"
               title="Expected income"
-              total={predictions.totalIncome}
               items={predictions.income}
               loading={showSkeleton}
             />

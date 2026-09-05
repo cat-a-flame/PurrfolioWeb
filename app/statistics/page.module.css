@@ -391,16 +391,6 @@
   text-overflow: ellipsis;
 }
 
-.predictionBannerAmount {
-  font-family: var(--font-nunito);
-  font-size: 1.25rem;
-  font-weight: 800;
-  flex-shrink: 0;
-}
-
-.predictionBannerAmountIncome  { color: var(--color-income); }
-.predictionBannerAmountExpense { color: var(--color-expense); }
-
 .predictionList {
   display: flex;
   flex-direction: column;
