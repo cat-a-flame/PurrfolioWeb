@@ -347,97 +347,186 @@
 /* ── Cash flow projection ── */
 
 /* ── Predicted transactions ── */
-.predictionSummary {
+.predictionBanner {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-5);
-  padding-bottom: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: calc(var(--space-5) * -1) calc(var(--space-5) * -1) 0;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.predictionBannerIncome  { background: var(--color-income-light); }
+.predictionBannerExpense { background: var(--color-expense-light); }
+
+.predictionBannerLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.predictionBannerIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.predictionBannerIncome  .predictionBannerIcon { background: var(--color-income); }
+.predictionBannerExpense .predictionBannerIcon { background: var(--color-expense); }
+
+.predictionBannerTitle {
+  font-family: var(--font-lora);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.predictionBannerAmount {
+  font-family: var(--font-nunito);
+  font-size: 1.25rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.predictionBannerAmountIncome  { color: var(--color-income); }
+.predictionBannerAmountExpense { color: var(--color-expense); }
+
+.predictionList {
+  display: flex;
+  flex-direction: column;
+}
+
+.predictionListRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
   border-bottom: 1px solid var(--color-border-light);
 }
 
-.predictionSummaryItem {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-  font-weight: 600;
+.predictionListRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
-.predictionSummaryItem strong {
-  font-family: var(--font-nunito);
-  font-size: 0.9375rem;
-}
-
-.predictionsGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-6);
-}
-
-@media (max-width: 640px) {
-  .predictionsGrid { grid-template-columns: 1fr; }
-}
-
-.predictionCol {
+.predictionDateBadge {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--color-accent-light);
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-}
-
-.predictionColTitle {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 0;
-}
-
-.predictionRow {
-  display: flex;
   align-items: center;
-  gap: var(--space-3);
+  justify-content: center;
+  line-height: 1.2;
 }
 
-.predictionInfo {
-  flex: 1;
+.predictionDateMonth {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  letter-spacing: 0.04em;
+}
+
+.predictionDateDay {
+  font-family: var(--font-nunito);
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-accent);
+}
+
+.predictionMain {
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.predictionName {
+.predictionTitle {
+  font-family: var(--font-lora);
   color: var(--color-text);
-  font-weight: 600;
-  font-size: 0.875rem;
+  font-weight: 700;
+  font-size: 0.9375rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.confidenceBadge {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  padding: 1px var(--space-2);
+.predictionSubtitle {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.predictionConfidence {
+  flex-shrink: 0;
+  width: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.predictionConfidenceLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.predictionConfidenceTrack {
+  width: 100%;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-light);
+  overflow: hidden;
+}
+
+.predictionConfidenceFill {
+  height: 100%;
   border-radius: var(--radius-full);
 }
 
-.confidenceHigh {
-  background: var(--color-income-light);
-  color: var(--color-income);
+.predictionConfidenceFillIncome  { background: var(--color-income); }
+.predictionConfidenceFillExpense { background: var(--color-expense); }
+
+.predictionAmountCol {
+  flex-shrink: 0;
+  min-width: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
 }
 
-.confidenceMedium {
-  background: var(--color-accent-light);
-  color: var(--color-accent);
+.predictionAmount {
+  font-family: var(--font-nunito);
+  font-weight: 800;
+  font-size: 0.9375rem;
+  white-space: nowrap;
 }
 
-.confidenceLow {
-  background: var(--color-surface-2);
-  color: var(--color-text-muted);
+.predictionRangeText {
+  font-size: 0.6875rem;
+  color: var(--color-text-faint);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .predictionListRow { flex-wrap: wrap; }
+  .predictionConfidence { display: none; }
 }

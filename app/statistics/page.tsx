@@ -8,7 +8,6 @@ import {
   type PieLabelRenderProps,
 } from 'recharts';
 import AppShell from '@/components/layout/AppShell';
-import EmojiBox from '@/components/ui/EmojiBox';
 import EmptyState from '@/components/ui/EmptyState';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import Skeleton from '@/components/ui/Skeleton';
@@ -137,21 +136,103 @@ const HISTORY_MONTHS = 6;
 // A category needs to show up in at least this many of the history buckets
 // before it's treated as a real pattern rather than a one-off transaction.
 const MIN_BUCKETS_SEEN = 2;
+const MAX_PREDICTIONS_PER_TYPE = 10;
+const MONTH_SHORT = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
-type CategoryPrediction = {
+type PredictionItem = {
   key: string;
-  name: string;
-  icon: string;
-  color: string;
+  title: string;
+  subtitle: string;
   type: TransactionType;
-  monthsSeen: number;
+  predictedDate: string;
+  confidencePct: number;
   predictedAmount: number;
+  isStable: boolean;
+  rangeLow: number;
+  rangeHigh: number;
 };
 
-function confidenceInfo(monthsSeen: number): { label: string; className: string } {
-  if (monthsSeen >= HISTORY_MONTHS - 1) return { label: 'High', className: styles.confidenceHigh };
-  if (monthsSeen >= HISTORY_MONTHS / 2)  return { label: 'Medium', className: styles.confidenceMedium };
-  return { label: 'Low', className: styles.confidenceLow };
+function dateBadge(iso: string): { month: string; day: string } {
+  const d = new Date(iso + 'T00:00:00');
+  return { month: MONTH_SHORT[d.getMonth()], day: String(d.getDate()).padStart(2, '0') };
+}
+
+// Mean + coefficient of variation of a set of per-bucket totals — used to turn
+// "how big does this usually run" into a confidence score and a stable/range call.
+function sampleStats(samples: number[]): { mean: number; cv: number } {
+  const mean = samples.reduce((s, v) => s + v, 0) / samples.length;
+  if (mean <= 0) return { mean, cv: 0 };
+  const variance = samples.reduce((s, v) => s + (v - mean) ** 2, 0) / samples.length;
+  return { mean, cv: Math.sqrt(variance) / mean };
+}
+
+// ─── prediction panel ───────────────────────────────────────────────────────
+function PredictionPanel({ variant, title, total, items, loading }: {
+  variant: 'income' | 'expense';
+  title: string;
+  total: number;
+  items: PredictionItem[];
+  loading: boolean;
+}) {
+  const isIncome = variant === 'income';
+  const sign = isIncome ? '+' : '−';
+  return (
+    <div className={styles.card}>
+      <div className={[styles.predictionBanner, isIncome ? styles.predictionBannerIncome : styles.predictionBannerExpense].join(' ')}>
+        <div className={styles.predictionBannerLeft}>
+          <span className={styles.predictionBannerIcon}>{isIncome ? <IncomeIcon /> : <ExpenseIcon />}</span>
+          <span className={styles.predictionBannerTitle}>{title}</span>
+        </div>
+        {!loading && (
+          <span className={[styles.predictionBannerAmount, isIncome ? styles.predictionBannerAmountIncome : styles.predictionBannerAmountExpense].join(' ')}>
+            {sign}{formatHUF(total)}
+          </span>
+        )}
+      </div>
+      {loading ? (
+        <div className={styles.predictionList}>
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} width="100%" height={54} radius={8} />)}
+        </div>
+      ) : items.length === 0 ? (
+        <EmptyState compact icon={isIncome ? '💰' : '🧾'} hint={`No recurring ${variant} pattern found yet.`} />
+      ) : (
+        <div className={styles.predictionList}>
+          {items.map(item => {
+            const badge = dateBadge(item.predictedDate);
+            return (
+              <div key={item.key} className={styles.predictionListRow}>
+                <div className={styles.predictionDateBadge}>
+                  <span className={styles.predictionDateMonth}>{badge.month}</span>
+                  <span className={styles.predictionDateDay}>{badge.day}</span>
+                </div>
+                <div className={styles.predictionMain}>
+                  <span className={styles.predictionTitle}>{item.title}</span>
+                  <span className={styles.predictionSubtitle}>{item.subtitle}</span>
+                </div>
+                <div className={styles.predictionConfidence}>
+                  <span className={styles.predictionConfidenceLabel}>{item.confidencePct}% sure</span>
+                  <div className={styles.predictionConfidenceTrack}>
+                    <div
+                      className={[styles.predictionConfidenceFill, isIncome ? styles.predictionConfidenceFillIncome : styles.predictionConfidenceFillExpense].join(' ')}
+                      style={{ width: `${item.confidencePct}%` }}
+                    />
+                  </div>
+                </div>
+                <div className={styles.predictionAmountCol}>
+                  <span className={[styles.predictionAmount, isIncome ? styles.statAmountIncome : styles.statAmountExpense].join(' ')}>
+                    {sign}{formatHUF(item.predictedAmount)}
+                  </span>
+                  <span className={styles.predictionRangeText}>
+                    {item.isStable ? 'stable' : `${formatNumber(item.rangeLow)} – ${formatNumber(item.rangeHigh)}`}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── page ────────────────────────────────────────────────────────────────────
@@ -373,13 +454,15 @@ export default function StatisticsPage() {
   }, [periodTxs, prevTxs, ratesByDate]);
 
   // ── 4. Predicted transactions ──────────────────────────────────────────
-  // Learns a per-category rate from the trailing 6-month history window, then
-  // scales that rate to the selected period's length to estimate what's
-  // likely to show up. "Months seen" (how many of the 6 buckets had activity)
-  // drives the confidence badge — a category present in only one bucket is a
-  // one-off, not a pattern, so it's dropped entirely.
+  // Learns a per-category (and, where one vendor dominates, per-payer) pattern
+  // from the trailing 6-month history window: how many of the 6 buckets it
+  // showed up in, its typical monthly total, how much that total varies, and
+  // roughly which day of the period it tends to land on. That's then scaled
+  // and re-anchored onto the selected period. A category needs to show up in
+  // at least MIN_BUCKETS_SEEN of the 6 buckets to be treated as a pattern
+  // rather than a one-off transaction.
   const predictions = useMemo(() => {
-    if (!historyRange) return { income: [] as CategoryPrediction[], expense: [] as CategoryPrediction[], totalIncome: 0, totalExpense: 0 };
+    if (!historyRange) return { income: [] as PredictionItem[], expense: [] as PredictionItem[], totalIncome: 0, totalExpense: 0 };
 
     const histFrom = new Date(historyRange.from + 'T00:00:00');
     const histTo   = new Date(historyRange.to   + 'T00:00:00');
@@ -389,9 +472,16 @@ export default function StatisticsPage() {
     const periodFrom = new Date(period.from + 'T00:00:00');
     const periodTo   = new Date(period.to   + 'T00:00:00');
     const periodDays = Math.max(1, Math.round((periodTo.getTime() - periodFrom.getTime()) / 86400000) + 1);
-    const scale = periodDays / historyDays;
+    const scale = periodDays / bucketSize;
 
-    type Group = { name: string; icon: string; color: string; type: TransactionType; amount: number; buckets: Set<number> };
+    type Group = {
+      name: string;
+      type: TransactionType;
+      totalCount: number;
+      buckets: Map<number, number>; // bucket index -> HUF sum
+      payerCounts: Map<string, number>;
+      bucketPositions: number[]; // 0..1 position within its bucket, for date placement
+    };
     const map = new Map<string, Group>();
 
     for (const t of historyTxs) {
@@ -399,38 +489,77 @@ export default function StatisticsPage() {
       const key = `${t.type}|${t.category_id ?? 'none'}`;
       const g = map.get(key) ?? {
         name: t.category?.name ?? 'Uncategorised',
-        icon: t.category?.icon ?? '📁',
-        color: t.category?.color ?? '#94a3b8',
         type: t.type,
-        amount: 0,
-        buckets: new Set<number>(),
+        totalCount: 0,
+        buckets: new Map<number, number>(),
+        payerCounts: new Map<string, number>(),
+        bucketPositions: [],
       };
-      g.amount += txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
+      const amount = txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
       const daysSinceStart = (new Date(t.date + 'T00:00:00').getTime() - histFrom.getTime()) / 86400000;
-      g.buckets.add(Math.min(HISTORY_MONTHS - 1, Math.max(0, Math.floor(daysSinceStart / bucketSize))));
+      const bucketIdx = Math.min(HISTORY_MONTHS - 1, Math.max(0, Math.floor(daysSinceStart / bucketSize)));
+      g.buckets.set(bucketIdx, (g.buckets.get(bucketIdx) ?? 0) + amount);
+      g.totalCount += 1;
+      if (t.payer) g.payerCounts.set(t.payer, (g.payerCounts.get(t.payer) ?? 0) + 1);
+      const posInBucket = daysSinceStart - bucketIdx * bucketSize;
+      g.bucketPositions.push(Math.min(1, Math.max(0, posInBucket / bucketSize)));
       map.set(key, g);
     }
 
-    const groups: CategoryPrediction[] = Array.from(map.entries())
-      .filter(([, g]) => g.buckets.size >= MIN_BUCKETS_SEEN && g.amount > 0)
-      .map(([key, g]) => ({
-        key,
-        name: g.name,
-        icon: g.icon,
-        color: g.color,
-        type: g.type,
-        monthsSeen: g.buckets.size,
-        predictedAmount: g.amount * scale,
-      }))
-      .sort((a, b) => b.monthsSeen - a.monthsSeen || b.predictedAmount - a.predictedAmount);
+    const items: PredictionItem[] = [];
+    for (const [key, g] of map) {
+      const bucketsSeen = g.buckets.size;
+      const samples = Array.from(g.buckets.values()).filter(v => v > 0);
+      if (bucketsSeen < MIN_BUCKETS_SEEN || samples.length === 0) continue;
 
-    const income  = groups.filter(g => g.type === 'income');
-    const expense = groups.filter(g => g.type === 'expense');
+      const { mean, cv } = sampleStats(samples);
+      if (mean <= 0) continue;
+
+      const isAggregate = g.totalCount / bucketsSeen > 1.3;
+      let title = g.name;
+      if (!isAggregate) {
+        let dominantPayer: string | null = null;
+        let dominantCount = 0;
+        for (const [payer, count] of g.payerCounts) {
+          if (count > dominantCount) { dominantPayer = payer; dominantCount = count; }
+        }
+        if (dominantPayer && dominantCount / g.totalCount >= 0.6) title = `${g.name} — ${dominantPayer}`;
+      }
+      const subtitle = isAggregate
+        ? `${g.name} • ${g.totalCount} entries / ${HISTORY_MONTHS} months`
+        : `${g.name} • seen ${bucketsSeen} of ${HISTORY_MONTHS} months`;
+
+      const presenceRatio = bucketsSeen / HISTORY_MONTHS;
+      const consistency = Math.max(0, 1 - cv);
+      const confidencePct = Math.max(1, Math.min(99, Math.round(100 * (0.55 * presenceRatio + 0.45 * consistency))));
+
+      const avgPos = g.bucketPositions.reduce((s, v) => s + v, 0) / g.bucketPositions.length;
+      const dayIdx = Math.min(periodDays - 1, Math.max(0, Math.round(avgPos * periodDays)));
+      const predictedDate = isoDate(new Date(periodFrom.getTime() + dayIdx * 86400000));
+
+      items.push({
+        key,
+        title,
+        subtitle,
+        type: g.type,
+        predictedDate,
+        confidencePct,
+        predictedAmount: mean * scale,
+        isStable: cv <= 0.08,
+        rangeLow: Math.min(...samples) * scale,
+        rangeHigh: Math.max(...samples) * scale,
+      });
+    }
+
+    items.sort((a, b) => a.predictedDate < b.predictedDate ? -1 : a.predictedDate > b.predictedDate ? 1 : 0);
+
+    const income  = items.filter(i => i.type === 'income');
+    const expense = items.filter(i => i.type === 'expense');
     return {
-      income: income.slice(0, 6),
-      expense: expense.slice(0, 6),
-      totalIncome:  income.reduce((s, g) => s + g.predictedAmount, 0),
-      totalExpense: expense.reduce((s, g) => s + g.predictedAmount, 0),
+      income: income.slice(0, MAX_PREDICTIONS_PER_TYPE),
+      expense: expense.slice(0, MAX_PREDICTIONS_PER_TYPE),
+      totalIncome:  income.reduce((s, i) => s + i.predictedAmount, 0),
+      totalExpense: expense.reduce((s, i) => s + i.predictedAmount, 0),
     };
   }, [historyTxs, historyRange, period, ratesByDate]);
 
@@ -722,76 +851,20 @@ export default function StatisticsPage() {
             </div>
 
             {/* ── Predicted transactions ── */}
-            <div className={[styles.card, styles.cardWide].join(' ')}>
-              <h2 className={styles.cardTitle}>Predicted transactions</h2>
-              <p className={styles.cardSubtitle}>Based on your last 6 months of activity · likely in {period.label}</p>
-              {showSkeleton ? (
-                <div className={styles.predictionsGrid}>
-                  {Array.from({ length: 2 }).map((_, i) => (
-                    <div key={i} className={styles.predictionCol}>
-                      {Array.from({ length: 3 }).map((_, j) => (
-                        <Skeleton key={j} width="100%" height={46} radius={8} />
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              ) : predictions.income.length === 0 && predictions.expense.length === 0 ? (
-                <EmptyState compact icon="🔮" hint="Not enough history yet — keep logging transactions across a few months to unlock predictions." />
-              ) : (
-                <>
-                  <div className={styles.predictionSummary}>
-                    <div className={styles.predictionSummaryItem}>
-                      <span className={[styles.statDot, styles.statDotIncome].join(' ')} />
-                      <span>Predicted income</span>
-                      <strong className={styles.statFooterValueIncome}>{formatHUF(predictions.totalIncome)}</strong>
-                    </div>
-                    <div className={styles.predictionSummaryItem}>
-                      <span className={[styles.statDot, styles.statDotExpense].join(' ')} />
-                      <span>Predicted expenses</span>
-                      <strong className={styles.statFooterValueExpense}>{formatHUF(predictions.totalExpense)}</strong>
-                    </div>
-                  </div>
-                  <div className={styles.predictionsGrid}>
-                    <div className={styles.predictionCol}>
-                      <h3 className={styles.predictionColTitle}>Likely income</h3>
-                      {predictions.income.length === 0 ? (
-                        <p className={styles.statFooterEmpty}>No recurring income pattern found yet.</p>
-                      ) : predictions.income.map(p => {
-                        const conf = confidenceInfo(p.monthsSeen);
-                        return (
-                          <div key={p.key} className={styles.predictionRow}>
-                            <EmojiBox emoji={p.icon} color={p.color} size="sm" />
-                            <div className={styles.predictionInfo}>
-                              <span className={styles.predictionName}>{p.name}</span>
-                              <span className={[styles.confidenceBadge, conf.className].join(' ')}>{conf.label} likelihood</span>
-                            </div>
-                            <span className={[styles.legendAmount, styles.statAmountIncome].join(' ')}>{formatHUF(p.predictedAmount)}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className={styles.predictionCol}>
-                      <h3 className={styles.predictionColTitle}>Likely expenses</h3>
-                      {predictions.expense.length === 0 ? (
-                        <p className={styles.statFooterEmpty}>No recurring expense pattern found yet.</p>
-                      ) : predictions.expense.map(p => {
-                        const conf = confidenceInfo(p.monthsSeen);
-                        return (
-                          <div key={p.key} className={styles.predictionRow}>
-                            <EmojiBox emoji={p.icon} color={p.color} size="sm" />
-                            <div className={styles.predictionInfo}>
-                              <span className={styles.predictionName}>{p.name}</span>
-                              <span className={[styles.confidenceBadge, conf.className].join(' ')}>{conf.label} likelihood</span>
-                            </div>
-                            <span className={[styles.legendAmount, styles.statAmountExpense].join(' ')}>{formatHUF(p.predictedAmount)}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
+            <PredictionPanel
+              variant="income"
+              title="Expected income"
+              total={predictions.totalIncome}
+              items={predictions.income}
+              loading={showSkeleton}
+            />
+            <PredictionPanel
+              variant="expense"
+              title="Expected expenses"
+              total={predictions.totalExpense}
+              items={predictions.expense}
+              loading={showSkeleton}
+            />
 
           </div>
 
