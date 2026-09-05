@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useCountUp } from '@/lib/useCountUp';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
   type PieLabelRenderProps,
 } from 'recharts';
 import AppShell from '@/components/layout/AppShell';
@@ -130,6 +129,14 @@ function TransactionsIcon() {
 function progressPct(actual: number, projected: number): number {
   if (projected <= 0) return 0;
   return Math.max(0, Math.min(100, (actual / projected) * 100));
+}
+
+function changeInfo(current: number, prev: number): { text: string; tone: 'up' | 'down' | 'flat' } {
+  if (Math.abs(current - prev) < 1) return { text: 'no change', tone: 'flat' };
+  if (prev <= 0) return { text: 'new', tone: 'up' };
+  const pct = Math.round(((current - prev) / prev) * 100);
+  if (pct === 0) return { text: 'no change', tone: 'flat' };
+  return { text: `${pct > 0 ? '+' : ''}${pct}%`, tone: pct > 0 ? 'up' : 'down' };
 }
 
 // ─── predictions ────────────────────────────────────────────────────────────
@@ -429,12 +436,13 @@ export default function StatisticsPage() {
 
   // ── 3. Period comparison ──────────────────────────────────────────────
   const comparisonData = useMemo(() => {
-    const catMap = new Map<string, { current: number; prev: number; color: string }>();
+    const catMap = new Map<string, { current: number; prev: number; icon: string; color: string }>();
     for (const t of [...periodTxs, ...prevTxs]) {
       if (t.type !== 'expense' || t.transfer_group_id) continue;
       const name  = t.category?.name  ?? 'Uncategorised';
+      const icon  = t.category?.icon  ?? '📁';
       const color = t.category?.color ?? '#94a3b8';
-      if (!catMap.has(name)) catMap.set(name, { current: 0, prev: 0, color });
+      if (!catMap.has(name)) catMap.set(name, { current: 0, prev: 0, icon, color });
     }
     for (const t of periodTxs) {
       if (t.type !== 'expense' || t.transfer_group_id) continue;
@@ -449,8 +457,7 @@ export default function StatisticsPage() {
     return Array.from(catMap.entries())
       .sort((a, b) => (b[1].current + b[1].prev) - (a[1].current + a[1].prev))
       .slice(0, 10)
-      .map(([name, v]) => ({ name, current: Math.round(v.current), prev: Math.round(v.prev) }))
-      .reverse(); // bottom-up for horizontal bar
+      .map(([name, v]) => ({ name, icon: v.icon, color: v.color, current: Math.round(v.current), prev: Math.round(v.prev) }));
   }, [periodTxs, prevTxs, ratesByDate]);
 
   // ── 4. Predicted transactions ──────────────────────────────────────────
@@ -562,7 +569,7 @@ export default function StatisticsPage() {
   }, [historyTxs, historyRange, period, ratesByDate]);
 
   const showSkeleton = loading || periodLoading;
-  const prevLabel = period.tab === 'months' ? 'prev month' : period.tab === 'years' ? 'prev year' : period.tab === 'weeks' ? 'prev week' : 'prev period';
+  const prevLabel = period.tab === 'months' ? 'previous month' : period.tab === 'years' ? 'previous year' : period.tab === 'weeks' ? 'previous week' : 'previous period';
 
   return (
     <AppShell>
@@ -836,30 +843,60 @@ export default function StatisticsPage() {
 
             {/* ── Period comparison ── */}
             <div className={[styles.card, styles.cardWide].join(' ')}>
-              <h2 className={styles.cardTitle}>Expense comparison by category</h2>
-              <p className={styles.cardSubtitle}>{period.label} vs {prevLabel}</p>
+              <div className={styles.compHeader}>
+                <div>
+                  <h2 className={styles.cardTitle}>Expense comparison by category</h2>
+                  <p className={styles.cardSubtitle}>{period.label} vs {prevLabel}</p>
+                </div>
+                {!showSkeleton && comparisonData.length > 0 && (
+                  <div className={styles.compLegend}>
+                    <span className={styles.compLegendItem}>
+                      <span className={[styles.compDot, styles.compDotCurrent].join(' ')} />{period.label}
+                    </span>
+                    <span className={styles.compLegendItem}>
+                      <span className={[styles.compDot, styles.compDotPrev].join(' ')} />{prevLabel}
+                    </span>
+                  </div>
+                )}
+              </div>
               {showSkeleton ? (
-                <Skeleton width="100%" height={260} radius={8} />
+                <div className={styles.compList}>
+                  {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} width="100%" height={56} radius={8} />)}
+                </div>
               ) : comparisonData.length === 0 ? (
                 <EmptyState compact icon="📊" hint="No expense data to compare." />
-              ) : mounted && (
-                <ResponsiveContainer width="100%" height={comparisonData.length * 52 + 40}>
-                  <BarChart data={comparisonData} layout="vertical" margin={{ left: 16, right: 24, top: 8, bottom: 8 }} barCategoryGap="30%">
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" />
-                    <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-text-faint)' }} tickFormatter={v => formatHUF(v)} axisLine={false} tickLine={false} />
-                    <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} axisLine={false} tickLine={false} />
-                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--color-surface-2)' }} />
-                    <Bar dataKey="current" name={period.label} fill="#f26e4d" radius={[0, 4, 4, 0]} maxBarSize={18} />
-                    <Bar dataKey="prev" name={prevLabel} fill="#7e5ec4" radius={[0, 4, 4, 0]} maxBarSize={18} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-              {comparisonData.length > 0 && (
-                <div className={styles.compLegend}>
-                  <span className={styles.compDot} style={{ backgroundColor: '#f26e4d' }} /><span>{period.label}</span>
-                  <span className={styles.compDot} style={{ backgroundColor: '#7e5ec4' }} /><span style={{ color: 'var(--color-text-muted)' }}>{prevLabel}</span>
-                </div>
-              )}
+              ) : (() => {
+                const maxValue = Math.max(1, ...comparisonData.flatMap(c => [c.current, c.prev]));
+                return (
+                  <div className={styles.compList}>
+                    {comparisonData.map(c => {
+                      const change = changeInfo(c.current, c.prev);
+                      const changeClass = change.tone === 'up' ? styles.compChangeUp : change.tone === 'down' ? styles.compChangeDown : styles.compChangeFlat;
+                      return (
+                        <div key={c.name} className={styles.compRow}>
+                          <div className={styles.compCategory}>
+                            <EmojiBox emoji={c.icon} color={c.color} size="sm" />
+                            <span className={styles.compName}>{c.name}</span>
+                          </div>
+                          <div className={styles.compBars}>
+                            <div className={styles.compBarTrack}>
+                              <div className={styles.compBarFillCurrent} style={{ width: `${(c.current / maxValue) * 100}%` }} />
+                            </div>
+                            <div className={styles.compBarTrack}>
+                              <div className={styles.compBarFillPrev} style={{ width: `${(c.prev / maxValue) * 100}%` }} />
+                            </div>
+                          </div>
+                          <div className={styles.compAmounts}>
+                            <span className={styles.compAmountCurrent}>{formatHUF(c.current)}</span>
+                            <span className={styles.compAmountPrev}>was {formatHUF(c.prev)}</span>
+                          </div>
+                          <span className={[styles.compChangeBadge, changeClass].join(' ')}>{change.text}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
 
           </div>

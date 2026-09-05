@@ -304,24 +304,133 @@
 .balancePos { color: var(--color-income); }
 .balanceNeg { color: var(--color-expense); }
 
-/* ── Comparison legend ── */
+/* ── Expense comparison by category ── */
+.compHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
 .compLegend {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   flex-wrap: wrap;
-  font-size: 0.8125rem;
+}
+
+.compLegendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.875rem;
+  font-weight: 700;
   color: var(--color-text);
-  font-weight: 500;
+  white-space: nowrap;
 }
 
 .compDot {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
   flex-shrink: 0;
   display: inline-block;
 }
+
+.compDotCurrent { background: var(--color-accent); }
+.compDotPrev    { background: rgba(var(--color-accent-glow2), 0.35); }
+
+.compList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.compRow {
+  display: grid;
+  grid-template-columns: 200px 1fr auto auto;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+@media (max-width: 900px) {
+  .compRow { grid-template-columns: 1fr; }
+}
+
+.compCategory {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.compName {
+  font-weight: 700;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compBars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.compBarTrack {
+  width: 100%;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-light);
+  overflow: hidden;
+}
+
+.compBarFillCurrent, .compBarFillPrev {
+  height: 100%;
+  border-radius: var(--radius-full);
+}
+
+.compBarFillCurrent { background: var(--color-accent); }
+.compBarFillPrev    { background: rgba(var(--color-accent-glow2), 0.35); }
+
+.compAmounts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 110px;
+}
+
+.compAmountCurrent {
+  font-family: var(--font-nunito);
+  font-weight: 800;
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.compAmountPrev {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.compChangeBadge {
+  justify-self: end;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.compChangeUp   { background: var(--color-expense-light); color: var(--color-expense); }
+.compChangeDown { background: var(--color-income-light);  color: var(--color-income); }
+.compChangeFlat { background: var(--color-surface-2); color: var(--color-text-muted); }
 
 /* ── Tooltip ── */
 .tooltip {
