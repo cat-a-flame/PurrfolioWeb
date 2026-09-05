@@ -551,13 +551,21 @@ export default function StatisticsPage() {
       });
     }
 
-    items.sort((a, b) => a.predictedDate < b.predictedDate ? -1 : a.predictedDate > b.predictedDate ? 1 : 0);
+    // Rank by how reliable a pattern is (confidence, then typical amount) to decide
+    // which categories earn one of the limited slots, so a frequent/consistent
+    // category never loses its spot to a sparser one just because the sparser one's
+    // predicted date happens to fall earlier in the period. Only the selected subset
+    // is then re-sorted chronologically for display.
+    const byReliability = (a: PredictionItem, b: PredictionItem) =>
+      b.confidencePct - a.confidencePct || b.predictedAmount - a.predictedAmount;
+    const byDate = (a: PredictionItem, b: PredictionItem) =>
+      a.predictedDate < b.predictedDate ? -1 : a.predictedDate > b.predictedDate ? 1 : 0;
 
     const income  = items.filter(i => i.type === 'income');
     const expense = items.filter(i => i.type === 'expense');
     return {
-      income: income.slice(0, MAX_PREDICTIONS_PER_TYPE),
-      expense: expense.slice(0, MAX_PREDICTIONS_PER_TYPE),
+      income:  [...income].sort(byReliability).slice(0, MAX_PREDICTIONS_PER_TYPE).sort(byDate),
+      expense: [...expense].sort(byReliability).slice(0, MAX_PREDICTIONS_PER_TYPE).sort(byDate),
       totalIncome:  income.reduce((s, i) => s + i.predictedAmount, 0),
       totalExpense: expense.reduce((s, i) => s + i.predictedAmount, 0),
     };
