@@ -345,3 +345,99 @@
   line-height: 1.6;
 }
 /* ── Cash flow projection ── */
+
+/* ── Predicted transactions ── */
+.predictionSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.predictionSummaryItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.predictionSummaryItem strong {
+  font-family: var(--font-nunito);
+  font-size: 0.9375rem;
+}
+
+.predictionsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+}
+
+@media (max-width: 640px) {
+  .predictionsGrid { grid-template-columns: 1fr; }
+}
+
+.predictionCol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.predictionColTitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.predictionRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.predictionInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.predictionName {
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.confidenceBadge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.confidenceHigh {
+  background: var(--color-income-light);
+  color: var(--color-income);
+}
+
+.confidenceMedium {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+
+.confidenceLow {
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+}
