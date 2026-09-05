@@ -14,10 +14,11 @@ import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import Skeleton from '@/components/ui/Skeleton';
 import { createClient } from '@/lib/supabase/client';
 import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
+import { fetchWalletBalanceSums } from '@/lib/supabase/fetchWalletBalanceSums';
 import { getExchangeRates, toHUF, txToHUF } from '@/lib/exchangeRates';
-import { formatHUF, formatNumber } from '@/lib/utils';
+import { formatCurrency, formatHUF, formatNumber } from '@/lib/utils';
 import { generateDueDates, isoDate as recurringIsoDate } from '@/lib/recurringUtils';
-import type { Transaction, RecurringPayment, RecurringOccurrence } from '@/lib/types';
+import type { Transaction, Wallet, Currency, RecurringPayment, RecurringOccurrence } from '@/lib/types';
 import styles from './page.module.css';
 
 // ─── palette ────────────────────────────────────────────────────────────────
@@ -139,6 +140,8 @@ function progressPct(actual: number, projected: number): number {
 export default function StatisticsPage() {
   const [allTxs, setAllTxs]   = useState<Transaction[]>([]);
   const [prevTxsData, setPrevTxsData] = useState<Transaction[]>([]);
+  const [walletBalanceSums, setWalletBalanceSums] = useState<Map<string, { income: number; expense: number }>>(new Map());
+  const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
   // True while a period change is being fetched (distinct from `loading`, which only
   // covers the very first load) — lets us skeleton the content while keeping the
@@ -181,15 +184,19 @@ export default function StatisticsPage() {
     const from = new Date(period.from + 'T00:00:00');
     const to   = new Date(period.to   + 'T00:00:00');
     const prev = getPrevRange(period);
-    const [transactions, prevTransactions, pmtRes, occRes] = await Promise.all([
+    const [transactions, prevTransactions, walletSums, wRes, pmtRes, occRes] = await Promise.all([
       fetchTransactions(user.id, period.from, period.to),
       fetchTransactions(user.id, prev.from, prev.to),
+      fetchWalletBalanceSums(user.id),
+      supabase.from('wallets').select('*').eq('user_id', user.id),
       supabase.from('recurring_payments').select('*, wallet:wallets(*), category:categories(*)').eq('user_id', user.id).eq('is_active', true),
       supabase.from('recurring_occurrences').select('*').eq('user_id', user.id)
         .gte('due_date', recurringIsoDate(from)).lte('due_date', recurringIsoDate(to)),
     ]);
     setAllTxs(transactions);
     setPrevTxsData(prevTransactions);
+    setWalletBalanceSums(walletSums);
+    if (wRes.data) setWallets(wRes.data);
     if (pmtRes.data) setRecurringPayments(pmtRes.data as RecurringPayment[]);
     if (occRes.data) setRecurringOccurrences(occRes.data);
     setLoading(false);
@@ -255,6 +262,22 @@ export default function StatisticsPage() {
     // Actual for the period — periodTxs is already scoped to period.from/period.to
     return { actualIncome: income, actualExpense: expense, plannedIncome, plannedExpense };
   }, [period, income, expense, recurringPayments, recurringOccurrences, todayRates]);
+
+  // ── 1. Balance by currency ──────────────────────────────────────────────
+  const currencyBalances = useMemo(() => {
+    const map = new Map<Currency, number>();
+    for (const w of wallets) {
+      const sums = walletBalanceSums.get(w.id) ?? { income: 0, expense: 0 };
+      const bal = w.starting_balance + sums.income - sums.expense;
+      map.set(w.currency, (map.get(w.currency) ?? 0) + bal);
+    }
+    return Array.from(map.entries()).map(([currency, balance], i) => ({
+      currency,
+      balance,
+      balanceHUF: toHUF(balance, currency, todayRates),
+      fill: PALETTE[i % PALETTE.length],
+    }));
+  }, [walletBalanceSums, wallets, todayRates]);
 
   // ── 2. Expenses structure (doughnut) ──────────────────────────────────
   const [otherExpanded, setOtherExpanded] = useState(false);
@@ -573,6 +596,51 @@ export default function StatisticsPage() {
                       );
                     })}
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Balance by currencies ── */}
+            <div className={[styles.card, styles.cardBalances].join(' ')}>
+              <h2 className={styles.cardTitle}>Balance by currency</h2>
+              <p className={styles.cardSubtitle}>Current total across all accounts</p>
+              {loading ? (
+                <div className={styles.balanceList}>
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className={styles.balanceRow}>
+                      <Skeleton width="100%" height={16} radius={4} style={{ marginBottom: 8 }} />
+                      <Skeleton width="100%" height={8} radius="var(--radius-full)" />
+                    </div>
+                  ))}
+                </div>
+              ) : currencyBalances.length === 0 ? (
+                <EmptyState compact icon="💰" hint="No accounts yet." />
+              ) : (
+                <div className={styles.balanceList}>
+                  {(() => {
+                    const maxHUF = Math.max(...currencyBalances.map(c => Math.abs(c.balanceHUF)));
+                    return currencyBalances.map(({ currency, balance, balanceHUF, fill }) => (
+                      <div key={currency} className={styles.balanceRow}>
+                        <div className={styles.balanceMeta}>
+                          <span className={styles.balanceCurrency}>{currency}</span>
+                          <div className={styles.balanceAmountGroup}>
+                            <span className={[styles.balanceAmount, balance >= 0 ? styles.balancePos : styles.balanceNeg].join(' ')}>
+                              {formatCurrency(balance, currency as Currency)}
+                            </span>
+                            {currency !== 'HUF' && (
+                              <span className={styles.balanceHUF}>≈{formatHUF(Math.abs(balanceHUF))}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className={styles.balanceBar}>
+                          <div
+                            className={styles.balanceBarFill}
+                            style={{ width: `${maxHUF > 0 ? Math.min(100, Math.abs(balanceHUF) / maxHUF * 100) : 100}%`, backgroundColor: fill }}
+                          />
+                        </div>
+                      </div>
+                    ));
+                  })()}
                 </div>
               )}
             </div>
