@@ -8,6 +8,7 @@ import {
   type PieLabelRenderProps,
 } from 'recharts';
 import AppShell from '@/components/layout/AppShell';
+import EmojiBox from '@/components/ui/EmojiBox';
 import EmptyState from '@/components/ui/EmptyState';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import Skeleton from '@/components/ui/Skeleton';
@@ -137,25 +138,20 @@ const HISTORY_MONTHS = 6;
 // before it's treated as a real pattern rather than a one-off transaction.
 const MIN_BUCKETS_SEEN = 2;
 const MAX_PREDICTIONS_PER_TYPE = 10;
-const MONTH_SHORT = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
 type PredictionItem = {
   key: string;
   title: string;
   subtitle: string;
   type: TransactionType;
-  predictedDate: string;
+  icon: string;
+  color: string;
   confidencePct: number;
   predictedAmount: number;
   isStable: boolean;
   rangeLow: number;
   rangeHigh: number;
 };
-
-function dateBadge(iso: string): { month: string; day: string } {
-  const d = new Date(iso + 'T00:00:00');
-  return { month: MONTH_SHORT[d.getMonth()], day: String(d.getDate()).padStart(2, '0') };
-}
 
 // Mean + coefficient of variation of a set of per-bucket totals — used to turn
 // "how big does this usually run" into a confidence score and a stable/range call.
@@ -196,40 +192,50 @@ function PredictionPanel({ variant, title, total, items, loading }: {
       ) : items.length === 0 ? (
         <EmptyState compact icon={isIncome ? '💰' : '🧾'} hint={`No recurring ${variant} pattern found yet.`} />
       ) : (
-        <div className={styles.predictionList}>
-          {items.map(item => {
-            const badge = dateBadge(item.predictedDate);
-            return (
-              <div key={item.key} className={styles.predictionListRow}>
-                <div className={styles.predictionDateBadge}>
-                  <span className={styles.predictionDateMonth}>{badge.month}</span>
-                  <span className={styles.predictionDateDay}>{badge.day}</span>
-                </div>
-                <div className={styles.predictionMain}>
-                  <span className={styles.predictionTitle}>{item.title}</span>
-                  <span className={styles.predictionSubtitle}>{item.subtitle}</span>
-                </div>
-                <div className={styles.predictionConfidence}>
-                  <span className={styles.predictionConfidenceLabel}>{item.confidencePct}% sure</span>
-                  <div className={styles.predictionConfidenceTrack}>
-                    <div
-                      className={[styles.predictionConfidenceFill, isIncome ? styles.predictionConfidenceFillIncome : styles.predictionConfidenceFillExpense].join(' ')}
-                      style={{ width: `${item.confidencePct}%` }}
-                    />
+        <table className={styles.predictionTable}>
+          <colgroup>
+            <col className={styles.predictionColCategory} />
+            <col />
+            <col className={styles.predictionColConfidence} />
+            <col className={styles.predictionColAmount} />
+          </colgroup>
+          <tbody>
+            {items.map(item => (
+              <tr key={item.key} className={styles.predictionRow}>
+                <td className={styles.predictionCellCategory}>
+                  <EmojiBox emoji={item.icon} color={item.color} size="sm" />
+                </td>
+                <td className={styles.predictionCellMain}>
+                  <div className={styles.predictionMain}>
+                    <span className={styles.predictionTitle}>{item.title}</span>
+                    <span className={styles.predictionSubtitle}>{item.subtitle}</span>
                   </div>
-                </div>
-                <div className={styles.predictionAmountCol}>
-                  <span className={[styles.predictionAmount, isIncome ? styles.statAmountIncome : styles.statAmountExpense].join(' ')}>
-                    {sign}{formatHUF(item.predictedAmount)}
-                  </span>
-                  <span className={styles.predictionRangeText}>
-                    {item.isStable ? 'stable' : `${formatNumber(item.rangeLow)} – ${formatNumber(item.rangeHigh)}`}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                </td>
+                <td className={styles.predictionCellConfidence}>
+                  <div className={styles.predictionConfidence}>
+                    <span className={styles.predictionConfidenceLabel}>{item.confidencePct}% sure</span>
+                    <div className={styles.predictionConfidenceTrack}>
+                      <div
+                        className={[styles.predictionConfidenceFill, isIncome ? styles.predictionConfidenceFillIncome : styles.predictionConfidenceFillExpense].join(' ')}
+                        style={{ width: `${item.confidencePct}%` }}
+                      />
+                    </div>
+                  </div>
+                </td>
+                <td className={styles.predictionCellAmount}>
+                  <div className={styles.predictionAmountCol}>
+                    <span className={[styles.predictionAmount, isIncome ? styles.statAmountIncome : styles.statAmountExpense].join(' ')}>
+                      {sign}{formatHUF(item.predictedAmount)}
+                    </span>
+                    <span className={styles.predictionRangeText}>
+                      {item.isStable ? 'stable' : `${formatNumber(Math.round(item.rangeLow))} – ${formatNumber(Math.round(item.rangeHigh))}`}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );
@@ -456,11 +462,11 @@ export default function StatisticsPage() {
   // ── 4. Predicted transactions ──────────────────────────────────────────
   // Learns a per-category (and, where one vendor dominates, per-payer) pattern
   // from the trailing 6-month history window: how many of the 6 buckets it
-  // showed up in, its typical monthly total, how much that total varies, and
-  // roughly which day of the period it tends to land on. That's then scaled
-  // and re-anchored onto the selected period. A category needs to show up in
-  // at least MIN_BUCKETS_SEEN of the 6 buckets to be treated as a pattern
-  // rather than a one-off transaction.
+  // showed up in, its typical monthly total, and how much that total varies.
+  // That's then scaled onto the selected period's length. A category needs to
+  // show up in at least MIN_BUCKETS_SEEN of the 6 buckets to be treated as a
+  // pattern rather than a one-off transaction, and the most reliable patterns
+  // (highest confidence, then largest typical amount) win the limited slots.
   const predictions = useMemo(() => {
     if (!historyRange) return { income: [] as PredictionItem[], expense: [] as PredictionItem[], totalIncome: 0, totalExpense: 0 };
 
@@ -476,11 +482,12 @@ export default function StatisticsPage() {
 
     type Group = {
       name: string;
+      icon: string;
+      color: string;
       type: TransactionType;
       totalCount: number;
       buckets: Map<number, number>; // bucket index -> HUF sum
       payerCounts: Map<string, number>;
-      bucketPositions: number[]; // 0..1 position within its bucket, for date placement
     };
     const map = new Map<string, Group>();
 
@@ -489,11 +496,12 @@ export default function StatisticsPage() {
       const key = `${t.type}|${t.category_id ?? 'none'}`;
       const g = map.get(key) ?? {
         name: t.category?.name ?? 'Uncategorised',
+        icon: t.category?.icon ?? '📁',
+        color: t.category?.color ?? '#94a3b8',
         type: t.type,
         totalCount: 0,
         buckets: new Map<number, number>(),
         payerCounts: new Map<string, number>(),
-        bucketPositions: [],
       };
       const amount = txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
       const daysSinceStart = (new Date(t.date + 'T00:00:00').getTime() - histFrom.getTime()) / 86400000;
@@ -501,8 +509,6 @@ export default function StatisticsPage() {
       g.buckets.set(bucketIdx, (g.buckets.get(bucketIdx) ?? 0) + amount);
       g.totalCount += 1;
       if (t.payer) g.payerCounts.set(t.payer, (g.payerCounts.get(t.payer) ?? 0) + 1);
-      const posInBucket = daysSinceStart - bucketIdx * bucketSize;
-      g.bucketPositions.push(Math.min(1, Math.max(0, posInBucket / bucketSize)));
       map.set(key, g);
     }
 
@@ -533,16 +539,13 @@ export default function StatisticsPage() {
       const consistency = Math.max(0, 1 - cv);
       const confidencePct = Math.max(1, Math.min(99, Math.round(100 * (0.55 * presenceRatio + 0.45 * consistency))));
 
-      const avgPos = g.bucketPositions.reduce((s, v) => s + v, 0) / g.bucketPositions.length;
-      const dayIdx = Math.min(periodDays - 1, Math.max(0, Math.round(avgPos * periodDays)));
-      const predictedDate = isoDate(new Date(periodFrom.getTime() + dayIdx * 86400000));
-
       items.push({
         key,
         title,
         subtitle,
         type: g.type,
-        predictedDate,
+        icon: g.icon,
+        color: g.color,
         confidencePct,
         predictedAmount: mean * scale,
         isStable: cv <= 0.08,
@@ -551,21 +554,16 @@ export default function StatisticsPage() {
       });
     }
 
-    // Rank by how reliable a pattern is (confidence, then typical amount) to decide
-    // which categories earn one of the limited slots, so a frequent/consistent
-    // category never loses its spot to a sparser one just because the sparser one's
-    // predicted date happens to fall earlier in the period. Only the selected subset
-    // is then re-sorted chronologically for display.
+    // Rank by how reliable a pattern is (confidence, then typical amount) so a
+    // frequent/consistent category always wins a slot over a sparser one.
     const byReliability = (a: PredictionItem, b: PredictionItem) =>
       b.confidencePct - a.confidencePct || b.predictedAmount - a.predictedAmount;
-    const byDate = (a: PredictionItem, b: PredictionItem) =>
-      a.predictedDate < b.predictedDate ? -1 : a.predictedDate > b.predictedDate ? 1 : 0;
 
     const income  = items.filter(i => i.type === 'income');
     const expense = items.filter(i => i.type === 'expense');
     return {
-      income:  [...income].sort(byReliability).slice(0, MAX_PREDICTIONS_PER_TYPE).sort(byDate),
-      expense: [...expense].sort(byReliability).slice(0, MAX_PREDICTIONS_PER_TYPE).sort(byDate),
+      income:  [...income].sort(byReliability).slice(0, MAX_PREDICTIONS_PER_TYPE),
+      expense: [...expense].sort(byReliability).slice(0, MAX_PREDICTIONS_PER_TYPE),
       totalIncome:  income.reduce((s, i) => s + i.predictedAmount, 0),
       totalExpense: expense.reduce((s, i) => s + i.predictedAmount, 0),
     };
@@ -860,17 +858,17 @@ export default function StatisticsPage() {
 
             {/* ── Predicted transactions ── */}
             <PredictionPanel
-              variant="income"
-              title="Expected income"
-              total={predictions.totalIncome}
-              items={predictions.income}
-              loading={showSkeleton}
-            />
-            <PredictionPanel
               variant="expense"
               title="Expected expenses"
               total={predictions.totalExpense}
               items={predictions.expense}
+              loading={showSkeleton}
+            />
+            <PredictionPanel
+              variant="income"
+              title="Expected income"
+              total={predictions.totalIncome}
+              items={predictions.income}
               loading={showSkeleton}
             />
 
