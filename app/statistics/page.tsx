@@ -532,8 +532,8 @@ export default function StatisticsPage() {
         if (dominantPayer && dominantCount / g.totalCount >= 0.6) title = `${g.name} — ${dominantPayer}`;
       }
       const subtitle = isAggregate
-        ? `${g.name} • ${g.totalCount} entries / ${HISTORY_MONTHS} months`
-        : `${g.name} • seen ${bucketsSeen} of ${HISTORY_MONTHS} months`;
+        ? `${g.totalCount} entries / ${HISTORY_MONTHS} months`
+        : `seen ${bucketsSeen} of ${HISTORY_MONTHS} months`;
 
       const presenceRatio = bucketsSeen / HISTORY_MONTHS;
       const consistency = Math.max(0, 1 - cv);
