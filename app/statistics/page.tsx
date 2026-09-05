@@ -266,12 +266,12 @@ export default function StatisticsPage() {
       const bal = w.starting_balance + sums.income - sums.expense;
       map.set(w.currency, (map.get(w.currency) ?? 0) + bal);
     }
-    return Array.from(map.entries()).map(([currency, balance], i) => ({
-      currency,
-      balance,
-      balanceHUF: toHUF(balance, currency, todayRates),
-      fill: PALETTE[i % PALETTE.length],
-    }));
+    const entries = Array.from(map.entries()).map(([currency, balance], i) => {
+      const balanceHUF = toHUF(balance, currency, todayRates);
+      return { currency, balance, absHUF: Math.abs(balanceHUF), fill: PALETTE[i % PALETTE.length] };
+    });
+    const total = entries.reduce((s, e) => s + e.absHUF, 0);
+    return entries.map(e => ({ ...e, pct: total > 0 ? Math.round((e.absHUF / total) * 100) : 0 }));
   }, [walletBalanceSums, wallets, todayRates]);
 
   // ── 2. Expenses structure (doughnut) ──────────────────────────────────
@@ -558,42 +558,44 @@ export default function StatisticsPage() {
               <h2 className={styles.cardTitle}>Balance by currency</h2>
               <p className={styles.cardSubtitle}>Current total across all accounts</p>
               {loading ? (
-                <div className={styles.balanceList}>
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className={styles.balanceRow}>
-                      <Skeleton width="100%" height={16} radius={4} style={{ marginBottom: 8 }} />
-                      <Skeleton width="100%" height={8} radius="var(--radius-full)" />
-                    </div>
-                  ))}
-                </div>
+                <Skeleton width="100%" height={240} radius={8} />
               ) : currencyBalances.length === 0 ? (
                 <EmptyState compact icon="💰" hint="No accounts yet." />
               ) : (
-                <div className={styles.balanceList}>
-                  {(() => {
-                    const maxHUF = Math.max(...currencyBalances.map(c => Math.abs(c.balanceHUF)));
-                    return currencyBalances.map(({ currency, balance, balanceHUF, fill }) => (
-                      <div key={currency} className={styles.balanceRow}>
-                        <div className={styles.balanceMeta}>
-                          <span className={styles.balanceCurrency}>{currency}</span>
-                          <div className={styles.balanceAmountGroup}>
-                            <span className={[styles.balanceAmount, balance >= 0 ? styles.balancePos : styles.balanceNeg].join(' ')}>
-                              {formatCurrency(balance, currency as Currency)}
-                            </span>
-                            {currency !== 'HUF' && (
-                              <span className={styles.balanceHUF}>≈{formatHUF(Math.abs(balanceHUF))}</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className={styles.balanceBar}>
-                          <div
-                            className={styles.balanceBarFill}
-                            style={{ width: `${maxHUF > 0 ? Math.min(100, Math.abs(balanceHUF) / maxHUF * 100) : 100}%`, backgroundColor: fill }}
-                          />
-                        </div>
+                <div className={styles.doughnutLayout}>
+                  {mounted && (
+                    <div className={styles.doughnutChart}>
+                      <ResponsiveContainer width="100%" height={240}>
+                        <PieChart>
+                          <Pie
+                            data={currencyBalances}
+                            dataKey="absHUF"
+                            nameKey="currency"
+                            innerRadius={60}
+                            outerRadius={100}
+                            paddingAngle={2}
+                            startAngle={90}
+                            endAngle={-270}
+                          >
+                            {currencyBalances.map((c, i) => <Cell key={i} fill={c.fill} />)}
+                          </Pie>
+                          <Tooltip content={<ChartTooltip />} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                  <div className={styles.doughnutLegend}>
+                    {currencyBalances.map((c, i) => (
+                      <div key={i} className={styles.legendRow}>
+                        <span className={styles.legendDot} style={{ backgroundColor: c.fill }} />
+                        <span className={styles.legendName}>{c.currency}</span>
+                        <span className={styles.legendPct}>{c.pct}%</span>
+                        <span className={[styles.legendAmount, c.balance >= 0 ? styles.balancePos : styles.balanceNeg].join(' ')}>
+                          {formatCurrency(c.balance, c.currency as Currency)}
+                        </span>
                       </div>
-                    ));
-                  })()}
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
