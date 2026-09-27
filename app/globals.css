@@ -189,7 +189,12 @@ body {
   isolation: isolate;
 }
 
-/* ── Aurora backdrop: slow-drifting colour fields behind the whole app ── */
+/* ── Aurora backdrop: soft colour fields behind the whole app ──
+   Deliberately static and unfiltered. It sits under every glass panel
+   (sidebar, cards, dialogs use backdrop-filter), so animating it or blurring
+   it forces the browser to re-blur the whole screen on every frame, which
+   pins the GPU. The radial gradients already fade to transparent, so no
+   extra blur is needed. */
 body::before {
   content: '';
   position: fixed;
@@ -201,8 +206,6 @@ body::before {
     radial-gradient(34vmax 34vmax at 92% 12%, var(--aurora-2), transparent 70%),
     radial-gradient(40vmax 40vmax at 78% 92%, var(--aurora-3), transparent 70%),
     radial-gradient(30vmax 30vmax at 18% 88%, var(--aurora-4), transparent 70%);
-  filter: blur(20px);
-  animation: auroraDrift 38s ease-in-out infinite alternate;
 }
 
 /* Film grain on top of the aurora — keeps the gradients from banding */
@@ -216,11 +219,6 @@ body::after {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-@keyframes auroraDrift {
-  0%   { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
-  50%  { transform: translate3d(3vmax, -2vmax, 0) rotate(8deg) scale(1.06); }
-  100% { transform: translate3d(-3vmax, 2vmax, 0) rotate(-6deg) scale(1); }
-}
 
 h1, h2, h3 {
   letter-spacing: -0.02em;
@@ -349,9 +347,5 @@ svg {
     animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-  }
-
-  body::before {
-    animation: none !important;
   }
 }
