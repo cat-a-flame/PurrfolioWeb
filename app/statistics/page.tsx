@@ -849,7 +849,7 @@ export default function StatisticsPage() {
                 )}
               </div>
               {showSkeleton ? (
-                <div className={styles.compList}>
+                <div className={styles.compSkeletonList}>
                   {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} width="100%" height={56} radius={8} />)}
                 </div>
               ) : comparisonData.length === 0 ? (
