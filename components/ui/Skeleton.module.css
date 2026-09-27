@@ -1,31 +1,28 @@
-/* A soft highlight glides across once per cycle, easing in and out, while the
-   block gently breathes. The 800px pattern repeats every 800px, so the loop has no seam. */
+/* A soft highlight glides across each block, then rests before the next pass.
+   The gradient is sized relative to the element (300%), so every skeleton —
+   however narrow — gets a full sweep. Start and end positions keep the
+   highlight fully off-element, so the loop has no visible seam. */
 @keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
-}
-
-@keyframes breathe {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.8; }
+  0%   { background-position: 100% 0; }
+  65%  { background-position: 0% 0; }
+  100% { background-position: 0% 0; }
 }
 
 .base {
-  background-size: 800px 100%;
-  animation:
-    shimmer 6s cubic-bezier(0.45, 0, 0.55, 1) infinite,
-    breathe 6s ease-in-out infinite;
+  background-size: 300% 100%;
+  background-repeat: no-repeat;
+  animation: shimmer 3.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 
 .default {
   background-color: var(--color-surface-2);
   background-image: linear-gradient(
     90deg,
-    transparent 0%,
-    transparent 30%,
-    color-mix(in srgb, var(--color-surface-3) 70%, transparent) 50%,
-    transparent 70%,
-    transparent 100%
+    var(--color-surface-2) 0%,
+    var(--color-surface-2) 38%,
+    var(--color-surface-3) 50%,
+    var(--color-surface-2) 62%,
+    var(--color-surface-2) 100%
   );
 }
 
@@ -35,9 +32,9 @@
   background-image: linear-gradient(
     90deg,
     transparent 0%,
-    transparent 30%,
-    rgba(255, 255, 255, 0.14) 50%,
-    transparent 70%,
+    transparent 38%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 62%,
     transparent 100%
   );
 }
