@@ -1,28 +1,43 @@
+/* A soft highlight glides across once per cycle, easing in and out, while the
+   block gently breathes. The 800px pattern repeats every 800px, so the loop has no seam. */
 @keyframes shimmer {
   0%   { background-position: -400px 0; }
   100% { background-position: 400px 0; }
 }
 
+@keyframes breathe {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.8; }
+}
+
 .base {
   background-size: 800px 100%;
-  animation: shimmer 6s linear infinite;
+  animation:
+    shimmer 6s cubic-bezier(0.45, 0, 0.55, 1) infinite,
+    breathe 6s ease-in-out infinite;
 }
 
 .default {
-  background: linear-gradient(
+  background-color: var(--color-surface-2);
+  background-image: linear-gradient(
     90deg,
-    var(--color-surface-2) 25%,
-    var(--color-surface-3) 50%,
-    var(--color-surface-2) 75%
+    transparent 0%,
+    transparent 30%,
+    color-mix(in srgb, var(--color-surface-3) 70%, transparent) 50%,
+    transparent 70%,
+    transparent 100%
   );
 }
 
 /* For placement on dark/colored surfaces (e.g. the cash flow gradient card) */
 .light {
-  background: linear-gradient(
+  background-color: rgba(255, 255, 255, 0.16);
+  background-image: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.16) 25%,
-    rgba(255, 255, 255, 0.32) 50%,
-    rgba(255, 255, 255, 0.16) 75%
+    transparent 0%,
+    transparent 30%,
+    rgba(255, 255, 255, 0.14) 50%,
+    transparent 70%,
+    transparent 100%
   );
 }
