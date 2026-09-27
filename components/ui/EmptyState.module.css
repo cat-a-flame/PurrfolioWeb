@@ -13,12 +13,6 @@
 .icon {
   font-size: 2.25rem;
   line-height: 1;
-  animation: floaty 4s ease-in-out infinite;
-}
-
-@keyframes floaty {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
 }
 
 .title {
