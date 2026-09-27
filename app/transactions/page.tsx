@@ -19,7 +19,7 @@ import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import { createClient } from '@/lib/supabase/client';
 import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
 import { formatCurrency, formatHUF } from '@/lib/utils';
-import { getExchangeRates, txToHUF } from '@/lib/exchangeRates';
+import { getExchangeRates, getRatesForTransactions, txToHUF } from '@/lib/exchangeRates';
 import type { Transaction, Category, Label, TransactionType, Wallet } from '@/lib/types';
 import styles from './page.module.css';
 
@@ -133,21 +133,6 @@ export default function TransactionsPage() {
   // Exchange rates: date → { EUR: number, USD: number, … } (HUF per 1 unit)
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
 
-  useEffect(() => {
-    const dates = [...new Set(
-      transactions
-        .filter(t => t.wallet?.currency && t.wallet.currency !== 'HUF' && t.exchange_rate_to_huf == null)
-        .map(t => t.date)
-    )];
-    if (!dates.length) return;
-    Promise.all(dates.map(async d => [d, await getExchangeRates(d)] as const))
-      .then(entries => setRatesByDate(prev => {
-        const next = { ...prev };
-        for (const [d, rates] of entries) next[d] = rates;
-        return next;
-      }));
-  }, [transactions]);
-
   // Lazy load
   const [displayCount, setDisplayCount] = useState(15);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -187,6 +172,11 @@ export default function TransactionsPage() {
       supabase.from('wallets').select('*').eq('user_id', user.id).order('name'),
     ]);
 
+    // Resolve exchange rates before anything renders, so the balance card
+    // totals are final when the skeleton disappears.
+    const rates = await getRatesForTransactions(transactions);
+
+    setRatesByDate(prevRates => ({ ...prevRates, ...rates }));
     setTransactions(transactions);
     if (catRes.data) setCategories(catRes.data);
     if (lblRes.data) setLabels(lblRes.data);

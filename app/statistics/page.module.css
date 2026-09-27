@@ -1,5 +1,5 @@
 .container {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -16,10 +16,16 @@
 }
 
 .pageTitle {
-  font-family: var(--font-lora);
-  font-size: 1.75rem;
+  font-family: var(--font-display);
+  font-size: 2rem;
   font-weight: 700;
-  color: var(--color-text);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  padding-bottom: 0.08em;
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 /* ── Period row ── */
@@ -341,21 +347,63 @@
 .compDotCurrent { background: var(--color-accent); }
 .compDotPrev    { background: rgba(var(--color-accent-glow2), 0.35); }
 
+/* One grid for the whole list; each row adopts its column tracks via subgrid,
+   so category, bars, amounts and badge line up across every row. */
 .compList {
+  display: grid;
+  grid-template-columns: minmax(0, 200px) minmax(0, 1fr) auto auto;
+  column-gap: var(--space-5);
+  row-gap: var(--space-5);
+}
+
+.compRow {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+}
+
+/* Fallback for browsers without subgrid: fixed tracks keep the columns aligned */
+@supports not (grid-template-columns: subgrid) {
+  .compRow {
+    grid-template-columns: minmax(0, 200px) minmax(0, 1fr) 130px 96px;
+    column-gap: var(--space-5);
+  }
+}
+
+.compSkeletonList {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
 }
 
-.compRow {
-  display: grid;
-  grid-template-columns: 200px 1fr auto auto;
-  align-items: center;
-  gap: var(--space-4);
-}
-
 @media (max-width: 900px) {
-  .compRow { grid-template-columns: 1fr; }
+  .compList {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--space-4);
+  }
+
+  /* Compact two-column layout per row: name + amounts, then bars + badge.
+     Rows still share the list's column tracks, so bars end at the same point. */
+  .compRow {
+    grid-template-columns: subgrid;
+    grid-template-areas:
+      "cat amounts"
+      "bars badge";
+    row-gap: var(--space-3);
+  }
+
+  @supports not (grid-template-columns: subgrid) {
+    .compRow {
+      grid-template-columns: minmax(0, 1fr) 110px;
+      column-gap: var(--space-4);
+    }
+  }
+
+  .compRow > .compCategory    { grid-area: cat; }
+  .compRow > .compAmounts     { grid-area: amounts; min-width: 0; }
+  .compRow > .compBars        { grid-area: bars; }
+  .compRow > .compChangeBadge { grid-area: badge; min-width: 72px; }
 }
 
 .compCategory {
@@ -366,6 +414,7 @@
 }
 
 .compName {
+  font-size: 0.9375rem;
   font-weight: 700;
   color: var(--color-text);
   white-space: nowrap;
@@ -405,7 +454,7 @@
 }
 
 .compAmountCurrent {
-  font-family: var(--font-nunito);
+  font-family: var(--font-body);
   font-weight: 800;
   font-size: 0.9375rem;
   color: var(--color-text);
@@ -413,14 +462,15 @@
 }
 
 .compAmountPrev {
-  font-size: 0.75rem;
+  font-size: 0.78125rem;
   font-weight: 700;
   color: var(--color-text-muted);
   white-space: nowrap;
 }
 
 .compChangeBadge {
-  justify-self: end;
+  justify-self: stretch;
+  text-align: center;
   font-size: 0.8125rem;
   font-weight: 700;
   padding: var(--space-1) var(--space-3);
@@ -551,7 +601,7 @@
 }
 
 .predictionSubtitle {
-  font-size: 0.75rem;
+  font-size: 0.78125rem;
   font-weight: 700;
   color: var(--color-text-muted);
   white-space: nowrap;

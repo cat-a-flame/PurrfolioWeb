@@ -6,10 +6,17 @@ export function useCountUp(target: number, duration = 650): number {
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+
+    // Jump straight to the value when the user prefers reduced motion
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      displayedRef.current = target;
+      setDisplayed(target);
+      return;
+    }
+
     const from = displayedRef.current;
     const startTime = performance.now();
-
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
 
     function tick(now: number) {
       const progress = Math.min((now - startTime) / duration, 1);

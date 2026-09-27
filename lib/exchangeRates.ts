@@ -41,3 +41,26 @@ export function txToHUF(
   if (storedRate != null) return amount * storedRate;
   return toHUF(amount, currency, ratesMap);
 }
+
+type RateLookupTx = {
+  date: string;
+  exchange_rate_to_huf: number | null;
+  wallet?: { currency?: string } | null;
+};
+
+/**
+ * Fetches the exchange rates needed to convert the given transactions to HUF,
+ * keyed by date. Only foreign-currency transactions without a stored rate need one.
+ * Await this alongside the data fetch so totals are final before loading ends.
+ */
+export async function getRatesForTransactions(
+  transactions: RateLookupTx[],
+): Promise<Record<string, Record<string, number>>> {
+  const dates = [...new Set(
+    transactions
+      .filter(t => t.wallet?.currency && t.wallet.currency !== 'HUF' && t.exchange_rate_to_huf == null)
+      .map(t => t.date)
+  )];
+  const entries = await Promise.all(dates.map(async d => [d, await getExchangeRates(d)] as const));
+  return Object.fromEntries(entries);
+}

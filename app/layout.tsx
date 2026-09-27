@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Lora, Nunito } from 'next/font/google';
 import AddRecordProvider from '@/components/transactions/AddRecordProvider';
 import BottomNav from '@/components/layout/BottomNav';
@@ -7,8 +7,15 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { RecurringAlertProvider } from '@/contexts/RecurringAlertContext';
 import './globals.css';
 
-const lora = Lora({ subsets: ['latin'], variable: '--font-lora', display: 'swap' });
-const nunito = Nunito({ subsets: ['latin'], variable: '--font-nunito', display: 'swap' });
+const lora = Lora({ subsets: ['latin'], variable: '--font-display-src', display: 'swap' });
+const nunito = Nunito({ subsets: ['latin'], variable: '--font-body-src', display: 'swap' });
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f5f2ff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0614' },
+  ],
+};
 
 export const metadata: Metadata = {
   title: 'Purrfolio',

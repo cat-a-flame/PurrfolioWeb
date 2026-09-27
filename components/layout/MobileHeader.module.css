@@ -12,11 +12,13 @@
     left: 0;
     right: 0;
     z-index: 150;
-    height: 56px;
+    height: calc(var(--mobile-header-h) + env(safe-area-inset-top));
     padding: 0 var(--space-4);
     padding-top: env(safe-area-inset-top);
-    background: var(--color-surface);
-    border-bottom: 1px solid var(--color-border);
+    background: var(--color-glass);
+    border-bottom: 1px solid var(--color-glass-border);
+    -webkit-backdrop-filter: blur(20px) saturate(170%);
+    backdrop-filter: blur(20px) saturate(170%);
   }
 
   .trigger {
@@ -41,18 +43,21 @@
   }
 
   .logo {
-    width: 26px;
-    height: 26px;
+    width: 30px;
+    height: 30px;
     flex-shrink: 0;
     border-radius: var(--radius-sm);
   }
 
   .brandName {
-    font-family: var(--font-lora);
-    font-size: 1.0625rem;
+    font-family: var(--font-display);
+    font-size: 1.1875rem;
     font-weight: 700;
-    letter-spacing: -0.01em;
-    color: var(--color-text);
+    letter-spacing: -0.02em;
+    background: var(--gradient-text);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 }
 
@@ -60,8 +65,11 @@
   position: fixed;
   inset: 0;
   background: var(--color-overlay);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   z-index: 300;
   display: flex;
+  animation: fadeIn 200ms ease-out;
 }
 
 .drawer {
@@ -72,8 +80,9 @@
   height: 100%;
   background: var(--color-surface);
   box-shadow: var(--shadow-lg);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
   padding-top: env(safe-area-inset-top);
-  animation: slideIn 0.2s ease-out;
+  animation: slideIn 320ms var(--ease-out);
 }
 
 @keyframes slideIn {
@@ -143,9 +152,11 @@
   color: var(--color-text);
 }
 
-.navLinkActive {
-  background: var(--color-surface-2);
-  color: var(--color-accent);
+.navLinkActive,
+.navLinkActive:hover {
+  background: var(--gradient-accent);
+  color: #fff;
+  box-shadow: 0 12px 24px -12px var(--color-accent-glow);
 }
 
 .navIcon {
@@ -195,7 +206,7 @@
 }
 
 .toggleTrackOn {
-  background: var(--color-accent);
+  background: var(--gradient-accent);
 }
 
 .toggleThumb {
