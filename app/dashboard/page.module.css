@@ -25,8 +25,8 @@
 .pageTitle {
   font-family: var(--font-display);
   font-size: 2.25rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   line-height: 1.1;
   padding-bottom: 0.08em;
   background: var(--gradient-text);
@@ -92,7 +92,7 @@
 }
 
 .accountName {
-  font-size: 0.75rem;
+  font-size: 0.78125rem;
   font-weight: 700;
   color: var(--color-text-muted);
   white-space: nowrap;
@@ -101,10 +101,10 @@
 }
 
 .accountBalance {
-  font-size: 1rem;
-  font-weight: 800;
+  font-size: 0.9375rem;
+  font-weight: 900;
   letter-spacing: -0.01em;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   color: var(--color-text);
   white-space: nowrap;
 }
@@ -265,10 +265,11 @@
 }
 
 .cashFlowBalance {
-  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-body);
   font-size: clamp(2.25rem, 4vw, 3.25rem);
-  font-weight: 800;
-  letter-spacing: -0.045em;
+  font-weight: 900;
+  letter-spacing: -0.01em;
   color: #fff;
   line-height: 1.05;
   white-space: nowrap;
@@ -407,8 +408,8 @@
 
 .sideCardTitle {
   font-family: var(--font-display);
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   font-size: 1.1875rem;
   color: var(--color-text);
 }
@@ -515,7 +516,7 @@
 
 .plannedName {
   font-weight: 800;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
@@ -524,13 +525,13 @@
 
 .plannedFreq {
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: 0.78125rem;
   font-weight: 600;
 }
 
 .plannedAmount {
   font-weight: 900;
-  font-size: 0.84375rem;
+  font-size: 0.9375rem;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -545,10 +546,10 @@
 
 .plannedDialogAmount {
   display: block;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-weight: 900;
+  letter-spacing: -0.01em;
   margin-bottom: var(--space-2);
 }
 
@@ -566,7 +567,7 @@
 
 .catName {
   font-weight: 800;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
@@ -575,7 +576,7 @@
 
 .catAmount {
   font-weight: 900;
-  font-size: 0.84375rem;
+  font-size: 0.9375rem;
   color: var(--color-expense);
   white-space: nowrap;
   flex-shrink: 0;
@@ -601,8 +602,8 @@
 
 .recentTitle {
   font-family: var(--font-display);
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   font-size: 1.3125rem;
   color: var(--color-text);
 }
@@ -731,7 +732,7 @@
 
 .txPayee {
   flex-shrink: 0;
-  font-size: .78125rem;
+  font-size: 0.78125rem;
   color: var(--color-text-muted);
   font-weight: 700;
   white-space: nowrap;
@@ -740,7 +741,7 @@
 .txNotes {
   display: block;
   flex: 1 1 auto;
-  font-size: 0.8125rem;
+  font-size: 0.78125rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -793,7 +794,7 @@
 
 .txDate {
   color: var(--color-text-faint);
-  font-size: 0.75rem;
+  font-size: 0.78125rem;
   font-weight: 600;
 }
 

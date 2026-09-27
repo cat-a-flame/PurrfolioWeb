@@ -52,8 +52,8 @@
   .brandName {
     font-family: var(--font-display);
     font-size: 1.1875rem;
-    font-weight: 800;
-    letter-spacing: -0.035em;
+    font-weight: 700;
+    letter-spacing: -0.02em;
     background: var(--gradient-text);
     -webkit-background-clip: text;
     background-clip: text;

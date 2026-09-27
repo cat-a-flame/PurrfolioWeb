@@ -17,8 +17,8 @@
 .pageTitle {
   font-family: var(--font-display);
   font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   line-height: 1.1;
   padding-bottom: 0.08em;
   background: var(--gradient-text);
@@ -180,7 +180,7 @@
   align-items: center;
   gap: var(--space-1);
   flex-shrink: 0;
-  font-size: .78125rem;
+  font-size: 0.78125rem;
   color: var(--color-text-muted);
   font-weight: 700;
   white-space: nowrap;
@@ -196,7 +196,7 @@
 .recordNotes {
   display: block;
   flex: 1 1 auto;
-  font-size: 0.8125rem;
+  font-size: 0.78125rem;
   color: var(--color-text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -245,7 +245,7 @@
 }
 
 .dueDateBadge {
-  font-size: 0.75rem;
+  font-size: 0.78125rem;
   font-weight: 600;
   color: var(--color-text-muted);
   white-space: nowrap;

@@ -18,8 +18,8 @@
 .pageTitle {
   font-family: var(--font-display);
   font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   line-height: 1.1;
   padding-bottom: 0.08em;
   background: var(--gradient-text);
@@ -414,6 +414,7 @@
 }
 
 .compName {
+  font-size: 0.9375rem;
   font-weight: 700;
   color: var(--color-text);
   white-space: nowrap;
@@ -461,7 +462,7 @@
 }
 
 .compAmountPrev {
-  font-size: 0.75rem;
+  font-size: 0.78125rem;
   font-weight: 700;
   color: var(--color-text-muted);
   white-space: nowrap;
@@ -600,7 +601,7 @@
 }
 
 .predictionSubtitle {
-  font-size: 0.75rem;
+  font-size: 0.78125rem;
   font-weight: 700;
   color: var(--color-text-muted);
   white-space: nowrap;

@@ -24,8 +24,8 @@
 .pageTitle {
   font-family: var(--font-display);
   font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   line-height: 1.1;
   padding-bottom: 0.08em;
   background: var(--gradient-text);
@@ -464,7 +464,7 @@
   align-items: center;
   gap: var(--space-1);
   flex-shrink: 0;
-  font-size: .78125rem;
+  font-size: 0.78125rem;
   color: var(--color-text-muted);
   font-weight: 700;
   white-space: nowrap;
@@ -479,7 +479,7 @@
 
 .txPayee {
   flex-shrink: 0;
-  font-size: .78125rem;
+  font-size: 0.78125rem;
   color: var(--color-text-muted);
   font-weight: 700;
   white-space: nowrap;
@@ -488,7 +488,7 @@
 .txNotes {
   display: block;
   flex: 1 1 auto;
-  font-size: 0.8125rem;
+  font-size: 0.78125rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -613,6 +613,7 @@
 }
 
 .summaryBalanceAmount {
+  font-variant-numeric: tabular-nums;
   font-family: var(--font-nunito);
   font-size: 2.25rem;
   font-weight: 900;

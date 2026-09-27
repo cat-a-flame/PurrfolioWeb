@@ -28,7 +28,7 @@
 
 .name {
   font-weight: 800;
-  font-size: 1.125rem;
+  font-size: 0.9375rem;
   color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
