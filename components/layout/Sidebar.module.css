@@ -142,7 +142,9 @@
   background: var(--color-danger);
   flex-shrink: 0;
   box-shadow: 0 0 0 0 rgba(224, 52, 74, 0.6);
-  animation: badgePulse 2s ease-out infinite;
+  /* A few pulses to draw the eye, then rest — an endless box-shadow
+     animation repaints the frosted sidebar every frame. */
+  animation: badgePulse 2s ease-out 3;
 }
 
 .navLinkActive .navBadge {

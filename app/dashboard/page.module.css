@@ -177,7 +177,9 @@
   min-width: 300px;
 }
 
-/* Drifting light orbs inside the hero card */
+/* Light orbs inside the hero card. Kept static: an animated blur(40px) layer
+   repaints every frame and the frosted title/badges above it would have to
+   re-blur it each time. */
 .cashFlowCard::before,
 .cashFlowCard::after {
   content: '';
@@ -194,7 +196,6 @@
   top: -90px;
   right: -60px;
   background: rgba(255, 150, 200, 0.55);
-  animation: orbA 14s ease-in-out infinite alternate;
 }
 
 .cashFlowCard::after {
@@ -203,17 +204,6 @@
   bottom: -110px;
   left: 10%;
   background: rgba(80, 220, 255, 0.4);
-  animation: orbB 18s ease-in-out infinite alternate;
-}
-
-@keyframes orbA {
-  from { transform: translate(0, 0) scale(1); }
-  to   { transform: translate(-80px, 50px) scale(1.2); }
-}
-
-@keyframes orbB {
-  from { transform: translate(0, 0) scale(1); }
-  to   { transform: translate(120px, -30px) scale(0.85); }
 }
 
 .cashFlowTitle {
