@@ -14,7 +14,7 @@ import Skeleton from '@/components/ui/Skeleton';
 import { createClient } from '@/lib/supabase/client';
 import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
 import { fetchWalletBalanceSums } from '@/lib/supabase/fetchWalletBalanceSums';
-import { getExchangeRates, toHUF, txToHUF } from '@/lib/exchangeRates';
+import { getExchangeRates, getRatesForTransactions, toHUF, txToHUF } from '@/lib/exchangeRates';
 import { formatCurrency, formatHUF, formatNumber } from '@/lib/utils';
 import { generateDueDates, isoDate as recurringIsoDate } from '@/lib/recurringUtils';
 import type { Transaction, Wallet, Currency, RecurringPayment, RecurringOccurrence, TransactionType } from '@/lib/types';
@@ -264,27 +264,6 @@ export default function StatisticsPage() {
 
   useEffect(() => { setMounted(true); }, []);
 
-  useEffect(() => {
-    const today = isoDate(new Date());
-    getExchangeRates(today).then(setTodayRates);
-  }, []);
-
-  useEffect(() => {
-    const combined = [...allTxs, ...prevTxsData, ...historyTxs];
-    const dates = [...new Set(
-      combined
-        .filter(t => t.wallet?.currency && t.wallet.currency !== 'HUF' && t.exchange_rate_to_huf == null)
-        .map(t => t.date)
-    )];
-    if (!dates.length) return;
-    Promise.all(dates.map(async d => [d, await getExchangeRates(d)] as const))
-      .then(entries => setRatesByDate(prev => {
-        const next = { ...prev };
-        for (const [d, rates] of entries) next[d] = rates;
-        return next;
-      }));
-  }, [allTxs, prevTxsData, historyTxs]);
-
   const fetchData = useCallback(async () => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -305,6 +284,16 @@ export default function StatisticsPage() {
       supabase.from('recurring_occurrences').select('*').eq('user_id', user.id)
         .gte('due_date', recurringIsoDate(from)).lte('due_date', recurringIsoDate(to)),
     ]);
+
+    // Resolve exchange rates before anything renders, so every total is final
+    // when the skeleton disappears.
+    const [rates, today] = await Promise.all([
+      getRatesForTransactions([...transactions, ...prevTransactions, ...historyTransactions]),
+      getExchangeRates(isoDate(new Date())),
+    ]);
+
+    setRatesByDate(prevRates => ({ ...prevRates, ...rates }));
+    setTodayRates(today);
     setAllTxs(transactions);
     setPrevTxsData(prevTransactions);
     setHistoryTxs(historyTransactions);

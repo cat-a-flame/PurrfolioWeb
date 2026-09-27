@@ -18,7 +18,7 @@ import { createClient } from '@/lib/supabase/client';
 import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
 import { fetchWalletBalanceSums } from '@/lib/supabase/fetchWalletBalanceSums';
 import { formatHUF, formatCurrency } from '@/lib/utils';
-import { getExchangeRates, txToHUF } from '@/lib/exchangeRates';
+import { getExchangeRates, getRatesForTransactions, txToHUF } from '@/lib/exchangeRates';
 import { generateDueDates, frequencyLabel, isoDate } from '@/lib/recurringUtils';
 import type { Transaction, Wallet, Category, Label, RecurringPayment, RecurringOccurrence } from '@/lib/types';
 import styles from './page.module.css';
@@ -128,22 +128,6 @@ export default function DashboardPage() {
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
 
   useEffect(() => {
-    const allFetched = [...periodTransactions, ...prevTransactions];
-    const dates = [...new Set(
-      allFetched
-        .filter(t => t.wallet?.currency && t.wallet.currency !== 'HUF' && t.exchange_rate_to_huf == null)
-        .map(t => t.date)
-    )];
-    if (!dates.length) return;
-    Promise.all(dates.map(async d => [d, await getExchangeRates(d)] as const))
-      .then(entries => setRatesByDate(prev => {
-        const next = { ...prev };
-        for (const [d, rates] of entries) next[d] = rates;
-        return next;
-      }));
-  }, [periodTransactions, prevTransactions]);
-
-  useEffect(() => {
     sessionStorage.setItem('purrfolio_period', JSON.stringify(period));
   }, [period]);
 
@@ -162,6 +146,12 @@ export default function DashboardPage() {
       supabase.from('recurring_payments').select('*, wallet:wallets(*), category:categories(*), labels:recurring_payment_labels(label:labels(*))').eq('user_id', user.id).eq('is_active', true),
       supabase.from('recurring_occurrences').select('*').eq('user_id', user.id).gte('due_date', period.from).lte('due_date', period.to),
     ]);
+
+    // Resolve exchange rates before anything renders, so the cash flow totals
+    // are final when the skeleton disappears.
+    const rates = await getRatesForTransactions([...txs, ...prevTxs]);
+
+    setRatesByDate(prevRates => ({ ...prevRates, ...rates }));
     setPeriodTransactions(txs);
     setPrevTransactions(prevTxs);
     setWalletBalanceSums(walletSums);
