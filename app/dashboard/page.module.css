@@ -267,7 +267,7 @@
 .cashFlowBalance {
   font-variant-numeric: tabular-nums;
   font-family: var(--font-body);
-  font-size: clamp(2.25rem, 4vw, 3.25rem);
+  font-size: clamp(2.25rem, 4vw, 3rem);
   font-weight: 900;
   letter-spacing: -0.01em;
   color: #fff;
