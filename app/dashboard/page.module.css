@@ -15,31 +15,6 @@
   gap: var(--space-4);
 }
 
-.titleBlock {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.eyebrow::before {
-  content: '';
-  width: 18px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--gradient-accent);
-}
-
 /* Hidden on mobile: the bottom nav bar already provides an add-record CTA there */
 @media (max-width: 768px) {
   .headerAddBtn {

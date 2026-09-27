@@ -468,12 +468,7 @@ export default function DashboardPage() {
       <div className={styles.container}>
 
         <div className={styles.pageHeader}>
-          <div className={styles.titleBlock}>
-            <p className={styles.eyebrow} suppressHydrationWarning>
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-            </p>
-            <h1 className={styles.pageTitle}>Dashboard</h1>
-          </div>
+          <h1 className={styles.pageTitle}>Dashboard</h1>
           <Button variant="primary" size="lg" onClick={openAddDialog} className={styles.headerAddBtn}>+ Add transaction</Button>
         </div>
 
