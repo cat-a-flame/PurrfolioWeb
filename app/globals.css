@@ -23,7 +23,7 @@
     linear-gradient(135deg, #2c1370 0%, #5a22c8 50%, #9b2bc9 100%);
 
   --color-text: rgb(95, 76, 121);
-  --color-text-muted: #6b5f86;
+  --color-text-muted: rgb(154, 140, 171);
   --color-text-faint: #9a8fb2;
 
   --color-border: #e8e1f6;
