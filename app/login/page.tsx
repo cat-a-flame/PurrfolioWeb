@@ -41,6 +41,7 @@ export default function LoginPage() {
     <div className={styles.page}>
       <div className={styles.card}>
         <div className={styles.header}>
+          <img src="/logo.png" alt="" className={styles.logo} />
           <h1 className={styles.brand}>Purrfolio</h1>
           <p className={styles.tagline}>Your personal budget tracker</p>
         </div>

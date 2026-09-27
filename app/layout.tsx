@@ -1,5 +1,5 @@
-import type { Metadata } from 'next';
-import { Lora, Nunito } from 'next/font/google';
+import type { Metadata, Viewport } from 'next';
+import { Bricolage_Grotesque, Plus_Jakarta_Sans } from 'next/font/google';
 import AddRecordProvider from '@/components/transactions/AddRecordProvider';
 import BottomNav from '@/components/layout/BottomNav';
 import MobileHeader from '@/components/layout/MobileHeader';
@@ -7,8 +7,15 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { RecurringAlertProvider } from '@/contexts/RecurringAlertContext';
 import './globals.css';
 
-const lora = Lora({ subsets: ['latin'], variable: '--font-lora', display: 'swap' });
-const nunito = Nunito({ subsets: ['latin'], variable: '--font-nunito', display: 'swap' });
+const display = Bricolage_Grotesque({ subsets: ['latin'], variable: '--font-display-src', display: 'swap' });
+const body = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-body-src', display: 'swap' });
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f5f2ff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0614' },
+  ],
+};
 
 export const metadata: Metadata = {
   title: 'Purrfolio',
@@ -17,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${lora.variable} ${nunito.variable}`}>
+    <html lang="en" className={`${display.variable} ${body.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{

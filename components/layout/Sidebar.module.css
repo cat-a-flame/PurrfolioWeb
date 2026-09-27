@@ -1,15 +1,25 @@
 .nav {
-  width: 264px;
+  width: 256px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  padding: 26px 18px 20px;
-  background: var(--color-surface);
-  border-right: 1px solid var(--color-border);
-  height: 100vh;
+  margin: 14px 0 14px 14px;
+  padding: 24px 16px 16px;
+  height: calc(100vh - 28px);
   position: sticky;
-  top: 0;
+  top: 14px;
   overflow-y: auto;
+  border-radius: var(--radius-xl);
+  background: var(--color-glass);
+  border: 1px solid var(--color-glass-border);
+  box-shadow: var(--shadow-lg);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  scrollbar-width: none;
+}
+
+.nav::-webkit-scrollbar {
+  display: none;
 }
 
 .brand {
@@ -18,72 +28,101 @@
   gap: var(--space-3);
   padding: 0 var(--space-2) var(--space-2);
   text-decoration: none;
+  border-radius: var(--radius-md);
 }
 
 .logo {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
-  border-radius: var(--radius-sm);
+  border-radius: 12px;
+  box-shadow: 0 8px 18px -8px var(--color-accent-glow);
+  transition: transform 500ms var(--ease-spring);
+}
+
+.brand:hover .logo {
+  transform: rotate(-8deg) scale(1.06);
 }
 
 .brandName {
-  font-family: var(--font-lora);
-  font-size: 1.375rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1.4375rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .menuLabel {
   margin-top: var(--space-8);
   color: var(--color-text-faint);
   font-weight: 800;
-  letter-spacing: 0.13em;
-  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  font-size: 0.65625rem;
   padding-left: var(--space-3);
 }
 
 .navList {
-  margin-top: var(--space-3);
+  margin-top: var(--space-2);
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
 .navLink {
+  position: relative;
   width: 100%;
   text-align: left;
   border: none;
   cursor: pointer;
   background: transparent;
-  transition: background var(--transition-fast), color var(--transition-fast);
-  border-radius: var(--radius-lg);
-  padding: 13px var(--space-4);
+  transition: background var(--transition-base), color var(--transition-base), box-shadow var(--transition-base);
+  border-radius: var(--radius-md);
+  padding: 11px var(--space-3);
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
   color: var(--color-text-muted);
   text-decoration: none;
+  isolation: isolate;
 }
 
 .navLink:hover {
   background: var(--color-surface-2);
+  color: var(--color-text);
 }
 
 .navLinkActive,
 .navLinkActive:hover {
-  background: var(--color-accent-light);
-  color: var(--color-accent);
+  background: var(--gradient-accent);
+  color: #fff;
+  box-shadow: 0 12px 24px -12px var(--color-accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .navIcon {
-  width: 22px;
-  height: 22px;
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 10px;
+  transition: transform 400ms var(--ease-spring), background var(--transition-base);
+}
+
+.navIcon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.navLink:hover .navIcon {
+  transform: scale(1.1) rotate(-4deg);
+}
+
+.navLinkActive .navIcon {
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .navText {
@@ -102,10 +141,23 @@
   border-radius: 50%;
   background: var(--color-danger);
   flex-shrink: 0;
+  box-shadow: 0 0 0 0 rgba(224, 52, 74, 0.6);
+  animation: badgePulse 2s ease-out infinite;
+}
+
+.navLinkActive .navBadge {
+  background: #fff;
+}
+
+@keyframes badgePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(224, 52, 74, 0.55); }
+  70%  { box-shadow: 0 0 0 8px rgba(224, 52, 74, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(224, 52, 74, 0); }
 }
 
 .spacer {
   flex: 1;
+  min-height: var(--space-6);
 }
 
 .themeToggle {
@@ -114,7 +166,7 @@
   cursor: pointer;
   background: transparent;
   transition: background var(--transition-fast);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-3);
   margin-bottom: var(--space-2);
   display: flex;
@@ -135,32 +187,33 @@
 }
 
 .toggleTrack {
-  width: 36px;
-  height: 20px;
+  width: 40px;
+  height: 22px;
   border-radius: var(--radius-full);
-  background: var(--color-border);
+  background: var(--color-surface-3);
   position: relative;
   flex-shrink: 0;
-  transition: background var(--transition-fast);
+  transition: background var(--transition-base);
 }
 
 .toggleTrackOn {
-  background: var(--color-accent);
+  background: var(--gradient-accent);
 }
 
 .toggleThumb {
   position: absolute;
-  top: 2px;
-  left: 2px;
+  top: 3px;
+  left: 3px;
   width: 16px;
   height: 16px;
   border-radius: 50%;
   background: #fff;
-  transition: transform var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 360ms var(--ease-spring);
 }
 
 .toggleThumbOn {
-  transform: translateX(16px);
+  transform: translateX(18px);
 }
 
 .userArea {
@@ -173,8 +226,8 @@
   text-decoration: none;
   border: 1px solid var(--color-border);
   cursor: pointer;
-  background: var(--color-surface);
-  transition: background var(--transition-fast);
+  background: var(--color-glass-strong);
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-base);
   border-radius: var(--radius-lg);
   padding: var(--space-3);
   display: flex;
@@ -184,6 +237,7 @@
 
 .userBtn:hover {
   background: var(--color-surface-2);
+  border-color: var(--color-accent-border);
 }
 
 .avatar {
@@ -198,7 +252,8 @@
   color: #fff;
   font-weight: 800;
   font-size: 1.0625rem;
-  font-family: var(--font-lora);
+  font-family: var(--font-display);
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-accent-border);
 }
 
 .userInfo {
