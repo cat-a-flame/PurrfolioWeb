@@ -12,6 +12,7 @@ import Skeleton from '@/components/ui/Skeleton';
 import TransactionForm, { TransactionFormData } from '@/components/transactions/TransactionForm';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Toast from '@/components/ui/Toast';
+import AccountsOverview from '@/components/dashboard/AccountsOverview';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { useAddRecord } from '@/components/transactions/AddRecordProvider';
 import { createClient } from '@/lib/supabase/client';
@@ -126,6 +127,8 @@ export default function DashboardPage() {
 
   // Exchange rates: date → { EUR: number, USD: number, … } (HUF per 1 unit)
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
+  // Today's rates, for converting account balances into a HUF net worth
+  const [currentRates, setCurrentRates] = useState<Record<string, number>>({});
 
   useEffect(() => {
     sessionStorage.setItem('purrfolio_period', JSON.stringify(period));
@@ -149,9 +152,13 @@ export default function DashboardPage() {
 
     // Resolve exchange rates before anything renders, so the cash flow totals
     // are final when the skeleton disappears.
-    const rates = await getRatesForTransactions([...txs, ...prevTxs]);
+    const [rates, todayRates] = await Promise.all([
+      getRatesForTransactions([...txs, ...prevTxs]),
+      getExchangeRates(isoDate(new Date())),
+    ]);
 
     setRatesByDate(prevRates => ({ ...prevRates, ...rates }));
+    setCurrentRates(todayRates);
     setPeriodTransactions(txs);
     setPrevTransactions(prevTxs);
     setWalletBalanceSums(walletSums);
@@ -477,31 +484,13 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {loading ? (
-          <div className={styles.accountsStrip}>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className={styles.accountTile}>
-                <Skeleton width={42} height={42} radius="var(--radius-sm)" />
-                <div className={styles.accountInfo}>
-                  <Skeleton width={70} height={11} radius={4} style={{ marginBottom: 6 }} />
-                  <Skeleton width={90} height={13} radius={4} />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : walletSummaries.length > 0 && (
-          <div className={styles.accountsStrip}>
-            {walletSummaries.map(({ wallet, balance: wb }) => (
-              <div key={wallet.id} className={styles.accountTile}>
-                <EmojiBox emoji={wallet.icon} color={wallet.color} size="md" />
-                <div className={styles.accountInfo}>
-                  <span className={styles.accountName}>{wallet.name}</span>
-                  <span className={styles.accountBalance}>{hideNumbers ? NUMBER_MASK : formatCurrency(wb, wallet.currency)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <AccountsOverview
+          summaries={walletSummaries}
+          rates={currentRates}
+          loading={loading}
+          hideNumbers={hideNumbers}
+          mask={NUMBER_MASK}
+        />
 
         <div className={styles.topRow}>
           {/* Cash Flow card */}
