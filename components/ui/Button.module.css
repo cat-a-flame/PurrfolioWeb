@@ -11,7 +11,7 @@
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast),
     box-shadow var(--transition-base), opacity var(--transition-fast), filter var(--transition-fast),
-    transform var(--transition-base), background-position 600ms var(--ease-out), border-color var(--transition-fast);
+    transform var(--transition-base), background-position 1200ms var(--ease-out), border-color var(--transition-fast);
   position: relative;
   white-space: nowrap;
   text-decoration: none;
@@ -64,9 +64,10 @@
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%);
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.18) 50%, transparent 70%);
   transform: translateX(-120%);
-  transition: transform 700ms var(--ease-out);
+  /* No transition here: on mouse-out the sheen jumps back off-screen
+     instead of sweeping across a second time. */
   pointer-events: none;
 }
 
@@ -78,6 +79,13 @@
 
 .primary:hover:not(:disabled)::after {
   transform: translateX(120%);
+  transition: transform 1400ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primary::after {
+    display: none;
+  }
 }
 
 .secondary {
