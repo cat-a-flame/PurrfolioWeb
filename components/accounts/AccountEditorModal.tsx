@@ -12,7 +12,8 @@ import NumberInput from '@/components/ui/NumberInput';
 import Switch from '@/components/ui/Switch';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import EmojiBox from '@/components/ui/EmojiBox';
-import type { Currency } from '@/lib/types';
+import type { AccountType, Currency } from '@/lib/types';
+import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from '@/lib/utils';
 import styles from './AccountEditorModal.module.css';
 
 const CURRENCIES: Currency[] = ['HUF', 'USD', 'EUR'];
@@ -27,6 +28,7 @@ export interface WalletDraft {
   icon: string;
   color: string;
   currency: Currency;
+  type: AccountType;
   startingBalance: string;
   isDefault: boolean;
   isArchived: boolean;
@@ -56,6 +58,7 @@ export default function AccountEditorModal({
   }
 
   const currencyOptions = CURRENCIES.map(c => ({ value: c, label: CURRENCY_LABELS[c] }));
+  const typeOptions = ACCOUNT_TYPES.map(t => ({ value: t, label: ACCOUNT_TYPE_LABELS[t] }));
 
   return (
     <Dialog
@@ -89,6 +92,20 @@ export default function AccountEditorModal({
               autoFocus
             />
           </div>
+        </div>
+
+        <div className={styles.section}>
+          <FormLabel htmlFor="wallet-type">Type</FormLabel>
+          <ReactSelect<{ value: AccountType; label: string }>
+            inputId="wallet-type"
+            options={typeOptions}
+            value={typeOptions.find(o => o.value === draft.type) ?? typeOptions[0]}
+            onChange={(opt) => opt && setDraft((d) => ({ ...d, type: opt.value }))}
+            isSearchable={false}
+            styles={makeRsStyles<{ value: AccountType; label: string }>()}
+            theme={rsTheme}
+            menuPosition="fixed"
+          />
         </div>
 
         <div className={styles.section}>
