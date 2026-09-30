@@ -62,7 +62,7 @@ export default function AccountsSettingsPage() {
       if (!user) { setSaving(false); return; }
 
       const { error } = await supabase.from('wallets').insert({
-        user_id: user.id, name, currency: draft.currency, icon, color: draft.color,
+        user_id: user.id, name, currency: draft.currency, type: draft.type, icon, color: draft.color,
         is_default: false, starting_balance: startingBalance,
       });
 
@@ -78,7 +78,7 @@ export default function AccountsSettingsPage() {
     }
 
     const { error } = await supabase.from('wallets')
-      .update({ name, icon, color: draft.color, starting_balance: startingBalance })
+      .update({ name, type: draft.type, icon, color: draft.color, starting_balance: startingBalance })
       .eq('id', modal.wallet.id);
 
     setSaving(false);
@@ -157,12 +157,13 @@ export default function AccountsSettingsPage() {
   }
 
   const draftInitial: WalletDraft | null = !modal ? null : modal.mode === 'create'
-    ? { name: '', icon: '💰', color: DEFAULT_COLOR, currency: 'HUF', startingBalance: '0', isDefault: false, isArchived: false }
+    ? { name: '', icon: '💰', color: DEFAULT_COLOR, currency: 'HUF', type: 'bank', startingBalance: '0', isDefault: false, isArchived: false }
     : {
       name: modal.wallet.name,
       icon: modal.wallet.icon,
       color: modal.wallet.color,
       currency: modal.wallet.currency,
+      type: modal.wallet.type ?? 'bank',
       startingBalance: String(modal.wallet.starting_balance),
       isDefault: modal.wallet.is_default,
       isArchived: modal.wallet.is_archived,

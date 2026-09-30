@@ -1,5 +1,5 @@
 import type { Wallet } from '@/lib/types';
-import { formatNumber } from '@/lib/utils';
+import { ACCOUNT_TYPE_LABELS, formatNumber } from '@/lib/utils';
 import EmojiBox from '@/components/ui/EmojiBox';
 import styles from './AccountCard.module.css';
 
@@ -19,7 +19,7 @@ export default function AccountCard({ wallet, onEdit }: AccountCardProps) {
         <div className={styles.info}>
           <div className={styles.name}>{wallet.name}</div>
           <div className={styles.subLabel}>
-            {wallet.currency}
+            {ACCOUNT_TYPE_LABELS[wallet.type] ?? ACCOUNT_TYPE_LABELS.other} · {wallet.currency}
             {wallet.starting_balance !== 0 && (
               <> · Starting: {wallet.starting_balance > 0 ? '+' : ''}{formatNumber(wallet.starting_balance)}</>
             )}
