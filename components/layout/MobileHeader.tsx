@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
+import { isPublicPath } from '@/lib/publicPaths';
 import styles from './MobileHeader.module.css';
 
 const settingsItems = [
@@ -71,6 +72,9 @@ export default function MobileHeader() {
       document.body.style.overflow = '';
     };
   }, [open]);
+
+  // Logged-out users only see the auth pages, which have no app navigation.
+  if (isPublicPath(pathname)) return null;
 
   return (
     <>
