@@ -465,23 +465,20 @@ export default function DashboardPage() {
       <div className={styles.container}>
 
         <div className={styles.pageHeader}>
-          <h1 className={styles.pageTitle}>Dashboard</h1>
+          <div className={styles.titleGroup}>
+            <h1 className={styles.pageTitle}>Dashboard</h1>
+            <button
+              type="button"
+              className={[styles.hideNumbersBtn, hideNumbers ? styles.hideNumbersBtnActive : ''].filter(Boolean).join(' ')}
+              onClick={() => setHideNumbers(h => !h)}
+              aria-pressed={hideNumbers}
+              aria-label={hideNumbers ? 'Show numbers' : 'Hide numbers'}
+              title={hideNumbers ? 'Show numbers' : 'Hide numbers'}
+            >
+              {hideNumbers ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+            </button>
+          </div>
           <Button variant="primary" size="lg" onClick={openAddDialog} className={styles.headerAddBtn}>+ Add transaction</Button>
-        </div>
-
-        <div className={styles.periodRow}>
-          <div />
-          <PeriodPicker value={period} onChange={setPeriod} />
-          <button
-            type="button"
-            className={[styles.hideNumbersBtn, hideNumbers ? styles.hideNumbersBtnActive : ''].filter(Boolean).join(' ')}
-            onClick={() => setHideNumbers(h => !h)}
-            aria-pressed={hideNumbers}
-            aria-label={hideNumbers ? 'Show numbers' : 'Hide numbers'}
-            title={hideNumbers ? 'Show numbers' : 'Hide numbers'}
-          >
-            {hideNumbers ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-          </button>
         </div>
 
         <AccountsOverview
@@ -491,6 +488,10 @@ export default function DashboardPage() {
           hideNumbers={hideNumbers}
           mask={NUMBER_MASK}
         />
+
+        <div className={styles.periodRow}>
+          <PeriodPicker value={period} onChange={setPeriod} />
+        </div>
 
         <div className={styles.topRow}>
           {/* Cash Flow card */}
