@@ -13,11 +13,10 @@ import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import Skeleton from '@/components/ui/Skeleton';
 import { createClient } from '@/lib/supabase/client';
 import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
-import { fetchWalletBalanceSums } from '@/lib/supabase/fetchWalletBalanceSums';
 import { getExchangeRates, getRatesForTransactions, toHUF, txToHUF } from '@/lib/exchangeRates';
-import { formatCurrency, formatHUF, formatNumber } from '@/lib/utils';
+import { formatHUF, formatNumber } from '@/lib/utils';
 import { generateDueDates, isoDate as recurringIsoDate } from '@/lib/recurringUtils';
-import type { Transaction, Wallet, Currency, RecurringPayment, RecurringOccurrence, TransactionType } from '@/lib/types';
+import type { Transaction, RecurringPayment, RecurringOccurrence, TransactionType } from '@/lib/types';
 import styles from './page.module.css';
 
 // ─── palette ────────────────────────────────────────────────────────────────
@@ -70,21 +69,6 @@ function getPrevRange(v: PeriodValue): { from: string; to: string } {
 
 function filterRange(txs: Transaction[], from: string, to: string) {
   return txs.filter(t => t.date >= from && t.date <= to);
-}
-
-// ─── custom tooltip ─────────────────────────────────────────────────────────
-function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className={styles.tooltip}>
-      {label && <p className={styles.tooltipLabel}>{label}</p>}
-      {payload.map((p, i) => (
-        <p key={i} className={styles.tooltipRow} style={{ color: p.color }}>
-          {p.name}: {formatHUF(p.value)}
-        </p>
-      ))}
-    </div>
-  );
 }
 
 // ─── stat card icons ────────────────────────────────────────────────────────
@@ -248,8 +232,6 @@ export default function StatisticsPage() {
   const [prevTxsData, setPrevTxsData] = useState<Transaction[]>([]);
   const [historyTxs, setHistoryTxs] = useState<Transaction[]>([]);
   const [historyRange, setHistoryRange] = useState<{ from: string; to: string } | null>(null);
-  const [walletBalanceSums, setWalletBalanceSums] = useState<Map<string, { income: number; expense: number }>>(new Map());
-  const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
   // True while a period change is being fetched (distinct from `loading`, which only
   // covers the very first load) — lets us skeleton the content while keeping the
@@ -274,12 +256,10 @@ export default function StatisticsPage() {
     const now = new Date();
     const histFrom = isoDate(new Date(now.getFullYear(), now.getMonth() - HISTORY_MONTHS, now.getDate()));
     const histTo   = isoDate(now);
-    const [transactions, prevTransactions, historyTransactions, walletSums, wRes, pmtRes, occRes] = await Promise.all([
+    const [transactions, prevTransactions, historyTransactions, pmtRes, occRes] = await Promise.all([
       fetchTransactions(user.id, period.from, period.to),
       fetchTransactions(user.id, prev.from, prev.to),
       fetchTransactions(user.id, histFrom, histTo),
-      fetchWalletBalanceSums(user.id),
-      supabase.from('wallets').select('*').eq('user_id', user.id),
       supabase.from('recurring_payments').select('*, wallet:wallets(*), category:categories(*)').eq('user_id', user.id).eq('is_active', true),
       supabase.from('recurring_occurrences').select('*').eq('user_id', user.id)
         .gte('due_date', recurringIsoDate(from)).lte('due_date', recurringIsoDate(to)),
@@ -298,8 +278,6 @@ export default function StatisticsPage() {
     setPrevTxsData(prevTransactions);
     setHistoryTxs(historyTransactions);
     setHistoryRange({ from: histFrom, to: histTo });
-    setWalletBalanceSums(walletSums);
-    if (wRes.data) setWallets(wRes.data);
     if (pmtRes.data) setRecurringPayments(pmtRes.data as RecurringPayment[]);
     if (occRes.data) setRecurringOccurrences(occRes.data);
     setLoading(false);
@@ -365,22 +343,6 @@ export default function StatisticsPage() {
     // Actual for the period — periodTxs is already scoped to period.from/period.to
     return { actualIncome: income, actualExpense: expense, plannedIncome, plannedExpense };
   }, [period, income, expense, recurringPayments, recurringOccurrences, todayRates]);
-
-  // ── 1. Balance by currency ──────────────────────────────────────────────
-  const currencyBalances = useMemo(() => {
-    const map = new Map<Currency, number>();
-    for (const w of wallets) {
-      const sums = walletBalanceSums.get(w.id) ?? { income: 0, expense: 0 };
-      const bal = w.starting_balance + sums.income - sums.expense;
-      map.set(w.currency, (map.get(w.currency) ?? 0) + bal);
-    }
-    const entries = Array.from(map.entries()).map(([currency, balance], i) => {
-      const balanceHUF = toHUF(balance, currency, todayRates);
-      return { currency, balance, absHUF: Math.abs(balanceHUF), fill: PALETTE[i % PALETTE.length] };
-    });
-    const total = entries.reduce((s, e) => s + e.absHUF, 0);
-    return entries.map(e => ({ ...e, pct: total > 0 ? Math.round((e.absHUF / total) * 100) : 0 }));
-  }, [walletBalanceSums, wallets, todayRates]);
 
   // ── 2. Expenses structure (doughnut) ──────────────────────────────────
   const [otherExpanded, setOtherExpanded] = useState(false);
@@ -687,7 +649,7 @@ export default function StatisticsPage() {
           <div className={styles.grid}>
 
             {/* ── Expenses structure ── */}
-            <div className={[styles.card, styles.cardDoughnut].join(' ')}>
+            <div className={[styles.card, styles.cardDoughnut, styles.cardWide].join(' ')}>
               <h2 className={styles.cardTitle}>Expenses by category</h2>
               <p className={styles.cardSubtitle}>{period.label}</p>
               {showSkeleton ? (
@@ -769,67 +731,6 @@ export default function StatisticsPage() {
               )}
             </div>
 
-            {/* ── Balance by currencies ── */}
-            <div className={[styles.card, styles.cardBalances].join(' ')}>
-              <h2 className={styles.cardTitle}>Balance by currency</h2>
-              <p className={styles.cardSubtitle}>Current total across all accounts</p>
-              {loading ? (
-                <Skeleton width="100%" height={240} radius={8} />
-              ) : currencyBalances.length === 0 ? (
-                <EmptyState compact icon="💰" hint="No accounts yet." />
-              ) : (
-                <div className={styles.doughnutLayout}>
-                  {mounted && (
-                    <div className={styles.doughnutChart}>
-                      <ResponsiveContainer width="100%" height={240}>
-                        <PieChart>
-                          <Pie
-                            data={currencyBalances}
-                            dataKey="absHUF"
-                            nameKey="currency"
-                            innerRadius={60}
-                            outerRadius={100}
-                            paddingAngle={2}
-                            startAngle={90}
-                            endAngle={-270}
-                          >
-                            {currencyBalances.map((c, i) => <Cell key={i} fill={c.fill} />)}
-                          </Pie>
-                          <Tooltip content={<ChartTooltip />} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  )}
-                  <div className={styles.doughnutLegend}>
-                    {currencyBalances.map((c, i) => (
-                      <div key={i} className={styles.legendRow}>
-                        <span className={styles.legendDot} style={{ backgroundColor: c.fill }} />
-                        <span className={styles.legendName}>{c.currency}</span>
-                        <span className={styles.legendPct}>{c.pct}%</span>
-                        <span className={[styles.legendAmount, c.balance >= 0 ? styles.balancePos : styles.balanceNeg].join(' ')}>
-                          {formatCurrency(c.balance, c.currency as Currency)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* ── Predicted transactions ── */}
-            <PredictionPanel
-              variant="expense"
-              title="Expected expenses"
-              items={predictions.expense}
-              loading={showSkeleton}
-            />
-            <PredictionPanel
-              variant="income"
-              title="Expected income"
-              items={predictions.income}
-              loading={showSkeleton}
-            />
-
             {/* ── Period comparison ── */}
             <div className={[styles.card, styles.cardWide].join(' ')}>
               <div className={styles.compHeader}>
@@ -887,6 +788,20 @@ export default function StatisticsPage() {
                 );
               })()}
             </div>
+
+            {/* ── Predicted transactions ── */}
+            <PredictionPanel
+              variant="expense"
+              title="Expected expenses"
+              items={predictions.expense}
+              loading={showSkeleton}
+            />
+            <PredictionPanel
+              variant="income"
+              title="Expected income"
+              items={predictions.income}
+              loading={showSkeleton}
+            />
 
           </div>
 

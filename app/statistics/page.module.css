@@ -306,10 +306,6 @@
   text-align: right;
 }
 
-/* ── Balance by currency ── */
-.balancePos { color: var(--color-income); }
-.balanceNeg { color: var(--color-expense); }
-
 /* ── Expense comparison by category ── */
 .compHeader {
   display: flex;
@@ -482,27 +478,6 @@
 .compChangeDown { background: var(--color-income-light);  color: var(--color-income); }
 .compChangeFlat { background: var(--color-surface-2); color: var(--color-text-muted); }
 
-/* ── Tooltip ── */
-.tooltip {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
-  box-shadow: var(--shadow-md);
-  font-family: var(--font-nunito);
-  font-size: 0.8125rem;
-}
-
-.tooltipLabel {
-  font-weight: 700;
-  color: var(--color-text);
-  margin-bottom: var(--space-1);
-}
-
-.tooltipRow {
-  font-weight: 500;
-  line-height: 1.6;
-}
 /* ── Cash flow projection ── */
 
 /* ── Predicted transactions ── */
