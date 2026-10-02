@@ -2,22 +2,18 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useCountUp } from '@/lib/useCountUp';
-import {
-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
-  type PieLabelRenderProps,
-} from 'recharts';
 import AppShell from '@/components/layout/AppShell';
+import Button from '@/components/ui/Button';
 import EmojiBox from '@/components/ui/EmojiBox';
 import EmptyState from '@/components/ui/EmptyState';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import Skeleton from '@/components/ui/Skeleton';
 import { createClient } from '@/lib/supabase/client';
 import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
-import { fetchWalletBalanceSums } from '@/lib/supabase/fetchWalletBalanceSums';
 import { getExchangeRates, getRatesForTransactions, toHUF, txToHUF } from '@/lib/exchangeRates';
-import { formatCurrency, formatHUF, formatNumber } from '@/lib/utils';
+import { formatHUF, formatNumber } from '@/lib/utils';
 import { generateDueDates, isoDate as recurringIsoDate } from '@/lib/recurringUtils';
-import type { Transaction, Wallet, Currency, RecurringPayment, RecurringOccurrence, TransactionType } from '@/lib/types';
+import type { Transaction, RecurringPayment, RecurringOccurrence, TransactionType } from '@/lib/types';
 import styles from './page.module.css';
 
 // ─── palette ────────────────────────────────────────────────────────────────
@@ -27,21 +23,15 @@ const PALETTE = [
   '#a78bfa','#fb7185','#0ea5e9','#d946ef','#22c55e',
 ];
 
-function renderExpenseLabel({ cx, cy, midAngle, outerRadius, percent }: PieLabelRenderProps) {
-  if (!percent || cx == null || cy == null || midAngle == null || outerRadius == null) return null;
-  const pct = Math.round((percent as number) * 100);
-  if (pct === 0) return null;
-  const r = (outerRadius as number) + 22;
-  const x = (cx as number) + r * Math.cos(-((midAngle as number) * Math.PI) / 180);
-  const y = (cy as number) + r * Math.sin(-((midAngle as number) * Math.PI) / 180);
-  return (
-    <g>
-      <rect x={x - 18} y={y - 10} width={36} height={20} rx={10} fill="rgba(0,0,0,0.55)" />
-      <text x={x} y={y} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontSize={11} fontWeight={700}>
-        {pct}%
-      </text>
-    </g>
-  );
+// Categories under this amount (HUF) in the period are folded into "Other"
+const OTHER_THRESHOLD_HUF = 5_000;
+const OTHER_COLOR = '#94a3b8';
+// Category rows shown before "Show N more categories"
+const VISIBLE_CATEGORIES = 8;
+
+function formatShare(share: number): string {
+  const pct = Math.round(share * 100);
+  return pct === 0 && share > 0 ? '<1%' : `${pct}%`;
 }
 
 function isoDate(d: Date) {
@@ -68,23 +58,20 @@ function getPrevRange(v: PeriodValue): { from: string; to: string } {
   return { from: isoDate(new Date(f.getTime() - days*86400000)), to: isoDate(new Date(f.getTime() - 86400000)) };
 }
 
-function filterRange(txs: Transaction[], from: string, to: string) {
-  return txs.filter(t => t.date >= from && t.date <= to);
+// "August" / "December 2025" / "2025" / "the previous week", for "… in <name>" copy
+function prevPeriodName(v: PeriodValue, fallback: string): string {
+  const prev = getPrevRange(v);
+  const prevFrom = new Date(prev.from + 'T12:00:00');
+  if (v.tab === 'months') {
+    const sameYear = prevFrom.getFullYear() === new Date(v.from + 'T12:00:00').getFullYear();
+    return prevFrom.toLocaleDateString('en-GB', sameYear ? { month: 'long' } : { month: 'long', year: 'numeric' });
+  }
+  if (v.tab === 'years') return String(prevFrom.getFullYear());
+  return `the ${fallback}`;
 }
 
-// ─── custom tooltip ─────────────────────────────────────────────────────────
-function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className={styles.tooltip}>
-      {label && <p className={styles.tooltipLabel}>{label}</p>}
-      {payload.map((p, i) => (
-        <p key={i} className={styles.tooltipRow} style={{ color: p.color }}>
-          {p.name}: {formatHUF(p.value)}
-        </p>
-      ))}
-    </div>
-  );
+function filterRange(txs: Transaction[], from: string, to: string) {
+  return txs.filter(t => t.date >= from && t.date <= to);
 }
 
 // ─── stat card icons ────────────────────────────────────────────────────────
@@ -145,6 +132,21 @@ const HISTORY_MONTHS = 6;
 // before it's treated as a real pattern rather than a one-off transaction.
 const MIN_BUCKETS_SEEN = 2;
 const MAX_PREDICTIONS_PER_TYPE = 10;
+
+const AVG_DAYS_PER_MONTH = 365.25 / 12;
+
+// How many months a period spans: whole calendar months count exactly (so a
+// monthly bill predicts its real amount), anything else is pro-rated by days.
+function periodLengthInMonths(fromIso: string, toIso: string): number {
+  const from = new Date(fromIso + 'T00:00:00');
+  const to   = new Date(toIso   + 'T00:00:00');
+  const dayAfterTo = new Date(to.getFullYear(), to.getMonth(), to.getDate() + 1);
+  if (from.getDate() === 1 && dayAfterTo.getDate() === 1) {
+    return (dayAfterTo.getFullYear() * 12 + dayAfterTo.getMonth()) - (from.getFullYear() * 12 + from.getMonth());
+  }
+  const days = Math.round((to.getTime() - from.getTime()) / 86400000) + 1;
+  return Math.max(1, days) / AVG_DAYS_PER_MONTH;
+}
 
 type PredictionItem = {
   key: string;
@@ -248,21 +250,16 @@ export default function StatisticsPage() {
   const [prevTxsData, setPrevTxsData] = useState<Transaction[]>([]);
   const [historyTxs, setHistoryTxs] = useState<Transaction[]>([]);
   const [historyRange, setHistoryRange] = useState<{ from: string; to: string } | null>(null);
-  const [walletBalanceSums, setWalletBalanceSums] = useState<Map<string, { income: number; expense: number }>>(new Map());
-  const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
   // True while a period change is being fetched (distinct from `loading`, which only
   // covers the very first load) — lets us skeleton the content while keeping the
   // header and period picker visible.
   const [periodLoading, setPeriodLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [period, setPeriod]   = useState<PeriodValue>(defaultPeriod);
   const [todayRates, setTodayRates] = useState<Record<string, number>>({});
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
   const [recurringPayments, setRecurringPayments]     = useState<RecurringPayment[]>([]);
   const [recurringOccurrences, setRecurringOccurrences] = useState<RecurringOccurrence[]>([]);
-
-  useEffect(() => { setMounted(true); }, []);
 
   const fetchData = useCallback(async () => {
     const supabase = createClient();
@@ -272,14 +269,13 @@ export default function StatisticsPage() {
     const to   = new Date(period.to   + 'T00:00:00');
     const prev = getPrevRange(period);
     const now = new Date();
-    const histFrom = isoDate(new Date(now.getFullYear(), now.getMonth() - HISTORY_MONTHS, now.getDate()));
-    const histTo   = isoDate(now);
-    const [transactions, prevTransactions, historyTransactions, walletSums, wRes, pmtRes, occRes] = await Promise.all([
+    // The last HISTORY_MONTHS full calendar months; the current, partial month is left out
+    const histFrom = isoDate(new Date(now.getFullYear(), now.getMonth() - HISTORY_MONTHS, 1));
+    const histTo   = isoDate(new Date(now.getFullYear(), now.getMonth(), 0));
+    const [transactions, prevTransactions, historyTransactions, pmtRes, occRes] = await Promise.all([
       fetchTransactions(user.id, period.from, period.to),
       fetchTransactions(user.id, prev.from, prev.to),
       fetchTransactions(user.id, histFrom, histTo),
-      fetchWalletBalanceSums(user.id),
-      supabase.from('wallets').select('*').eq('user_id', user.id),
       supabase.from('recurring_payments').select('*, wallet:wallets(*), category:categories(*)').eq('user_id', user.id).eq('is_active', true),
       supabase.from('recurring_occurrences').select('*').eq('user_id', user.id)
         .gte('due_date', recurringIsoDate(from)).lte('due_date', recurringIsoDate(to)),
@@ -298,8 +294,6 @@ export default function StatisticsPage() {
     setPrevTxsData(prevTransactions);
     setHistoryTxs(historyTransactions);
     setHistoryRange({ from: histFrom, to: histTo });
-    setWalletBalanceSums(walletSums);
-    if (wRes.data) setWallets(wRes.data);
     if (pmtRes.data) setRecurringPayments(pmtRes.data as RecurringPayment[]);
     if (occRes.data) setRecurringOccurrences(occRes.data);
     setLoading(false);
@@ -334,6 +328,7 @@ export default function StatisticsPage() {
   // ── summary numbers ────────────────────────────────────────────────────
   const income  = useMemo(() => periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
   const expense = useMemo(() => periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
+  const prevExpense = useMemo(() => prevTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0), [prevTxs, ratesByDate]);
 
   const txCount = periodTxs.filter(t => !t.transfer_group_id).length;
   const incomeCount  = periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).length;
@@ -366,61 +361,39 @@ export default function StatisticsPage() {
     return { actualIncome: income, actualExpense: expense, plannedIncome, plannedExpense };
   }, [period, income, expense, recurringPayments, recurringOccurrences, todayRates]);
 
-  // ── 1. Balance by currency ──────────────────────────────────────────────
-  const currencyBalances = useMemo(() => {
-    const map = new Map<Currency, number>();
-    for (const w of wallets) {
-      const sums = walletBalanceSums.get(w.id) ?? { income: 0, expense: 0 };
-      const bal = w.starting_balance + sums.income - sums.expense;
-      map.set(w.currency, (map.get(w.currency) ?? 0) + bal);
-    }
-    const entries = Array.from(map.entries()).map(([currency, balance], i) => {
-      const balanceHUF = toHUF(balance, currency, todayRates);
-      return { currency, balance, absHUF: Math.abs(balanceHUF), fill: PALETTE[i % PALETTE.length] };
-    });
-    const total = entries.reduce((s, e) => s + e.absHUF, 0);
-    return entries.map(e => ({ ...e, pct: total > 0 ? Math.round((e.absHUF / total) * 100) : 0 }));
-  }, [walletBalanceSums, wallets, todayRates]);
-
-  // ── 2. Expenses structure (doughnut) ──────────────────────────────────
+  // ── 2. Expenses by category ───────────────────────────────────────────
+  const [showAllCategories, setShowAllCategories] = useState(false);
   const [otherExpanded, setOtherExpanded] = useState(false);
 
-  const { expenseSlices, otherItems } = useMemo(() => {
-    const map = new Map<string, { amount: number; color: string }>();
+  const expenseBreakdown = useMemo(() => {
+    const map = new Map<string, { amount: number; icon: string; color: string }>();
     for (const t of periodTxs) {
       if (t.type !== 'expense' || t.transfer_group_id) continue;
       const name  = t.category?.name  ?? 'Uncategorised';
-      const color = t.category?.color ?? '#94a3b8';
-      const prev  = map.get(name) ?? { amount: 0, color };
-      map.set(name, { amount: prev.amount + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), color });
+      const prev  = map.get(name) ?? { amount: 0, icon: t.category?.icon ?? '📁', color: t.category?.color ?? OTHER_COLOR };
+      map.set(name, { ...prev, amount: prev.amount + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}) });
     }
     const total = Array.from(map.values()).reduce((s, v) => s + v.amount, 0);
-    const sorted = Array.from(map.entries()).sort((a, b) => b[1].amount - a[1].amount);
-    const slices = sorted
-      .filter(([, { amount }]) => amount >= 10_000)
-      .map(([name, { amount, color }], i) => ({
+    const rows = Array.from(map.entries())
+      .sort((a, b) => b[1].amount - a[1].amount)
+      .map(([name, v], i) => ({
         name,
-        amount,
-        color: color !== '#94a3b8' ? color : PALETTE[i % PALETTE.length],
-        pct: total > 0 ? Math.round((amount / total) * 100) : 0,
+        icon: v.icon,
+        amount: v.amount,
+        color: v.color !== OTHER_COLOR ? v.color : PALETTE[i % PALETTE.length],
+        share: total > 0 ? v.amount / total : 0,
       }));
-    const smallEntries = sorted.filter(([, { amount }]) => amount < 10_000);
-    const otherAmount = smallEntries.reduce((s, [, { amount }]) => s + amount, 0);
-    const otherItems = smallEntries.map(([name, { amount, color }]) => ({
-      name,
-      amount,
-      color,
-      pct: total > 0 ? Math.round((amount / total) * 100) : 0,
-    }));
-    if (otherAmount > 0) {
-      slices.push({
-        name: 'Other',
-        amount: otherAmount,
-        color: '#94a3b8',
-        pct: total > 0 ? Math.round((otherAmount / total) * 100) : 0,
-      });
-    }
-    return { expenseSlices: slices, otherItems };
+    const main  = rows.filter(r => r.amount >= OTHER_THRESHOLD_HUF);
+    const small = rows.filter(r => r.amount <  OTHER_THRESHOLD_HUF);
+    const otherAmount = small.reduce((s, r) => s + r.amount, 0);
+    return {
+      total,
+      categoryCount: rows.length,
+      main,
+      small,
+      other: small.length > 0 ? { amount: otherAmount, share: total > 0 ? otherAmount / total : 0 } : null,
+      maxAmount: Math.max(1, ...main.map(r => r.amount)),
+    };
   }, [periodTxs, ratesByDate]);
 
   // ── 3. Period comparison ──────────────────────────────────────────────
@@ -451,9 +424,9 @@ export default function StatisticsPage() {
 
   // ── 4. Predicted transactions ──────────────────────────────────────────
   // Learns a per-category (and, where one vendor dominates, per-payer) pattern
-  // from the trailing 6-month history window: how many of the 6 buckets it
-  // showed up in, its typical monthly total, and how much that total varies.
-  // That's then scaled onto the selected period's length. A category needs to
+  // from the last 6 full calendar months: how many of those months it showed
+  // up in, its typical monthly total, and how much that total varies. That's
+  // then scaled onto the selected period (1× for a month, 12× for a year). A category needs to
   // show up in at least MIN_BUCKETS_SEEN of the 6 buckets to be treated as a
   // pattern rather than a one-off transaction, and the most reliable patterns
   // (highest confidence, then largest typical amount) win the limited slots.
@@ -461,14 +434,8 @@ export default function StatisticsPage() {
     if (!historyRange) return { income: [] as PredictionItem[], expense: [] as PredictionItem[] };
 
     const histFrom = new Date(historyRange.from + 'T00:00:00');
-    const histTo   = new Date(historyRange.to   + 'T00:00:00');
-    const historyDays = Math.max(1, Math.round((histTo.getTime() - histFrom.getTime()) / 86400000) + 1);
-    const bucketSize = historyDays / HISTORY_MONTHS;
-
-    const periodFrom = new Date(period.from + 'T00:00:00');
-    const periodTo   = new Date(period.to   + 'T00:00:00');
-    const periodDays = Math.max(1, Math.round((periodTo.getTime() - periodFrom.getTime()) / 86400000) + 1);
-    const scale = periodDays / bucketSize;
+    const histStartMonth = histFrom.getFullYear() * 12 + histFrom.getMonth();
+    const scale = periodLengthInMonths(period.from, period.to);
 
     type Group = {
       name: string;
@@ -494,8 +461,9 @@ export default function StatisticsPage() {
         payerCounts: new Map<string, number>(),
       };
       const amount = txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
-      const daysSinceStart = (new Date(t.date + 'T00:00:00').getTime() - histFrom.getTime()) / 86400000;
-      const bucketIdx = Math.min(HISTORY_MONTHS - 1, Math.max(0, Math.floor(daysSinceStart / bucketSize)));
+      const txDate = new Date(t.date + 'T00:00:00');
+      const bucketIdx = txDate.getFullYear() * 12 + txDate.getMonth() - histStartMonth;
+      if (bucketIdx < 0 || bucketIdx >= HISTORY_MONTHS) continue;
       g.buckets.set(bucketIdx, (g.buckets.get(bucketIdx) ?? 0) + amount);
       g.totalCount += 1;
       if (t.payer) g.payerCounts.set(t.payer, (g.payerCounts.get(t.payer) ?? 0) + 1);
@@ -559,6 +527,7 @@ export default function StatisticsPage() {
 
   const showSkeleton = loading || periodLoading;
   const prevLabel = period.tab === 'months' ? 'previous month' : period.tab === 'years' ? 'previous year' : period.tab === 'weeks' ? 'previous week' : 'previous period';
+  const prevName = prevPeriodName(period, prevLabel);
 
   return (
     <AppShell>
@@ -686,149 +655,107 @@ export default function StatisticsPage() {
           {/* ── Main grid ── */}
           <div className={styles.grid}>
 
-            {/* ── Expenses structure ── */}
-            <div className={[styles.card, styles.cardDoughnut].join(' ')}>
-              <h2 className={styles.cardTitle}>Expenses by category</h2>
-              <p className={styles.cardSubtitle}>{period.label}</p>
+            {/* ── Expenses by category ── */}
+            <div className={[styles.card, styles.cardWide].join(' ')}>
+              <div className={styles.catHeader}>
+                <div>
+                  <h2 className={styles.cardTitle}>Expenses by category</h2>
+                  <p className={styles.cardSubtitle}>{period.label}</p>
+                </div>
+                {!showSkeleton && expenseBreakdown.categoryCount > 0 && (
+                  <div className={styles.catTotal}>
+                    <span className={styles.catTotalAmount}>{formatHUF(Math.round(expenseBreakdown.total))}</span>
+                    <span className={styles.catTotalCount}>
+                      {expenseBreakdown.categoryCount} {expenseBreakdown.categoryCount === 1 ? 'category' : 'categories'}
+                    </span>
+                  </div>
+                )}
+              </div>
               {showSkeleton ? (
-                <div className={styles.doughnutLayout}>
-                  <div className={styles.doughnutChart}>
-                    <Skeleton width={290} height={290} radius="50%" />
+                <>
+                  <Skeleton width="100%" height={20} radius={999} />
+                  <div className={styles.catSkeletonList}>
+                    {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} width="100%" height={44} radius={8} />)}
                   </div>
-                  <div className={styles.doughnutLegend}>
-                    {Array.from({ length: 4 }).map((_, i) => (
-                      <Skeleton key={i} width="100%" height={16} radius={4} />
-                    ))}
-                  </div>
-                </div>
-              ) : expenseSlices.length === 0 ? (
+                </>
+              ) : expenseBreakdown.categoryCount === 0 ? (
                 <EmptyState compact icon="🍩" hint="No expenses in this period." />
-              ) : (
-                <div className={styles.doughnutLayout}>
-                  {mounted && (
-                    <div className={styles.doughnutChart}>
-                      <ResponsiveContainer width="100%" height={290}>
-                        <PieChart>
-                          <Pie
-                            data={expenseSlices}
-                            dataKey="amount"
-                            nameKey="name"
-                            innerRadius={60}
-                            outerRadius={100}
-                            paddingAngle={2}
-                            startAngle={90}
-                            endAngle={-270}
-                            label={renderExpenseLabel}
-                            labelLine={false}
-                          >
-                            {expenseSlices.map((s, i) => <Cell key={i} fill={s.color} />)}
-                          </Pie>
-                          <Tooltip formatter={(v) => formatHUF(Number(v))} />
-                        </PieChart>
-                      </ResponsiveContainer>
+              ) : (() => {
+                const { main, small, other, maxAmount } = expenseBreakdown;
+                const visible = showAllCategories ? main : main.slice(0, VISIBLE_CATEGORIES);
+                const hiddenCount = main.length - VISIBLE_CATEGORIES;
+                return (
+                  <>
+                    <div className={styles.catStack} role="img" aria-label="Share of spending by category">
+                      {main.map(r => (
+                        <span key={r.name} className={styles.catStackSegment} style={{ flexGrow: r.amount, backgroundColor: r.color }} title={`${r.name}: ${formatShare(r.share)}`} />
+                      ))}
+                      {other && (
+                        <span className={styles.catStackSegment} style={{ flexGrow: other.amount, backgroundColor: OTHER_COLOR }} title={`Other: ${formatShare(other.share)}`} />
+                      )}
                     </div>
-                  )}
-                  <div className={styles.doughnutLegend}>
-                    {expenseSlices.map((s, i) => {
-                      const isOther = s.name === 'Other' && otherItems.length > 0;
-                      return (
-                        <div key={i}>
-                          <div
-                            className={[styles.legendRow, isOther ? styles.legendRowOther : ''].filter(Boolean).join(' ')}
-                            onClick={isOther ? () => setOtherExpanded(e => !e) : undefined}
-                            role={isOther ? 'button' : undefined}
-                            tabIndex={isOther ? 0 : undefined}
-                            onKeyDown={isOther ? (e) => { if (e.key === 'Enter' || e.key === ' ') setOtherExpanded(v => !v); } : undefined}
-                            aria-expanded={isOther ? otherExpanded : undefined}
-                          >
-                            <span className={styles.legendDot} style={{ backgroundColor: s.color }} />
-                            <span className={styles.legendName}>
-                              {s.name}
-                              {isOther && (
-                                <svg className={[styles.chevron, otherExpanded ? styles.chevronOpen : ''].filter(Boolean).join(' ')} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                                  <polyline points="6 9 12 15 18 9" />
-                                </svg>
-                              )}
-                            </span>
-                            <span className={styles.legendPct}>{s.pct}%</span>
-                            <span className={styles.legendAmount}>{formatHUF(s.amount)}</span>
-                          </div>
-                          {isOther && otherExpanded && otherItems.map((item, j) => (
-                            <div key={j} className={[styles.legendRow, styles.legendSubRow].join(' ')}>
-                              <span className={styles.legendDot} style={{ backgroundColor: item.color }} />
-                              <span className={styles.legendName}>{item.name}</span>
-                              <span className={styles.legendPct}>{item.pct}%</span>
-                              <span className={styles.legendAmount}>{formatHUF(item.amount)}</span>
+
+                    {main.length > 0 && (
+                      <ul className={styles.catList}>
+                        {visible.map(r => (
+                          <li key={r.name} className={styles.catRow}>
+                            <EmojiBox emoji={r.icon} color={r.color} size="sm" />
+                            <div className={styles.catMain}>
+                              <span className={styles.catName}>{r.name}</span>
+                              <div className={styles.catBarTrack}>
+                                <div className={styles.catBarFill} style={{ width: `${(r.amount / maxAmount) * 100}%`, backgroundColor: r.color }} />
+                              </div>
                             </div>
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
+                            <span className={styles.catPct}>{formatShare(r.share)}</span>
+                            <span className={styles.catAmount}>{formatHUF(Math.round(r.amount))}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
 
-            {/* ── Balance by currencies ── */}
-            <div className={[styles.card, styles.cardBalances].join(' ')}>
-              <h2 className={styles.cardTitle}>Balance by currency</h2>
-              <p className={styles.cardSubtitle}>Current total across all accounts</p>
-              {loading ? (
-                <Skeleton width="100%" height={240} radius={8} />
-              ) : currencyBalances.length === 0 ? (
-                <EmptyState compact icon="💰" hint="No accounts yet." />
-              ) : (
-                <div className={styles.doughnutLayout}>
-                  {mounted && (
-                    <div className={styles.doughnutChart}>
-                      <ResponsiveContainer width="100%" height={240}>
-                        <PieChart>
-                          <Pie
-                            data={currencyBalances}
-                            dataKey="absHUF"
-                            nameKey="currency"
-                            innerRadius={60}
-                            outerRadius={100}
-                            paddingAngle={2}
-                            startAngle={90}
-                            endAngle={-270}
-                          >
-                            {currencyBalances.map((c, i) => <Cell key={i} fill={c.fill} />)}
-                          </Pie>
-                          <Tooltip content={<ChartTooltip />} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  )}
-                  <div className={styles.doughnutLegend}>
-                    {currencyBalances.map((c, i) => (
-                      <div key={i} className={styles.legendRow}>
-                        <span className={styles.legendDot} style={{ backgroundColor: c.fill }} />
-                        <span className={styles.legendName}>{c.currency}</span>
-                        <span className={styles.legendPct}>{c.pct}%</span>
-                        <span className={[styles.legendAmount, c.balance >= 0 ? styles.balancePos : styles.balanceNeg].join(' ')}>
-                          {formatCurrency(c.balance, c.currency as Currency)}
-                        </span>
+                    {hiddenCount > 0 && (
+                      <Button variant="secondary" size="sm" className={styles.catMoreBtn} onClick={() => setShowAllCategories(v => !v)}>
+                        {showAllCategories ? 'Show fewer categories' : `Show ${hiddenCount} more ${hiddenCount === 1 ? 'category' : 'categories'}`}
+                      </Button>
+                    )}
+
+                    {other && (
+                      <div className={main.length > 0 ? styles.catOther : undefined}>
+                        <button
+                          type="button"
+                          className={[styles.catRow, styles.catOtherRow].join(' ')}
+                          onClick={() => setOtherExpanded(v => !v)}
+                          aria-expanded={otherExpanded}
+                        >
+                          <EmojiBox emoji="📁" color={OTHER_COLOR} size="sm" />
+                          <span className={styles.catOtherLabel}>
+                            <span className={styles.catName}>Other</span>
+                            <span className={styles.catOtherHint}>{small.length} under {formatHUF(OTHER_THRESHOLD_HUF)}</span>
+                            <svg className={[styles.chevron, otherExpanded ? styles.chevronOpen : ''].filter(Boolean).join(' ')} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                              <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                          </span>
+                          <span className={styles.catPct}>{formatShare(other.share)}</span>
+                          <span className={styles.catAmount}>{formatHUF(Math.round(other.amount))}</span>
+                        </button>
+                        {otherExpanded && (
+                          <ul className={[styles.catList, styles.catSubList].join(' ')}>
+                            {small.map(r => (
+                              <li key={r.name} className={[styles.catRow, styles.catSubRow].join(' ')}>
+                                <EmojiBox emoji={r.icon} color={r.color} size="sm" />
+                                <span className={styles.catName}>{r.name}</span>
+                                <span className={styles.catPct}>{formatShare(r.share)}</span>
+                                <span className={styles.catAmount}>{formatHUF(Math.round(r.amount))}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    )}
+                  </>
+                );
+              })()}
             </div>
-
-            {/* ── Predicted transactions ── */}
-            <PredictionPanel
-              variant="expense"
-              title="Expected expenses"
-              items={predictions.expense}
-              loading={showSkeleton}
-            />
-            <PredictionPanel
-              variant="income"
-              title="Expected income"
-              items={predictions.income}
-              loading={showSkeleton}
-            />
 
             {/* ── Period comparison ── */}
             <div className={[styles.card, styles.cardWide].join(' ')}>
@@ -886,7 +813,35 @@ export default function StatisticsPage() {
                   </div>
                 );
               })()}
+              {!showSkeleton && comparisonData.length > 0 && (() => {
+                const change = changeInfo(expense, prevExpense);
+                const changeClass = change.tone === 'up' ? styles.compChangeUp : change.tone === 'down' ? styles.compChangeDown : styles.compChangeFlat;
+                return (
+                  <div className={styles.compTotal}>
+                    <span className={styles.compTotalLabel}>Total spent</span>
+                    <div className={styles.compTotalFigures}>
+                      <span className={styles.compTotalAmount}>{formatHUF(Math.round(expense))}</span>
+                      <span className={styles.compTotalPrev}>vs {formatHUF(Math.round(prevExpense))} in {prevName}</span>
+                      <span className={[styles.compChangeBadge, changeClass].join(' ')}>{change.text}</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
+
+            {/* ── Predicted transactions ── */}
+            <PredictionPanel
+              variant="expense"
+              title="Expected expenses"
+              items={predictions.expense}
+              loading={showSkeleton}
+            />
+            <PredictionPanel
+              variant="income"
+              title="Expected income"
+              items={predictions.income}
+              loading={showSkeleton}
+            />
 
           </div>
 

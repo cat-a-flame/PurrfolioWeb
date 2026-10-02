@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAddRecord } from '@/components/transactions/AddRecordProvider';
 import { useRecurringAlert } from '@/contexts/RecurringAlertContext';
+import { isPublicPath } from '@/lib/publicPaths';
 import styles from './BottomNav.module.css';
 
 const tabs = [
@@ -59,6 +60,9 @@ export default function BottomNav() {
   const pathname = usePathname();
   const { openAddDialog } = useAddRecord();
   const hasUrgentPlanned = useRecurringAlert();
+
+  // Logged-out users only see the auth pages, which have no app navigation.
+  if (isPublicPath(pathname)) return null;
 
   return (
     <nav className={styles.nav} aria-label="Mobile navigation">
