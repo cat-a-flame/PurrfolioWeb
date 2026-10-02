@@ -67,6 +67,18 @@ function getPrevRange(v: PeriodValue): { from: string; to: string } {
   return { from: isoDate(new Date(f.getTime() - days*86400000)), to: isoDate(new Date(f.getTime() - 86400000)) };
 }
 
+// "August" / "December 2025" / "2025" / "the previous week", for "… in <name>" copy
+function prevPeriodName(v: PeriodValue, fallback: string): string {
+  const prev = getPrevRange(v);
+  const prevFrom = new Date(prev.from + 'T12:00:00');
+  if (v.tab === 'months') {
+    const sameYear = prevFrom.getFullYear() === new Date(v.from + 'T12:00:00').getFullYear();
+    return prevFrom.toLocaleDateString('en-GB', sameYear ? { month: 'long' } : { month: 'long', year: 'numeric' });
+  }
+  if (v.tab === 'years') return String(prevFrom.getFullYear());
+  return `the ${fallback}`;
+}
+
 function filterRange(txs: Transaction[], from: string, to: string) {
   return txs.filter(t => t.date >= from && t.date <= to);
 }
@@ -312,6 +324,7 @@ export default function StatisticsPage() {
   // ── summary numbers ────────────────────────────────────────────────────
   const income  = useMemo(() => periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
   const expense = useMemo(() => periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
+  const prevExpense = useMemo(() => prevTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0), [prevTxs, ratesByDate]);
 
   const txCount = periodTxs.filter(t => !t.transfer_group_id).length;
   const incomeCount  = periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).length;
@@ -521,6 +534,7 @@ export default function StatisticsPage() {
 
   const showSkeleton = loading || periodLoading;
   const prevLabel = period.tab === 'months' ? 'previous month' : period.tab === 'years' ? 'previous year' : period.tab === 'weeks' ? 'previous week' : 'previous period';
+  const prevName = prevPeriodName(period, prevLabel);
 
   return (
     <AppShell>
@@ -784,6 +798,20 @@ export default function StatisticsPage() {
                         </div>
                       );
                     })}
+                  </div>
+                );
+              })()}
+              {!showSkeleton && comparisonData.length > 0 && (() => {
+                const change = changeInfo(expense, prevExpense);
+                const changeClass = change.tone === 'up' ? styles.compChangeUp : change.tone === 'down' ? styles.compChangeDown : styles.compChangeFlat;
+                return (
+                  <div className={styles.compTotal}>
+                    <span className={styles.compTotalLabel}>Total spent</span>
+                    <div className={styles.compTotalFigures}>
+                      <span className={styles.compTotalAmount}>{formatHUF(Math.round(expense))}</span>
+                      <span className={styles.compTotalPrev}>vs {formatHUF(Math.round(prevExpense))} in {prevName}</span>
+                      <span className={[styles.compChangeBadge, changeClass].join(' ')}>{change.text}</span>
+                    </div>
                   </div>
                 );
               })()}
