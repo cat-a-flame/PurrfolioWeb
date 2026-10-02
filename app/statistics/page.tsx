@@ -2,11 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useCountUp } from '@/lib/useCountUp';
-import {
-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
-  type PieLabelRenderProps,
-} from 'recharts';
 import AppShell from '@/components/layout/AppShell';
+import Button from '@/components/ui/Button';
 import EmojiBox from '@/components/ui/EmojiBox';
 import EmptyState from '@/components/ui/EmptyState';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
@@ -26,21 +23,15 @@ const PALETTE = [
   '#a78bfa','#fb7185','#0ea5e9','#d946ef','#22c55e',
 ];
 
-function renderExpenseLabel({ cx, cy, midAngle, outerRadius, percent }: PieLabelRenderProps) {
-  if (!percent || cx == null || cy == null || midAngle == null || outerRadius == null) return null;
-  const pct = Math.round((percent as number) * 100);
-  if (pct === 0) return null;
-  const r = (outerRadius as number) + 22;
-  const x = (cx as number) + r * Math.cos(-((midAngle as number) * Math.PI) / 180);
-  const y = (cy as number) + r * Math.sin(-((midAngle as number) * Math.PI) / 180);
-  return (
-    <g>
-      <rect x={x - 18} y={y - 10} width={36} height={20} rx={10} fill="rgba(0,0,0,0.55)" />
-      <text x={x} y={y} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontSize={11} fontWeight={700}>
-        {pct}%
-      </text>
-    </g>
-  );
+// Categories under this amount (HUF) in the period are folded into "Other"
+const OTHER_THRESHOLD_HUF = 5_000;
+const OTHER_COLOR = '#94a3b8';
+// Category rows shown before "Show N more categories"
+const VISIBLE_CATEGORIES = 8;
+
+function formatShare(share: number): string {
+  const pct = Math.round(share * 100);
+  return pct === 0 && share > 0 ? '<1%' : `${pct}%`;
 }
 
 function isoDate(d: Date) {
@@ -249,14 +240,11 @@ export default function StatisticsPage() {
   // covers the very first load) — lets us skeleton the content while keeping the
   // header and period picker visible.
   const [periodLoading, setPeriodLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [period, setPeriod]   = useState<PeriodValue>(defaultPeriod);
   const [todayRates, setTodayRates] = useState<Record<string, number>>({});
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
   const [recurringPayments, setRecurringPayments]     = useState<RecurringPayment[]>([]);
   const [recurringOccurrences, setRecurringOccurrences] = useState<RecurringOccurrence[]>([]);
-
-  useEffect(() => { setMounted(true); }, []);
 
   const fetchData = useCallback(async () => {
     const supabase = createClient();
@@ -357,45 +345,39 @@ export default function StatisticsPage() {
     return { actualIncome: income, actualExpense: expense, plannedIncome, plannedExpense };
   }, [period, income, expense, recurringPayments, recurringOccurrences, todayRates]);
 
-  // ── 2. Expenses structure (doughnut) ──────────────────────────────────
+  // ── 2. Expenses by category ───────────────────────────────────────────
+  const [showAllCategories, setShowAllCategories] = useState(false);
   const [otherExpanded, setOtherExpanded] = useState(false);
 
-  const { expenseSlices, otherItems } = useMemo(() => {
-    const map = new Map<string, { amount: number; color: string }>();
+  const expenseBreakdown = useMemo(() => {
+    const map = new Map<string, { amount: number; icon: string; color: string }>();
     for (const t of periodTxs) {
       if (t.type !== 'expense' || t.transfer_group_id) continue;
       const name  = t.category?.name  ?? 'Uncategorised';
-      const color = t.category?.color ?? '#94a3b8';
-      const prev  = map.get(name) ?? { amount: 0, color };
-      map.set(name, { amount: prev.amount + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), color });
+      const prev  = map.get(name) ?? { amount: 0, icon: t.category?.icon ?? '📁', color: t.category?.color ?? OTHER_COLOR };
+      map.set(name, { ...prev, amount: prev.amount + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}) });
     }
     const total = Array.from(map.values()).reduce((s, v) => s + v.amount, 0);
-    const sorted = Array.from(map.entries()).sort((a, b) => b[1].amount - a[1].amount);
-    const slices = sorted
-      .filter(([, { amount }]) => amount >= 10_000)
-      .map(([name, { amount, color }], i) => ({
+    const rows = Array.from(map.entries())
+      .sort((a, b) => b[1].amount - a[1].amount)
+      .map(([name, v], i) => ({
         name,
-        amount,
-        color: color !== '#94a3b8' ? color : PALETTE[i % PALETTE.length],
-        pct: total > 0 ? Math.round((amount / total) * 100) : 0,
+        icon: v.icon,
+        amount: v.amount,
+        color: v.color !== OTHER_COLOR ? v.color : PALETTE[i % PALETTE.length],
+        share: total > 0 ? v.amount / total : 0,
       }));
-    const smallEntries = sorted.filter(([, { amount }]) => amount < 10_000);
-    const otherAmount = smallEntries.reduce((s, [, { amount }]) => s + amount, 0);
-    const otherItems = smallEntries.map(([name, { amount, color }]) => ({
-      name,
-      amount,
-      color,
-      pct: total > 0 ? Math.round((amount / total) * 100) : 0,
-    }));
-    if (otherAmount > 0) {
-      slices.push({
-        name: 'Other',
-        amount: otherAmount,
-        color: '#94a3b8',
-        pct: total > 0 ? Math.round((otherAmount / total) * 100) : 0,
-      });
-    }
-    return { expenseSlices: slices, otherItems };
+    const main  = rows.filter(r => r.amount >= OTHER_THRESHOLD_HUF);
+    const small = rows.filter(r => r.amount <  OTHER_THRESHOLD_HUF);
+    const otherAmount = small.reduce((s, r) => s + r.amount, 0);
+    return {
+      total,
+      categoryCount: rows.length,
+      main,
+      small,
+      other: small.length > 0 ? { amount: otherAmount, share: total > 0 ? otherAmount / total : 0 } : null,
+      maxAmount: Math.max(1, ...main.map(r => r.amount)),
+    };
   }, [periodTxs, ratesByDate]);
 
   // ── 3. Period comparison ──────────────────────────────────────────────
@@ -662,87 +644,106 @@ export default function StatisticsPage() {
           {/* ── Main grid ── */}
           <div className={styles.grid}>
 
-            {/* ── Expenses structure ── */}
-            <div className={[styles.card, styles.cardDoughnut, styles.cardWide].join(' ')}>
-              <h2 className={styles.cardTitle}>Expenses by category</h2>
-              <p className={styles.cardSubtitle}>{period.label}</p>
+            {/* ── Expenses by category ── */}
+            <div className={[styles.card, styles.cardWide].join(' ')}>
+              <div className={styles.catHeader}>
+                <div>
+                  <h2 className={styles.cardTitle}>Expenses by category</h2>
+                  <p className={styles.cardSubtitle}>{period.label}</p>
+                </div>
+                {!showSkeleton && expenseBreakdown.categoryCount > 0 && (
+                  <div className={styles.catTotal}>
+                    <span className={styles.catTotalAmount}>{formatHUF(Math.round(expenseBreakdown.total))}</span>
+                    <span className={styles.catTotalCount}>
+                      {expenseBreakdown.categoryCount} {expenseBreakdown.categoryCount === 1 ? 'category' : 'categories'}
+                    </span>
+                  </div>
+                )}
+              </div>
               {showSkeleton ? (
-                <div className={styles.doughnutLayout}>
-                  <div className={styles.doughnutChart}>
-                    <Skeleton width={290} height={290} radius="50%" />
+                <>
+                  <Skeleton width="100%" height={20} radius={999} />
+                  <div className={styles.catSkeletonList}>
+                    {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} width="100%" height={44} radius={8} />)}
                   </div>
-                  <div className={styles.doughnutLegend}>
-                    {Array.from({ length: 4 }).map((_, i) => (
-                      <Skeleton key={i} width="100%" height={16} radius={4} />
-                    ))}
-                  </div>
-                </div>
-              ) : expenseSlices.length === 0 ? (
+                </>
+              ) : expenseBreakdown.categoryCount === 0 ? (
                 <EmptyState compact icon="🍩" hint="No expenses in this period." />
-              ) : (
-                <div className={styles.doughnutLayout}>
-                  {mounted && (
-                    <div className={styles.doughnutChart}>
-                      <ResponsiveContainer width="100%" height={290}>
-                        <PieChart>
-                          <Pie
-                            data={expenseSlices}
-                            dataKey="amount"
-                            nameKey="name"
-                            innerRadius={60}
-                            outerRadius={100}
-                            paddingAngle={2}
-                            startAngle={90}
-                            endAngle={-270}
-                            label={renderExpenseLabel}
-                            labelLine={false}
-                          >
-                            {expenseSlices.map((s, i) => <Cell key={i} fill={s.color} />)}
-                          </Pie>
-                          <Tooltip formatter={(v) => formatHUF(Number(v))} />
-                        </PieChart>
-                      </ResponsiveContainer>
+              ) : (() => {
+                const { main, small, other, maxAmount } = expenseBreakdown;
+                const visible = showAllCategories ? main : main.slice(0, VISIBLE_CATEGORIES);
+                const hiddenCount = main.length - VISIBLE_CATEGORIES;
+                return (
+                  <>
+                    <div className={styles.catStack} role="img" aria-label="Share of spending by category">
+                      {main.map(r => (
+                        <span key={r.name} className={styles.catStackSegment} style={{ flexGrow: r.amount, backgroundColor: r.color }} title={`${r.name}: ${formatShare(r.share)}`} />
+                      ))}
+                      {other && (
+                        <span className={styles.catStackSegment} style={{ flexGrow: other.amount, backgroundColor: OTHER_COLOR }} title={`Other: ${formatShare(other.share)}`} />
+                      )}
                     </div>
-                  )}
-                  <div className={styles.doughnutLegend}>
-                    {expenseSlices.map((s, i) => {
-                      const isOther = s.name === 'Other' && otherItems.length > 0;
-                      return (
-                        <div key={i}>
-                          <div
-                            className={[styles.legendRow, isOther ? styles.legendRowOther : ''].filter(Boolean).join(' ')}
-                            onClick={isOther ? () => setOtherExpanded(e => !e) : undefined}
-                            role={isOther ? 'button' : undefined}
-                            tabIndex={isOther ? 0 : undefined}
-                            onKeyDown={isOther ? (e) => { if (e.key === 'Enter' || e.key === ' ') setOtherExpanded(v => !v); } : undefined}
-                            aria-expanded={isOther ? otherExpanded : undefined}
-                          >
-                            <span className={styles.legendDot} style={{ backgroundColor: s.color }} />
-                            <span className={styles.legendName}>
-                              {s.name}
-                              {isOther && (
-                                <svg className={[styles.chevron, otherExpanded ? styles.chevronOpen : ''].filter(Boolean).join(' ')} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                                  <polyline points="6 9 12 15 18 9" />
-                                </svg>
-                              )}
-                            </span>
-                            <span className={styles.legendPct}>{s.pct}%</span>
-                            <span className={styles.legendAmount}>{formatHUF(s.amount)}</span>
-                          </div>
-                          {isOther && otherExpanded && otherItems.map((item, j) => (
-                            <div key={j} className={[styles.legendRow, styles.legendSubRow].join(' ')}>
-                              <span className={styles.legendDot} style={{ backgroundColor: item.color }} />
-                              <span className={styles.legendName}>{item.name}</span>
-                              <span className={styles.legendPct}>{item.pct}%</span>
-                              <span className={styles.legendAmount}>{formatHUF(item.amount)}</span>
+
+                    {main.length > 0 && (
+                      <ul className={styles.catList}>
+                        {visible.map(r => (
+                          <li key={r.name} className={styles.catRow}>
+                            <EmojiBox emoji={r.icon} color={r.color} size="sm" />
+                            <div className={styles.catMain}>
+                              <span className={styles.catName}>{r.name}</span>
+                              <div className={styles.catBarTrack}>
+                                <div className={styles.catBarFill} style={{ width: `${(r.amount / maxAmount) * 100}%`, backgroundColor: r.color }} />
+                              </div>
                             </div>
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                            <span className={styles.catPct}>{formatShare(r.share)}</span>
+                            <span className={styles.catAmount}>{formatHUF(Math.round(r.amount))}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {hiddenCount > 0 && (
+                      <Button variant="secondary" size="sm" className={styles.catMoreBtn} onClick={() => setShowAllCategories(v => !v)}>
+                        {showAllCategories ? 'Show fewer categories' : `Show ${hiddenCount} more ${hiddenCount === 1 ? 'category' : 'categories'}`}
+                      </Button>
+                    )}
+
+                    {other && (
+                      <div className={main.length > 0 ? styles.catOther : undefined}>
+                        <button
+                          type="button"
+                          className={[styles.catRow, styles.catOtherRow].join(' ')}
+                          onClick={() => setOtherExpanded(v => !v)}
+                          aria-expanded={otherExpanded}
+                        >
+                          <EmojiBox emoji="📁" color={OTHER_COLOR} size="sm" />
+                          <span className={styles.catOtherLabel}>
+                            <span className={styles.catName}>Other</span>
+                            <span className={styles.catOtherHint}>{small.length} under {formatHUF(OTHER_THRESHOLD_HUF)}</span>
+                            <svg className={[styles.chevron, otherExpanded ? styles.chevronOpen : ''].filter(Boolean).join(' ')} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                              <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                          </span>
+                          <span className={styles.catPct}>{formatShare(other.share)}</span>
+                          <span className={styles.catAmount}>{formatHUF(Math.round(other.amount))}</span>
+                        </button>
+                        {otherExpanded && (
+                          <ul className={[styles.catList, styles.catSubList].join(' ')}>
+                            {small.map(r => (
+                              <li key={r.name} className={[styles.catRow, styles.catSubRow].join(' ')}>
+                                <EmojiBox emoji={r.icon} color={r.color} size="sm" />
+                                <span className={styles.catName}>{r.name}</span>
+                                <span className={styles.catPct}>{formatShare(r.share)}</span>
+                                <span className={styles.catAmount}>{formatHUF(Math.round(r.amount))}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
 
             {/* ── Period comparison ── */}
