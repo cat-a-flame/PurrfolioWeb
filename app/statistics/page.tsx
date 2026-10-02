@@ -133,6 +133,21 @@ const HISTORY_MONTHS = 6;
 const MIN_BUCKETS_SEEN = 2;
 const MAX_PREDICTIONS_PER_TYPE = 10;
 
+const AVG_DAYS_PER_MONTH = 365.25 / 12;
+
+// How many months a period spans: whole calendar months count exactly (so a
+// monthly bill predicts its real amount), anything else is pro-rated by days.
+function periodLengthInMonths(fromIso: string, toIso: string): number {
+  const from = new Date(fromIso + 'T00:00:00');
+  const to   = new Date(toIso   + 'T00:00:00');
+  const dayAfterTo = new Date(to.getFullYear(), to.getMonth(), to.getDate() + 1);
+  if (from.getDate() === 1 && dayAfterTo.getDate() === 1) {
+    return (dayAfterTo.getFullYear() * 12 + dayAfterTo.getMonth()) - (from.getFullYear() * 12 + from.getMonth());
+  }
+  const days = Math.round((to.getTime() - from.getTime()) / 86400000) + 1;
+  return Math.max(1, days) / AVG_DAYS_PER_MONTH;
+}
+
 type PredictionItem = {
   key: string;
   title: string;
@@ -254,8 +269,9 @@ export default function StatisticsPage() {
     const to   = new Date(period.to   + 'T00:00:00');
     const prev = getPrevRange(period);
     const now = new Date();
-    const histFrom = isoDate(new Date(now.getFullYear(), now.getMonth() - HISTORY_MONTHS, now.getDate()));
-    const histTo   = isoDate(now);
+    // The last HISTORY_MONTHS full calendar months; the current, partial month is left out
+    const histFrom = isoDate(new Date(now.getFullYear(), now.getMonth() - HISTORY_MONTHS, 1));
+    const histTo   = isoDate(new Date(now.getFullYear(), now.getMonth(), 0));
     const [transactions, prevTransactions, historyTransactions, pmtRes, occRes] = await Promise.all([
       fetchTransactions(user.id, period.from, period.to),
       fetchTransactions(user.id, prev.from, prev.to),
@@ -408,9 +424,9 @@ export default function StatisticsPage() {
 
   // ── 4. Predicted transactions ──────────────────────────────────────────
   // Learns a per-category (and, where one vendor dominates, per-payer) pattern
-  // from the trailing 6-month history window: how many of the 6 buckets it
-  // showed up in, its typical monthly total, and how much that total varies.
-  // That's then scaled onto the selected period's length. A category needs to
+  // from the last 6 full calendar months: how many of those months it showed
+  // up in, its typical monthly total, and how much that total varies. That's
+  // then scaled onto the selected period (1× for a month, 12× for a year). A category needs to
   // show up in at least MIN_BUCKETS_SEEN of the 6 buckets to be treated as a
   // pattern rather than a one-off transaction, and the most reliable patterns
   // (highest confidence, then largest typical amount) win the limited slots.
@@ -418,14 +434,8 @@ export default function StatisticsPage() {
     if (!historyRange) return { income: [] as PredictionItem[], expense: [] as PredictionItem[] };
 
     const histFrom = new Date(historyRange.from + 'T00:00:00');
-    const histTo   = new Date(historyRange.to   + 'T00:00:00');
-    const historyDays = Math.max(1, Math.round((histTo.getTime() - histFrom.getTime()) / 86400000) + 1);
-    const bucketSize = historyDays / HISTORY_MONTHS;
-
-    const periodFrom = new Date(period.from + 'T00:00:00');
-    const periodTo   = new Date(period.to   + 'T00:00:00');
-    const periodDays = Math.max(1, Math.round((periodTo.getTime() - periodFrom.getTime()) / 86400000) + 1);
-    const scale = periodDays / bucketSize;
+    const histStartMonth = histFrom.getFullYear() * 12 + histFrom.getMonth();
+    const scale = periodLengthInMonths(period.from, period.to);
 
     type Group = {
       name: string;
@@ -451,8 +461,9 @@ export default function StatisticsPage() {
         payerCounts: new Map<string, number>(),
       };
       const amount = txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
-      const daysSinceStart = (new Date(t.date + 'T00:00:00').getTime() - histFrom.getTime()) / 86400000;
-      const bucketIdx = Math.min(HISTORY_MONTHS - 1, Math.max(0, Math.floor(daysSinceStart / bucketSize)));
+      const txDate = new Date(t.date + 'T00:00:00');
+      const bucketIdx = txDate.getFullYear() * 12 + txDate.getMonth() - histStartMonth;
+      if (bucketIdx < 0 || bucketIdx >= HISTORY_MONTHS) continue;
       g.buckets.set(bucketIdx, (g.buckets.get(bucketIdx) ?? 0) + amount);
       g.totalCount += 1;
       if (t.payer) g.payerCounts.set(t.payer, (g.payerCounts.get(t.payer) ?? 0) + 1);
