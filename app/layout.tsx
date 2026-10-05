@@ -5,6 +5,7 @@ import BottomNav from '@/components/layout/BottomNav';
 import MobileHeader from '@/components/layout/MobileHeader';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { RecurringAlertProvider } from '@/contexts/RecurringAlertContext';
+import { RoleProvider } from '@/contexts/RoleContext';
 import './globals.css';
 
 const lora = Lora({ subsets: ['latin'], variable: '--font-display-src', display: 'swap' });
@@ -34,13 +35,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <ThemeProvider>
-          <RecurringAlertProvider>
-            <AddRecordProvider>
-              <MobileHeader />
-              {children}
-              <BottomNav />
-            </AddRecordProvider>
-          </RecurringAlertProvider>
+          <RoleProvider>
+            <RecurringAlertProvider>
+              <AddRecordProvider>
+                <MobileHeader />
+                {children}
+                <BottomNav />
+              </AddRecordProvider>
+            </RecurringAlertProvider>
+          </RoleProvider>
         </ThemeProvider>
       </body>
     </html>

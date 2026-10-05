@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import RoleGate from '@/components/auth/RoleGate';
+import ReportBugButton from '@/components/feedback/ReportBugButton';
 import { createClient } from '@/lib/supabase/client';
 import { useRecurringAlert } from '@/contexts/RecurringAlertContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -163,6 +165,10 @@ export default function Sidebar() {
       </div>
 
       <div className={styles.spacer} />
+
+      <RoleGate allow={['user']}>
+        <ReportBugButton variant="sidebar" />
+      </RoleGate>
 
       <button
         className={styles.themeToggle}
