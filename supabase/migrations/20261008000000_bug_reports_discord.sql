@@ -3,6 +3,9 @@
 --   * An after-insert trigger on bug_reports sends the report to a Discord
 --     webhook with pg_net. The request is queued and sent in the background,
 --     so the user's insert never waits on (or fails because of) Discord.
+--   * The channel is a forum channel, so each report becomes its own post,
+--     titled with the first line of the message (thread_name). If the webhook
+--     is ever moved to a normal text channel, drop thread_name from the body.
 --   * The webhook URL lives in Supabase Vault as 'discord_bug_report_webhook'
 --     (see the bottom of this file), never in the repo. With no secret set,
 --     reports are still saved and nothing is sent.
@@ -31,6 +34,7 @@ as $$
 declare
   webhook_url text;
   reporter text;
+  first_line text;
 begin
   select s.decrypted_secret into webhook_url
   from vault.decrypted_secrets s
@@ -43,11 +47,21 @@ begin
 
   select u.email into reporter from auth.users u where u.id = new.user_id;
 
+  -- Forum post title: first line of the report, whitespace collapsed.
+  first_line := btrim(regexp_replace(split_part(btrim(new.message), E'\n', 1), '\s+', ' ', 'g'));
+  if first_line = '' then
+    first_line := 'Bug report';
+  elsif char_length(first_line) > 90 then
+    first_line := left(first_line, 89) || '…';
+  end if;
+
   perform net.http_post(
     url := webhook_url,
     headers := '{"Content-Type": "application/json"}'::jsonb,
     body := jsonb_build_object(
       'username', 'Purrfolio',
+      -- Discord limit: 100 characters.
+      'thread_name', '🐞 ' || first_line,
       'allowed_mentions', jsonb_build_object('parse', '[]'::jsonb),
       'embeds', jsonb_build_array(jsonb_build_object(
         'title', '🐞 New bug report',
