@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Lora, Nunito } from 'next/font/google';
+import RoleGate from '@/components/auth/RoleGate';
+import ReportBugButton from '@/components/feedback/ReportBugButton';
 import AddRecordProvider from '@/components/transactions/AddRecordProvider';
 import BottomNav from '@/components/layout/BottomNav';
 import MobileHeader from '@/components/layout/MobileHeader';
@@ -41,6 +43,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <MobileHeader />
                 {children}
                 <BottomNav />
+                <RoleGate allow={['user']}>
+                  <ReportBugButton />
+                </RoleGate>
               </AddRecordProvider>
             </RecurringAlertProvider>
           </RoleProvider>

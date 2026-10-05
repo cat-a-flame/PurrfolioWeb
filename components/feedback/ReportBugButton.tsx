@@ -1,26 +1,23 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
-import { FiAlertCircle } from 'react-icons/fi';
 import Button from '@/components/ui/Button';
 import Dialog from '@/components/ui/Dialog';
+import EmojiBox from '@/components/ui/EmojiBox';
 import FormLabel from '@/components/ui/FormLabel';
 import Toast from '@/components/ui/Toast';
 import { createClient } from '@/lib/supabase/client';
+import { isPublicPath } from '@/lib/publicPaths';
 import styles from './ReportBugButton.module.css';
 
-interface ReportBugButtonProps {
-  /** Matches the row style of the surrounding menu. */
-  variant: 'sidebar' | 'drawer';
-}
-
-/** Menu row that opens a dialog for sending a bug report to Discord (report_bug()). */
-export default function ReportBugButton({ variant }: ReportBugButtonProps) {
+/** Floating bottom-right button that sends a bug report to Discord (report_bug()). */
+export default function ReportBugButton() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
+  const [canContact, setCanContact] = useState(false);
+  const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [toast, setToast] = useState('');
@@ -28,10 +25,14 @@ export default function ReportBugButton({ variant }: ReportBugButtonProps) {
   const close = useCallback(() => setOpen(false), []);
   const dismissToast = useCallback(() => setToast(''), []);
 
+  if (isPublicPath(pathname) || pathname === '/mfa') return null;
+
   function openDialog() {
     setMessage('');
+    setCanContact(false);
     setError('');
     setOpen(true);
+    createClient().auth.getUser().then(({ data }) => setEmail(data.user?.email ?? ''));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -47,6 +48,7 @@ export default function ReportBugButton({ variant }: ReportBugButtonProps) {
       message: text,
       page: pathname,
       user_agent: navigator.userAgent,
+      can_contact: canContact,
     });
     setSending(false);
     if (sendError) {
@@ -59,24 +61,18 @@ export default function ReportBugButton({ variant }: ReportBugButtonProps) {
 
   return (
     <>
-      <button
-        type="button"
-        className={[styles.trigger, styles[variant]].join(' ')}
-        onClick={openDialog}
-      >
-        <FiAlertCircle className={styles.icon} aria-hidden />
-        <span className={styles.label}>Report a bug</span>
+      <button type="button" className={styles.fab} onClick={openDialog} aria-label="Report a bug">
+        <span className={styles.fabEmoji} aria-hidden>🐞</span>
+        <span className={styles.fabLabel} aria-hidden>Report a bug</span>
       </button>
 
-      {/* Portaled: the sidebar/drawer use backdrop-filter, which would trap
-          position: fixed children inside them. */}
-      {open && createPortal(
+      {open && (
         <Dialog
           title="Report a bug"
           subtitle="Tell us what happened and what you expected instead."
-          icon={<FiAlertCircle size={22} />}
+          icon={<EmojiBox emoji="🐞" color="#7433e6" size="xl" />}
           onClose={close}
-          maxWidth={480}
+          maxWidth={620}
         >
           <form onSubmit={handleSubmit} className={styles.form}>
             <FormLabel htmlFor="bug-message" required>What went wrong?</FormLabel>
@@ -90,20 +86,30 @@ export default function ReportBugButton({ variant }: ReportBugButtonProps) {
               autoFocus
             />
             {error && <p className={styles.error}>{error}</p>}
-            <p className={styles.hint}>The current page and your browser are included to help us reproduce it.</p>
+            <p className={styles.hint}>
+              Your email{email ? <> (<strong>{email}</strong>)</> : null}, the current page and your
+              browser are sent with the report to help us reproduce it.
+            </p>
+
+            <label className={styles.checkboxRow}>
+              <input
+                type="checkbox"
+                className={styles.checkbox}
+                checked={canContact}
+                onChange={e => setCanContact(e.target.checked)}
+              />
+              <span>You can contact me by email for more details</span>
+            </label>
+
             <div className={styles.footer}>
               <Button type="button" variant="ghost" onClick={close}>Cancel</Button>
               <Button type="submit" loading={sending}>Send report</Button>
             </div>
           </form>
-        </Dialog>,
-        document.body
+        </Dialog>
       )}
 
-      {toast && createPortal(
-        <Toast message={toast} variant="success" onDismiss={dismissToast} />,
-        document.body
-      )}
+      {toast && <Toast message={toast} variant="success" onDismiss={dismissToast} />}
     </>
   );
 }

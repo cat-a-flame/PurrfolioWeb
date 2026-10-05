@@ -1,8 +1,9 @@
 -- report_bug(): sends a bug report straight to a Discord channel. Nothing is
 -- stored in the database.
 --
---   * The app calls it with the message, the current page and the browser's
---     user agent; the function adds the reporter's email and posts it to a
+--   * The app calls it with the message, the current page, the browser's user
+--     agent and whether the reporter is happy to be contacted by email
+--     (can_contact); the function adds the reporter's email and posts it to a
 --     Discord webhook with pg_net (queued and sent in the background).
 --   * The webhook URL lives in Supabase Vault as 'discord_bug_report_webhook'
 --     (see the bottom of this file), never in the repo.
@@ -20,15 +21,22 @@
 --     Discord's reply to a webhook is empty, so the report text isn't kept.
 --
 -- To remove:
---   drop function public.report_bug(text, text, text);
+--   drop function public.report_bug(text, text, text, boolean);
 --   delete from vault.secrets where name = 'discord_bug_report_webhook';
 
 drop table if exists public.bug_reports;
 drop function if exists public.notify_bug_report_discord();
+-- Earlier signature without can_contact.
+drop function if exists public.report_bug(text, text, text);
 
 create extension if not exists pg_net;
 
-create or replace function public.report_bug(message text, page text default null, user_agent text default null)
+create or replace function public.report_bug(
+  message text,
+  page text default null,
+  user_agent text default null,
+  can_contact boolean default false
+)
 returns void
 language plpgsql
 security definer
@@ -79,6 +87,8 @@ begin
         -- Discord limit: field value 1024 characters.
         'fields', jsonb_build_array(
           jsonb_build_object('name', 'From', 'value', coalesce(reporter, 'Unknown'), 'inline', true),
+          jsonb_build_object('name', 'Contact', 'value',
+            case when coalesce(can_contact, false) then '✅ OK to email' else '🚫 Don''t email' end, 'inline', true),
           jsonb_build_object('name', 'Page', 'value', left(coalesce(nullif(page, ''), '—'), 200), 'inline', true),
           jsonb_build_object('name', 'Browser', 'value', left(coalesce(nullif(user_agent, ''), '—'), 1000))
         )
@@ -88,8 +98,8 @@ begin
 end;
 $$;
 
-revoke execute on function public.report_bug(text, text, text) from public, anon;
-grant execute on function public.report_bug(text, text, text) to authenticated;
+revoke execute on function public.report_bug(text, text, text, boolean) from public, anon;
+grant execute on function public.report_bug(text, text, text, boolean) to authenticated;
 
 -- Store the webhook URL (run once, with your URL; never commit it):
 --   select vault.create_secret('https://discord.com/api/webhooks/...', 'discord_bug_report_webhook');

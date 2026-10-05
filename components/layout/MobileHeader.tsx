@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import RoleGate from '@/components/auth/RoleGate';
-import ReportBugButton from '@/components/feedback/ReportBugButton';
 import { useTheme } from '@/contexts/ThemeContext';
 import { isPublicPath } from '@/lib/publicPaths';
 import styles from './MobileHeader.module.css';
@@ -129,9 +127,6 @@ export default function MobileHeader() {
             </div>
 
             <div className={styles.drawerFooter}>
-              <RoleGate allow={['user']}>
-                <ReportBugButton variant="drawer" />
-              </RoleGate>
               <button
                 type="button"
                 className={styles.themeToggle}
