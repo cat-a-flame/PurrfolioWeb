@@ -8,6 +8,7 @@ import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
 import Toast from '@/components/ui/Toast';
 import DeleteConfirmModal from '@/components/account/DeleteConfirmModal';
+import TwoFactorSection from '@/components/account/TwoFactorSection';
 import { createClient } from '@/lib/supabase/client';
 import styles from './page.module.css';
 
@@ -34,6 +35,10 @@ export default function AccountPage() {
   );
 
   const dismissToast = useCallback(() => setToast(null), []);
+  const showToast = useCallback(
+    (message: string, variant: 'success' | 'error') => setToast({ message, variant }),
+    []
+  );
 
   useEffect(() => {
     async function loadProfile() {
@@ -218,6 +223,8 @@ export default function AccountPage() {
               </div>
             </form>
           </section>
+
+          <TwoFactorSection onMessage={showToast} />
 
           {/* Session section */}
           <section className={styles.section}>

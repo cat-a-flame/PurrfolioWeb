@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { isPublicPath } from '@/lib/publicPaths';
+import { needsMfaCode } from '@/lib/mfa';
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -43,6 +44,21 @@ export async function middleware(request: NextRequest) {
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
+    return NextResponse.redirect(url);
+  }
+
+  // Signed in with the password but 2FA code not entered yet: only /mfa is allowed.
+  const mfaPending = !!user && (await needsMfaCode(supabase, user));
+
+  if (mfaPending && pathname !== '/mfa' && pathname !== '/auth/callback') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/mfa';
+    return NextResponse.redirect(url);
+  }
+
+  if (!mfaPending && pathname === '/mfa') {
+    const url = request.nextUrl.clone();
+    url.pathname = user ? '/dashboard' : '/login';
     return NextResponse.redirect(url);
   }
 
