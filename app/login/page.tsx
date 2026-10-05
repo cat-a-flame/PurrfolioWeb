@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { needsMfaCode } from '@/lib/mfa';
 import Button from '@/components/ui/Button';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
@@ -22,7 +23,7 @@ export default function LoginPage() {
     setLoading(true);
 
     const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -33,7 +34,9 @@ export default function LoginPage() {
       return;
     }
 
-    router.push('/dashboard');
+    // With 2FA on, the password only gets an aal1 session; the code comes next.
+    const mfa = await needsMfaCode(supabase, data.user);
+    router.push(mfa ? '/mfa' : '/dashboard');
     router.refresh();
   }
 

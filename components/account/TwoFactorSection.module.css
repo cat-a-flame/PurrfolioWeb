@@ -1,0 +1,73 @@
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.row > button {
+  flex-shrink: 0;
+}
+
+.description {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.intro {
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.qr {
+  width: 200px;
+  height: 200px;
+  align-self: center;
+  padding: var(--space-3);
+  background: #fff;
+  border-radius: var(--radius-lg);
+}
+
+.hint {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.secret {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.875rem;
+  word-break: break-all;
+  user-select: all;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+@media (max-width: 600px) {
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
