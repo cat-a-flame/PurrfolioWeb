@@ -1,8 +1,9 @@
 -- Lets a signed-in user wipe their own data, or delete their account entirely.
 --
 --   * delete_my_data():    removes every row the caller owns (transactions,
---                          recurring payments, accounts/wallets, categories,
---                          labels and their link tables) but keeps the login.
+--                          recurring payments, templates, accounts/wallets,
+--                          categories, labels and their link tables) but keeps
+--                          the login.
 --   * delete_my_account(): does the same, then removes the caller's auth user.
 --
 -- Safety:
@@ -35,6 +36,10 @@ begin
   delete from public.recurring_payment_labels
     where recurring_payment_id in (select id from public.recurring_payments where user_id = uid);
   delete from public.recurring_payments where user_id = uid;
+
+  delete from public.template_labels
+    where template_id in (select id from public.templates where user_id = uid);
+  delete from public.templates where user_id = uid;
 
   delete from public.transaction_labels
     where transaction_id in (select id from public.transactions where user_id = uid);

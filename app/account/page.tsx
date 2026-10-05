@@ -237,7 +237,7 @@ export default function AccountPage() {
               <div className={styles.dangerText}>
                 <h3 className={styles.dangerRowTitle}>Delete all data</h3>
                 <p className={styles.dangerDescription}>
-                  Permanently removes all your transactions, recurring payments, accounts,
+                  Permanently removes all your transactions, recurring payments, templates, accounts,
                   categories and labels. Your login stays, so you can start fresh.
                 </p>
               </div>
@@ -264,7 +264,7 @@ export default function AccountPage() {
       {deleteTarget === 'data' && (
         <DeleteConfirmModal
           title="Delete all data?"
-          intro="All your transactions, recurring payments, accounts, categories and labels will be permanently deleted. Your account and login will be kept."
+          intro="All your transactions, recurring payments, templates, accounts, categories and labels will be permanently deleted. Your account and login will be kept."
           confirmLabel="Delete all data"
           loading={deleteLoading}
           error={deleteError}
@@ -276,7 +276,7 @@ export default function AccountPage() {
       {deleteTarget === 'account' && (
         <DeleteConfirmModal
           title="Delete your account?"
-          intro="Your account and all of its data (transactions, recurring payments, accounts, categories and labels) will be permanently deleted, and you will be signed out."
+          intro="Your account and all of its data (transactions, recurring payments, templates, accounts, categories and labels) will be permanently deleted, and you will be signed out."
           confirmLabel="Delete account"
           loading={deleteLoading}
           error={deleteError}
