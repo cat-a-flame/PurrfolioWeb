@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
 import Toast from '@/components/ui/Toast';
+import DeleteConfirmModal from '@/components/account/DeleteConfirmModal';
 import { createClient } from '@/lib/supabase/client';
 import styles from './page.module.css';
 
@@ -23,6 +24,10 @@ export default function AccountPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+
+  const [deleteTarget, setDeleteTarget] = useState<'data' | 'account' | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(
     null
@@ -98,6 +103,40 @@ export default function AccountPage() {
       setConfirmPassword('');
       setToast({ message: 'Password updated.', variant: 'success' });
     }
+  }
+
+  function openDelete(target: 'data' | 'account') {
+    setDeleteError('');
+    setDeleteTarget(target);
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    setDeleteError('');
+    const supabase = createClient();
+
+    if (deleteTarget === 'data') {
+      const { error } = await supabase.rpc('delete_my_data');
+      if (error) {
+        setDeleteLoading(false);
+        setDeleteError(error.message);
+        return;
+      }
+      // Full reload so cached data in shared contexts is dropped too.
+      window.location.assign('/dashboard');
+      return;
+    }
+
+    const { error } = await supabase.rpc('delete_my_account');
+    if (error) {
+      setDeleteLoading(false);
+      setDeleteError(error.message);
+      return;
+    }
+    // The user no longer exists server-side, so only clear the local session.
+    await supabase.auth.signOut({ scope: 'local' });
+    window.location.assign('/login');
   }
 
   return (
@@ -189,7 +228,62 @@ export default function AccountPage() {
               </Button>
             </div>
           </section>
+
+          {/* Danger zone */}
+          <section className={`${styles.section} ${styles.dangerSection}`}>
+            <h2 className={`${styles.sectionTitle} ${styles.dangerTitle}`}>Danger zone</h2>
+
+            <div className={styles.dangerRow}>
+              <div className={styles.dangerText}>
+                <h3 className={styles.dangerRowTitle}>Delete all data</h3>
+                <p className={styles.dangerDescription}>
+                  Permanently removes all your transactions, recurring payments, accounts,
+                  categories and labels. Your login stays, so you can start fresh.
+                </p>
+              </div>
+              <Button variant="danger" size="sm" onClick={() => openDelete('data')}>
+                Delete all data
+              </Button>
+            </div>
+
+            <div className={styles.dangerRow}>
+              <div className={styles.dangerText}>
+                <h3 className={styles.dangerRowTitle}>Delete account</h3>
+                <p className={styles.dangerDescription}>
+                  Permanently deletes your account and all of its data. You will be signed out
+                  and will not be able to log in again with this account.
+                </p>
+              </div>
+              <Button variant="danger" size="sm" onClick={() => openDelete('account')}>
+                Delete account
+              </Button>
+            </div>
+          </section>
       </div>
+
+      {deleteTarget === 'data' && (
+        <DeleteConfirmModal
+          title="Delete all data?"
+          intro="All your transactions, recurring payments, accounts, categories and labels will be permanently deleted. Your account and login will be kept."
+          confirmLabel="Delete all data"
+          loading={deleteLoading}
+          error={deleteError}
+          onConfirm={handleDeleteConfirm}
+          onClose={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {deleteTarget === 'account' && (
+        <DeleteConfirmModal
+          title="Delete your account?"
+          intro="Your account and all of its data (transactions, recurring payments, accounts, categories and labels) will be permanently deleted, and you will be signed out."
+          confirmLabel="Delete account"
+          loading={deleteLoading}
+          error={deleteError}
+          onConfirm={handleDeleteConfirm}
+          onClose={() => setDeleteTarget(null)}
+        />
+      )}
 
       {toast && (
         <Toast
