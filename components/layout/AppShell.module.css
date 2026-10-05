@@ -1,12 +1,19 @@
 .shell {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
 .main {
   flex: 1;
   min-width: 0;
-  padding: 30px 38px 44px 24px;
+  padding: 36px 38px 44px;
+}
+
+@media (max-width: 1100px) {
+  .main {
+    padding: 28px 24px 40px;
+  }
 }
 
 /* Staggered entrance for each page's top-level sections.

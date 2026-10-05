@@ -99,6 +99,8 @@
 
   /* Layout */
   --mobile-header-h: 60px;
+  /* Height of whatever bar is pinned to the top: TopNav on desktop, MobileHeader on phones. */
+  --top-bar-h: 65px;
   --bottom-nav-space: calc(88px + env(safe-area-inset-bottom));
 
   color-scheme: light;
@@ -274,6 +276,10 @@ svg {
 
 /* Mobile: reserve space for bottom nav */
 @media (max-width: 768px) {
+  :root {
+    --top-bar-h: var(--mobile-header-h);
+  }
+
   body {
     padding-bottom: var(--bottom-nav-space);
   }
