@@ -99,6 +99,17 @@ const settingsItems = [
       </svg>
     ),
   },
+  {
+    label: 'Export',
+    href: '/settings/export',
+    icon: (
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M12 16V4" />
+        <path d="m7 8 5-5 5 5" />
+        <path d="M5 21h14" />
+      </svg>
+    ),
+  },
 ];
 
 export default function Sidebar() {
