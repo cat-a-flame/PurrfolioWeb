@@ -1,0 +1,151 @@
+.fab {
+  position: fixed;
+  right: var(--space-6);
+  bottom: var(--space-6);
+  z-index: 150;
+  height: 52px;
+  min-width: 52px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-glass-border);
+  background: var(--color-glass-strong);
+  box-shadow: var(--shadow-lg);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  color: var(--color-text);
+  transition: border-color var(--transition-fast), transform 360ms var(--ease-spring);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fab:hover,
+.fab:focus-visible {
+  border-color: var(--color-accent-border);
+  transform: translateY(-2px);
+}
+
+.fabEmoji {
+  font-size: 1.5rem;
+  line-height: 1;
+  display: inline-block;
+}
+
+.fab:hover .fabEmoji {
+  animation: wiggle 600ms ease-in-out;
+}
+
+/* Collapsed to just the bug; the label slides out on hover / keyboard focus. */
+.fabLabel {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-weight: 800;
+  font-size: 0.875rem;
+  opacity: 0;
+  transition: max-width 360ms var(--ease-spring), opacity var(--transition-fast), margin var(--transition-fast);
+}
+
+.fab:hover .fabLabel,
+.fab:focus-visible .fabLabel {
+  max-width: 140px;
+  margin-left: var(--space-2);
+  opacity: 1;
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-14deg); }
+  50% { transform: rotate(10deg); }
+  75% { transform: rotate(-6deg); }
+}
+
+@media (max-width: 768px) {
+  .fab {
+    right: var(--space-4);
+    bottom: calc(var(--bottom-nav-space) + var(--space-2));
+    height: 48px;
+    min-width: 48px;
+    padding: 0 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fab:hover .fabEmoji {
+    animation: none;
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.textarea {
+  width: 100%;
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  resize: vertical;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  line-height: 1.6;
+}
+
+.textarea:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-accent-light);
+}
+
+.error {
+  color: var(--color-danger);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  margin-top: var(--space-1);
+}
+
+.hint {
+  color: var(--color-text-faint);
+  font-weight: 600;
+  font-size: 0.75rem;
+  margin-top: var(--space-2);
+}
+
+.hint strong {
+  color: var(--color-text-muted);
+  font-weight: 800;
+}
+
+.checkboxRow {
+  margin-top: var(--space-4);
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.4;
+  gap: var(--space-2);
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.footer {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
