@@ -1,4 +1,4 @@
--- User roles, plus a bug_reports table for the in-app "Report a bug" button.
+-- User roles, for showing or hiding parts of the app per role.
 --
 --   * user_roles: one optional row per user. No row means the default role
 --     'user', so new sign-ups need nothing. Roles are only ever granted from
@@ -6,8 +6,6 @@
 --     policies, so nobody can promote themselves through the API.
 --   * is_admin(): true when the caller has the 'admin' role. Use it in RLS
 --     policies that admins should bypass.
---   * bug_reports: anyone signed in can file a report for themselves; only
---     admins can read them.
 --
 -- Roles describe who someone is (owner/admin vs regular user). Paid features
 -- (tips now, maybe a subscription later) should get their own table rather
@@ -21,7 +19,6 @@
 --     delete_my_account() needs no change.
 --
 -- To remove:
---   drop table public.bug_reports;
 --   drop function public.is_admin();
 --   drop table public.user_roles;
 
@@ -56,34 +53,6 @@ $$;
 
 revoke execute on function public.is_admin() from public, anon;
 grant execute on function public.is_admin() to authenticated;
-
-create table if not exists public.bug_reports (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
-  message text not null check (char_length(message) between 1 and 5000),
-  page text,
-  user_agent text,
-  created_at timestamptz not null default now()
-);
-
-alter table public.bug_reports enable row level security;
-
-drop policy if exists "Users can file their own bug reports" on public.bug_reports;
-create policy "Users can file their own bug reports"
-  on public.bug_reports for insert
-  to authenticated
-  with check (user_id = (select auth.uid()));
-
-drop policy if exists "Admins can read bug reports" on public.bug_reports;
-create policy "Admins can read bug reports"
-  on public.bug_reports for select
-  to authenticated
-  using ((select public.is_admin()));
-
--- Same 2FA rule as the other user tables (see 20261006000000_require_mfa.sql).
-drop policy if exists require_mfa on public.bug_reports;
-create policy require_mfa on public.bug_reports as restrictive for all to authenticated
-  using ((select public.mfa_satisfied())) with check ((select public.mfa_satisfied()));
 
 -- Make yourself admin (replace the email, then run once):
 --   insert into public.user_roles (user_id, role)

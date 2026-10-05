@@ -16,7 +16,7 @@ interface ReportBugButtonProps {
   variant: 'sidebar' | 'drawer';
 }
 
-/** Menu row that opens a dialog for sending a bug report (stored in bug_reports). */
+/** Menu row that opens a dialog for sending a bug report to Discord (report_bug()). */
 export default function ReportBugButton({ variant }: ReportBugButtonProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -43,14 +43,14 @@ export default function ReportBugButton({ variant }: ReportBugButtonProps) {
     }
     setSending(true);
     setError('');
-    const { error: insertError } = await createClient().from('bug_reports').insert({
+    const { error: sendError } = await createClient().rpc('report_bug', {
       message: text,
       page: pathname,
       user_agent: navigator.userAgent,
     });
     setSending(false);
-    if (insertError) {
-      setError(insertError.message);
+    if (sendError) {
+      setError(sendError.message);
       return;
     }
     setOpen(false);
@@ -86,7 +86,7 @@ export default function ReportBugButton({ variant }: ReportBugButtonProps) {
               value={message}
               onChange={e => setMessage(e.target.value)}
               rows={5}
-              maxLength={5000}
+              maxLength={4000}
               autoFocus
             />
             {error && <p className={styles.error}>{error}</p>}
