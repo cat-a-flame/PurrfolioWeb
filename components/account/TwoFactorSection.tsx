@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button';
 import Dialog from '@/components/ui/Dialog';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
+import Switch from '@/components/ui/Switch';
 import { createClient } from '@/lib/supabase/client';
 import { cleanCode } from '@/lib/mfa';
 import accountStyles from '@/app/account/page.module.css';
@@ -129,21 +130,15 @@ export default function TwoFactorSection({ onMessage }: TwoFactorSectionProps) {
       <h2 className={accountStyles.sectionTitle}>Two-factor authentication</h2>
       <div className={styles.row}>
         <p className={styles.description}>
-          {enabled
-            ? 'On. You’ll be asked for a code from your authenticator app each time you sign in.'
-            : 'Add a second step to signing in: a 6-digit code from an authenticator app such as Google Authenticator, Microsoft Authenticator, 1Password or Authy.'}
+          Ask for a 6-digit code from an authenticator app each time you sign in, in addition
+          to your password.
         </p>
-        {loaded && (
-          enabled ? (
-            <Button variant="secondary" size="sm" onClick={openDisable}>
-              Turn off
-            </Button>
-          ) : (
-            <Button variant="primary" size="sm" onClick={startSetup} loading={starting}>
-              Set up
-            </Button>
-          )
-        )}
+        <Switch
+          id="two-factor"
+          checked={enabled || !!enrollment || starting}
+          onChange={(on) => (on ? startSetup() : openDisable())}
+          disabled={!loaded || starting}
+        />
       </div>
 
       {(enrollment || disabling) && (
