@@ -8,7 +8,7 @@ import EmojiBox from '@/components/ui/EmojiBox';
 import FormLabel from '@/components/ui/FormLabel';
 import Toast from '@/components/ui/Toast';
 import { createClient } from '@/lib/supabase/client';
-import { isPublicPath } from '@/lib/publicPaths';
+import { hidesNav } from '@/lib/publicPaths';
 import styles from './ReportBugButton.module.css';
 
 /** Sends a bug report to Discord via report_bug(). */
@@ -25,7 +25,7 @@ export default function ReportBugButton() {
   const close = useCallback(() => setOpen(false), []);
   const dismissToast = useCallback(() => setToast(''), []);
 
-  if (isPublicPath(pathname) || pathname === '/mfa') return null;
+  if (hidesNav(pathname) || pathname === '/mfa') return null;
 
   function openDialog() {
     setMessage('');

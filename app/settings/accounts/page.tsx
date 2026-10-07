@@ -8,6 +8,7 @@ import AccountCard from '@/components/accounts/AccountCard';
 import AccountEditorModal, { type WalletDraft } from '@/components/accounts/AccountEditorModal';
 import EmptyState from '@/components/ui/EmptyState';
 import Skeleton from '@/components/ui/Skeleton';
+import { useBaseCurrency } from '@/contexts/BaseCurrencyContext';
 import { createClient } from '@/lib/supabase/client';
 import type { Wallet } from '@/lib/types';
 import styles from './page.module.css';
@@ -20,6 +21,7 @@ type ModalState =
 const DEFAULT_COLOR = '#7a5ce0';
 
 export default function AccountsSettingsPage() {
+  const baseCurrency = useBaseCurrency();
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<ModalState | null>(null);
@@ -157,7 +159,7 @@ export default function AccountsSettingsPage() {
   }
 
   const draftInitial: WalletDraft | null = !modal ? null : modal.mode === 'create'
-    ? { name: '', icon: '💰', color: DEFAULT_COLOR, currency: 'HUF', type: 'bank', startingBalance: '0', isDefault: false, isArchived: false }
+    ? { name: '', icon: '💰', color: DEFAULT_COLOR, currency: baseCurrency, type: 'bank', startingBalance: '0', isDefault: false, isArchived: false }
     : {
       name: modal.wallet.name,
       icon: modal.wallet.icon,

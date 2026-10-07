@@ -6,6 +6,7 @@ import TransactionForm, { TransactionFormData } from './TransactionForm';
 import Toast from '@/components/ui/Toast';
 import { createClient } from '@/lib/supabase/client';
 import { getExchangeRates } from '@/lib/exchangeRates';
+import { useBaseCurrency } from '@/contexts/BaseCurrencyContext';
 import type { Category, Label, Wallet } from '@/lib/types';
 
 type AddRecordContextType = {
@@ -19,6 +20,7 @@ export function useAddRecord() {
 }
 
 export default function AddRecordProvider({ children }: { children: React.ReactNode }) {
+  const baseCurrency = useBaseCurrency();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [wallets, setWallets] = useState<Wallet[]>([]);
@@ -50,8 +52,8 @@ export default function AddRecordProvider({ children }: { children: React.ReactN
 
     const getWalletRate = async (walletId: string, date: string): Promise<number | null> => {
       const wallet = wallets.find(w => w.id === walletId);
-      if (!wallet?.currency || wallet.currency === 'HUF') return null;
-      const rates = await getExchangeRates(date);
+      if (!wallet?.currency || wallet.currency === baseCurrency) return null;
+      const rates = await getExchangeRates(date, baseCurrency);
       return rates[wallet.currency] ?? null;
     };
 

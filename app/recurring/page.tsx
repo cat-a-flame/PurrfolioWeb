@@ -18,6 +18,8 @@ import Toast from '@/components/ui/Toast';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import { createClient } from '@/lib/supabase/client';
 import { formatCurrency } from '@/lib/utils';
+import { useBaseCurrency } from '@/contexts/BaseCurrencyContext';
+import type { Currency } from '@/lib/types';
 import { generateDueDates, frequencyLabel, nextDueDate, isoDate } from '@/lib/recurringUtils';
 import { BsThreeDotsVertical } from "react-icons/bs";
 import type {
@@ -70,6 +72,7 @@ interface DueItem {
 }
 
 export default function RecurringPage() {
+  const baseCurrency = useBaseCurrency();
   const [payments, setPayments]     = useState<RecurringPayment[]>([]);
   const [occurrences, setOccurrences] = useState<RecurringOccurrence[]>([]);
   const [wallets, setWallets]       = useState<Wallet[]>([]);
@@ -254,7 +257,7 @@ export default function RecurringPage() {
           item.payment.labels.map(l => ({ transaction_id: txData.id, label_id: l.id }))
         );
       }
-      const currency = (wallet?.currency ?? 'HUF') as 'HUF' | 'USD' | 'EUR';
+      const currency: Currency = wallet?.currency ?? baseCurrency;
       setToast({ message: `${item.payment.name} — ${formatCurrency(item.payment.amount, currency)} added.`, variant: 'success' });
       window.dispatchEvent(new Event('transaction-added'));
     }
@@ -449,8 +452,8 @@ export default function RecurringPage() {
     setDeleteLoading(false);
   }
 
-  function walletCurrency(walletId: string | null): 'HUF' | 'USD' | 'EUR' {
-    return (wallets.find(w => w.id === walletId)?.currency ?? 'HUF') as 'HUF' | 'USD' | 'EUR';
+  function walletCurrency(walletId: string | null): Currency {
+    return wallets.find(w => w.id === walletId)?.currency ?? baseCurrency;
   }
 
   function dueDateLabel(date: Date): string {
@@ -893,7 +896,7 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
 function DueCard({ item, onSelect, currency, dueDateLabel }: {
   item: DueItem;
   onSelect: (item: DueItem) => void;
-  currency: 'HUF' | 'USD' | 'EUR';
+  currency: Currency;
   dueDateLabel: string;
 }) {
   const { payment } = item;

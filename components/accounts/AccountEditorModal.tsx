@@ -12,16 +12,10 @@ import NumberInput from '@/components/ui/NumberInput';
 import Switch from '@/components/ui/Switch';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import EmojiBox from '@/components/ui/EmojiBox';
+import { CURRENCIES, CURRENCY_LABELS } from '@/lib/baseCurrency';
 import type { AccountType, Currency } from '@/lib/types';
 import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from '@/lib/utils';
 import styles from './AccountEditorModal.module.css';
-
-const CURRENCIES: Currency[] = ['HUF', 'USD', 'EUR'];
-const CURRENCY_LABELS: Record<Currency, string> = {
-  HUF: 'HUF — Hungarian Forint',
-  USD: 'USD — US Dollar',
-  EUR: 'EUR — Euro',
-};
 
 export interface WalletDraft {
   name: string;

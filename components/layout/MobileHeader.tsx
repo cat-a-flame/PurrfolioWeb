@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
 import { FiCreditCard, FiDownload, FiFolder, FiTag, FiUpload } from 'react-icons/fi';
-import { isPublicPath } from '@/lib/publicPaths';
+import { hidesNav } from '@/lib/publicPaths';
 import styles from './MobileHeader.module.css';
 
 const settingsItems = [
@@ -59,7 +59,7 @@ export default function MobileHeader() {
   }, [open]);
 
   // Logged-out pages have no app navigation.
-  if (isPublicPath(pathname)) return null;
+  if (hidesNav(pathname)) return null;
 
   return (
     <>
