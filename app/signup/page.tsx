@@ -33,7 +33,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        data: { username: username.trim() },
+        data: { name: username.trim() },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });

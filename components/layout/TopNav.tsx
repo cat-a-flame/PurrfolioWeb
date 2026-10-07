@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { getUsername } from '@/lib/username';
 import { useRecurringAlert } from '@/contexts/RecurringAlertContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import styles from './TopNav.module.css';
@@ -77,7 +78,7 @@ export default function TopNav() {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       if (data.user?.email) setEmail(data.user.email);
-      if (data.user?.user_metadata?.username) setUsername(data.user.user_metadata.username as string);
+      setUsername(getUsername(data.user));
     });
   }, []);
 
