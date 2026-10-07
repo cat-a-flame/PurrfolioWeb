@@ -124,7 +124,7 @@
 .name {
   flex: 1;
   min-width: 0;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 0.9375rem;
   color: var(--color-text);
   white-space: nowrap;
