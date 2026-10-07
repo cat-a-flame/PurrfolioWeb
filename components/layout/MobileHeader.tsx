@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
+import { FiCreditCard, FiDownload, FiFolder, FiTag, FiUpload } from 'react-icons/fi';
 import { isPublicPath } from '@/lib/publicPaths';
 import styles from './MobileHeader.module.css';
 
@@ -11,54 +12,27 @@ const settingsItems = [
   {
     label: 'Accounts',
     href: '/settings/accounts',
-    icon: (
-      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <rect x="3" y="6" width="18" height="14" rx="3" />
-        <path d="M3 10h18" />
-        <circle cx="17" cy="14" r="1.4" fill="currentColor" />
-      </svg>
-    ),
+    icon: <FiCreditCard size={21} aria-hidden />,
   },
   {
     label: 'Categories',
     href: '/settings/categories',
-    icon: (
-      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      </svg>
-    ),
+    icon: <FiFolder size={21} aria-hidden />,
   },
   {
     label: 'Labels',
     href: '/settings/labels',
-    icon: (
-      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z" />
-        <circle cx="7.5" cy="7.5" r="1.3" fill="currentColor" />
-      </svg>
-    ),
+    icon: <FiTag size={21} aria-hidden />,
   },
   {
     label: 'Import',
     href: '/settings/import',
-    icon: (
-      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M12 3v12" />
-        <path d="m7 11 5 5 5-5" />
-        <path d="M5 21h14" />
-      </svg>
-    ),
+    icon: <FiDownload size={21} aria-hidden />,
   },
   {
     label: 'Export',
     href: '/settings/export',
-    icon: (
-      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M12 16V4" />
-        <path d="m7 8 5-5 5 5" />
-        <path d="M5 21h14" />
-      </svg>
-    ),
+    icon: <FiUpload size={21} aria-hidden />,
   },
 ];
 
