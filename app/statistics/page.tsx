@@ -10,10 +10,11 @@ import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import Skeleton from '@/components/ui/Skeleton';
 import { createClient } from '@/lib/supabase/client';
 import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
-import { getExchangeRates, getRatesForTransactions, toHUF, txToHUF } from '@/lib/exchangeRates';
-import { formatHUF, formatNumber } from '@/lib/utils';
+import { getExchangeRates, getRatesForTransactions, toBase, txToBase } from '@/lib/exchangeRates';
+import { formatNumber } from '@/lib/utils';
+import { useBaseCurrency, useFormatBase } from '@/contexts/BaseCurrencyContext';
 import { generateDueDates, isoDate as recurringIsoDate } from '@/lib/recurringUtils';
-import type { Transaction, RecurringPayment, RecurringOccurrence, TransactionType } from '@/lib/types';
+import type { Currency, Transaction, RecurringPayment, RecurringOccurrence, TransactionType } from '@/lib/types';
 import styles from './page.module.css';
 
 const PALETTE = [
@@ -22,8 +23,8 @@ const PALETTE = [
   '#a78bfa','#fb7185','#0ea5e9','#d946ef','#22c55e',
 ];
 
-// Categories under this amount (HUF) in the period are folded into "Other"
-const OTHER_THRESHOLD_HUF = 5_000;
+// Categories under this amount in the period are folded into "Other"
+const OTHER_THRESHOLD: Record<Currency, number> = { HUF: 5_000, EUR: 15, USD: 15 };
 const OTHER_COLOR = '#94a3b8';
 // Category rows shown before "Show N more categories"
 const VISIBLE_CATEGORIES = 8;
@@ -172,6 +173,7 @@ function PredictionPanel({ variant, title, subtitle, items, loading }: {
   items: PredictionItem[];
   loading: boolean;
 }) {
+  const formatBase = useFormatBase();
   const isIncome = variant === 'income';
   const sign = isIncome ? '+' : '−';
   return (
@@ -220,7 +222,7 @@ function PredictionPanel({ variant, title, subtitle, items, loading }: {
                 <td className={styles.predictionCellAmount}>
                   <div className={styles.predictionAmountCol}>
                     <span className={[styles.predictionAmount, isIncome ? styles.statAmountIncome : styles.statAmountExpense].join(' ')}>
-                      {sign}{formatHUF(item.predictedAmount)}
+                      {sign}{formatBase(item.predictedAmount)}
                     </span>
                     <span className={styles.predictionRangeText}>
                       {item.isStable ? 'stable' : `${formatNumber(Math.round(item.rangeLow))} – ${formatNumber(Math.round(item.rangeHigh))}`}
@@ -237,6 +239,9 @@ function PredictionPanel({ variant, title, subtitle, items, loading }: {
 }
 
 export default function StatisticsPage() {
+  const baseCurrency = useBaseCurrency();
+  const formatBase = useFormatBase();
+  const otherThreshold = OTHER_THRESHOLD[baseCurrency];
   const [allTxs, setAllTxs]   = useState<Transaction[]>([]);
   const [prevTxsData, setPrevTxsData] = useState<Transaction[]>([]);
   const [historyTxs, setHistoryTxs] = useState<Transaction[]>([]);
@@ -272,8 +277,8 @@ export default function StatisticsPage() {
 
     // Load rates before rendering so totals don't change after the skeleton.
     const [rates, today] = await Promise.all([
-      getRatesForTransactions([...transactions, ...prevTransactions, ...historyTransactions]),
-      getExchangeRates(isoDate(new Date())),
+      getRatesForTransactions([...transactions, ...prevTransactions, ...historyTransactions], baseCurrency),
+      getExchangeRates(isoDate(new Date()), baseCurrency),
     ]);
 
     setRatesByDate(prevRates => ({ ...prevRates, ...rates }));
@@ -285,7 +290,7 @@ export default function StatisticsPage() {
     if (pmtRes.data) setRecurringPayments(pmtRes.data as RecurringPayment[]);
     if (occRes.data) setRecurringOccurrences(occRes.data);
     setLoading(false);
-  }, [period]);
+  }, [period, baseCurrency]);
 
   useEffect(() => {
     setPeriodLoading(true);
@@ -313,9 +318,9 @@ export default function StatisticsPage() {
   const periodTxs = allTxs;
   const prevTxs   = prevTxsData;
 
-  const income  = useMemo(() => periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
-  const expense = useMemo(() => periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
-  const prevExpense = useMemo(() => prevTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0), [prevTxs, ratesByDate]);
+  const income  = useMemo(() => periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + txToBase(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}, baseCurrency), 0), [periodTxs, ratesByDate, baseCurrency]);
+  const expense = useMemo(() => periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToBase(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}, baseCurrency), 0), [periodTxs, ratesByDate, baseCurrency]);
+  const prevExpense = useMemo(() => prevTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToBase(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}, baseCurrency), 0), [prevTxs, ratesByDate, baseCurrency]);
 
   const txCount = periodTxs.filter(t => !t.transfer_group_id).length;
   const incomeCount  = periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).length;
@@ -337,14 +342,14 @@ export default function StatisticsPage() {
       for (const date of generateDueDates(p, from, to)) {
         const key = `${p.id}|${recurringIsoDate(date)}`;
         if (actionedKeys.has(key)) continue;
-        const hufAmount = toHUF(p.amount, p.wallet?.currency, todayRates);
-        if (p.type === 'income')  plannedIncome  += hufAmount;
-        if (p.type === 'expense') plannedExpense += hufAmount;
+        const baseAmount = toBase(p.amount, p.wallet?.currency, todayRates, baseCurrency);
+        if (p.type === 'income')  plannedIncome  += baseAmount;
+        if (p.type === 'expense') plannedExpense += baseAmount;
       }
     }
 
     return { actualIncome: income, actualExpense: expense, plannedIncome, plannedExpense };
-  }, [period, income, expense, recurringPayments, recurringOccurrences, todayRates]);
+  }, [period, income, expense, recurringPayments, recurringOccurrences, todayRates, baseCurrency]);
 
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [otherExpanded, setOtherExpanded] = useState(false);
@@ -355,7 +360,7 @@ export default function StatisticsPage() {
       if (t.type !== 'expense' || t.transfer_group_id) continue;
       const name  = t.category?.name  ?? 'Uncategorised';
       const prev  = map.get(name) ?? { amount: 0, icon: t.category?.icon ?? '📁', color: t.category?.color ?? OTHER_COLOR };
-      map.set(name, { ...prev, amount: prev.amount + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}) });
+      map.set(name, { ...prev, amount: prev.amount + txToBase(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}, baseCurrency) });
     }
     const total = Array.from(map.values()).reduce((s, v) => s + v.amount, 0);
     const rows = Array.from(map.entries())
@@ -367,8 +372,8 @@ export default function StatisticsPage() {
         color: v.color !== OTHER_COLOR ? v.color : PALETTE[i % PALETTE.length],
         share: total > 0 ? v.amount / total : 0,
       }));
-    const main  = rows.filter(r => r.amount >= OTHER_THRESHOLD_HUF);
-    const small = rows.filter(r => r.amount <  OTHER_THRESHOLD_HUF);
+    const main  = rows.filter(r => r.amount >= otherThreshold);
+    const small = rows.filter(r => r.amount <  otherThreshold);
     const otherAmount = small.reduce((s, r) => s + r.amount, 0);
     return {
       total,
@@ -378,7 +383,7 @@ export default function StatisticsPage() {
       other: small.length > 0 ? { amount: otherAmount, share: total > 0 ? otherAmount / total : 0 } : null,
       maxAmount: Math.max(1, ...main.map(r => r.amount)),
     };
-  }, [periodTxs, ratesByDate]);
+  }, [periodTxs, ratesByDate, baseCurrency]);
 
   const comparisonData = useMemo(() => {
     const catMap = new Map<string, { current: number; prev: number; icon: string; color: string }>();
@@ -392,18 +397,18 @@ export default function StatisticsPage() {
     for (const t of periodTxs) {
       if (t.type !== 'expense' || t.transfer_group_id) continue;
       const name = t.category?.name ?? 'Uncategorised';
-      catMap.get(name)!.current += txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
+      catMap.get(name)!.current += txToBase(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}, baseCurrency);
     }
     for (const t of prevTxs) {
       if (t.type !== 'expense' || t.transfer_group_id) continue;
       const name = t.category?.name ?? 'Uncategorised';
-      catMap.get(name)!.prev += txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
+      catMap.get(name)!.prev += txToBase(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}, baseCurrency);
     }
     return Array.from(catMap.entries())
       .sort((a, b) => (b[1].current + b[1].prev) - (a[1].current + a[1].prev))
       .slice(0, 10)
       .map(([name, v]) => ({ name, icon: v.icon, color: v.color, current: Math.round(v.current), prev: Math.round(v.prev) }));
-  }, [periodTxs, prevTxs, ratesByDate]);
+  }, [periodTxs, prevTxs, ratesByDate, baseCurrency]);
 
   // Per category (or per payer when one dominates): months seen out of 6, typical monthly
   // total and its spread, scaled to the period. Needs MIN_BUCKETS_SEEN months to count.
@@ -437,7 +442,7 @@ export default function StatisticsPage() {
         buckets: new Map<number, number>(),
         payerCounts: new Map<string, number>(),
       };
-      const amount = txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
+      const amount = txToBase(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}, baseCurrency);
       const txDate = new Date(t.date + 'T00:00:00');
       const bucketIdx = txDate.getFullYear() * 12 + txDate.getMonth() - histStartMonth;
       if (bucketIdx < 0 || bucketIdx >= HISTORY_MONTHS) continue;
@@ -499,7 +504,7 @@ export default function StatisticsPage() {
       income:  [...income].sort(byReliability).slice(0, MAX_PREDICTIONS_PER_TYPE),
       expense: [...expense].sort(byReliability).slice(0, MAX_PREDICTIONS_PER_TYPE),
     };
-  }, [historyTxs, historyRange, period, ratesByDate]);
+  }, [historyTxs, historyRange, period, ratesByDate, baseCurrency]);
 
   const showSkeleton = loading || periodLoading;
   const prevLabel = period.tab === 'months' ? 'previous month' : period.tab === 'years' ? 'previous year' : period.tab === 'weeks' ? 'previous week' : 'previous period';
@@ -544,7 +549,7 @@ export default function StatisticsPage() {
                     <div className={[styles.statIcon, styles.statIconIncome].join(' ')}><IncomeIcon /></div>
                     <span className={styles.statLabel}>Income</span>
                   </div>
-                  <div className={[styles.statAmount, styles.statAmountIncome].join(' ')}>{formatHUF(animatedIncome)}</div>
+                  <div className={[styles.statAmount, styles.statAmountIncome].join(' ')}>{formatBase(animatedIncome)}</div>
                   <div className={styles.statDivider} />
                   {showIncomeProjection ? (
                     <div className={styles.statFooter}>
@@ -552,7 +557,7 @@ export default function StatisticsPage() {
                         <span className={styles.statFooterLabel}>
                           <span className={[styles.statDot, styles.statDotIncome].join(' ')} />Projected
                         </span>
-                        <span className={[styles.statFooterValue, styles.statFooterValueIncome].join(' ')}>{formatHUF(projIncome)}</span>
+                        <span className={[styles.statFooterValue, styles.statFooterValueIncome].join(' ')}>{formatBase(projIncome)}</span>
                       </div>
                       <div className={styles.statBarTrack}>
                         <div className={[styles.statBarFill, styles.statBarFillIncome].join(' ')} style={{ width: `${progressPct(income, projIncome)}%` }} />
@@ -568,7 +573,7 @@ export default function StatisticsPage() {
                     <div className={[styles.statIcon, styles.statIconExpense].join(' ')}><ExpenseIcon /></div>
                     <span className={styles.statLabel}>Expenses</span>
                   </div>
-                  <div className={[styles.statAmount, styles.statAmountExpense].join(' ')}>{formatHUF(animatedExpense)}</div>
+                  <div className={[styles.statAmount, styles.statAmountExpense].join(' ')}>{formatBase(animatedExpense)}</div>
                   <div className={styles.statDivider} />
                   {hasPlanned ? (
                     <div className={styles.statFooter}>
@@ -576,7 +581,7 @@ export default function StatisticsPage() {
                         <span className={styles.statFooterLabel}>
                           <span className={[styles.statDot, styles.statDotExpense].join(' ')} />Projected
                         </span>
-                        <span className={[styles.statFooterValue, styles.statFooterValueExpense].join(' ')}>{formatHUF(projExpense)}</span>
+                        <span className={[styles.statFooterValue, styles.statFooterValueExpense].join(' ')}>{formatBase(projExpense)}</span>
                       </div>
                       <div className={styles.statBarTrack}>
                         <div className={[styles.statBarFill, styles.statBarFillExpense].join(' ')} style={{ width: `${progressPct(expense, projExpense)}%` }} />
@@ -593,7 +598,7 @@ export default function StatisticsPage() {
                     <span className={styles.statLabel}>Net</span>
                   </div>
                   <div className={styles.statAmount}>
-                    {income - expense >= 0 ? '+' : ''}{formatHUF(animatedNet)}
+                    {income - expense >= 0 ? '+' : ''}{formatBase(animatedNet)}
                   </div>
                   <div className={styles.statDivider} />
                   {hasPlanned ? (
@@ -602,7 +607,7 @@ export default function StatisticsPage() {
                         <span className={styles.statFooterLabel}>
                           <span className={[styles.statDot, styles.statDotNet].join(' ')} />Projected
                         </span>
-                        <span className={[styles.statFooterValue, styles.statFooterValueNet].join(' ')}>{projNet >= 0 ? '+' : ''}{formatHUF(projNet)}</span>
+                        <span className={[styles.statFooterValue, styles.statFooterValueNet].join(' ')}>{projNet >= 0 ? '+' : ''}{formatBase(projNet)}</span>
                       </div>
                       <div className={styles.statBarTrack}>
                         <div className={[styles.statBarFill, styles.statBarFillNet].join(' ')} style={{ width: `${progressPct(income - expense, projNet)}%` }} />
@@ -636,7 +641,7 @@ export default function StatisticsPage() {
                 </div>
                 {!showSkeleton && expenseBreakdown.categoryCount > 0 && (
                   <div className={styles.catTotal}>
-                    <span className={styles.catTotalAmount}>{formatHUF(Math.round(expenseBreakdown.total))}</span>
+                    <span className={styles.catTotalAmount}>{formatBase(Math.round(expenseBreakdown.total))}</span>
                     <span className={styles.catTotalCount}>
                       {expenseBreakdown.categoryCount} {expenseBreakdown.categoryCount === 1 ? 'category' : 'categories'}
                     </span>
@@ -679,7 +684,7 @@ export default function StatisticsPage() {
                               </div>
                             </div>
                             <span className={styles.catPct}>{formatShare(r.share)}</span>
-                            <span className={styles.catAmount}>{formatHUF(Math.round(r.amount))}</span>
+                            <span className={styles.catAmount}>{formatBase(Math.round(r.amount))}</span>
                           </li>
                         ))}
                       </ul>
@@ -702,13 +707,13 @@ export default function StatisticsPage() {
                           <EmojiBox emoji="📁" color={OTHER_COLOR} size="sm" />
                           <span className={styles.catOtherLabel}>
                             <span className={styles.catName}>Other</span>
-                            <span className={styles.catOtherHint}>{small.length} under {formatHUF(OTHER_THRESHOLD_HUF)}</span>
+                            <span className={styles.catOtherHint}>{small.length} under {formatBase(otherThreshold)}</span>
                             <svg className={[styles.chevron, otherExpanded ? styles.chevronOpen : ''].filter(Boolean).join(' ')} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                               <polyline points="6 9 12 15 18 9" />
                             </svg>
                           </span>
                           <span className={styles.catPct}>{formatShare(other.share)}</span>
-                          <span className={styles.catAmount}>{formatHUF(Math.round(other.amount))}</span>
+                          <span className={styles.catAmount}>{formatBase(Math.round(other.amount))}</span>
                         </button>
                         {otherExpanded && (
                           <ul className={[styles.catList, styles.catSubList].join(' ')}>
@@ -717,7 +722,7 @@ export default function StatisticsPage() {
                                 <EmojiBox emoji={r.icon} color={r.color} size="sm" />
                                 <span className={styles.catName}>{r.name}</span>
                                 <span className={styles.catPct}>{formatShare(r.share)}</span>
-                                <span className={styles.catAmount}>{formatHUF(Math.round(r.amount))}</span>
+                                <span className={styles.catAmount}>{formatBase(Math.round(r.amount))}</span>
                               </li>
                             ))}
                           </ul>
@@ -774,8 +779,8 @@ export default function StatisticsPage() {
                             </div>
                           </div>
                           <div className={styles.compAmounts}>
-                            <span className={styles.compAmountCurrent}>{formatHUF(c.current)}</span>
-                            <span className={styles.compAmountPrev}>was {formatHUF(c.prev)}</span>
+                            <span className={styles.compAmountCurrent}>{formatBase(c.current)}</span>
+                            <span className={styles.compAmountPrev}>was {formatBase(c.prev)}</span>
                           </div>
                           <span className={[styles.compChangeBadge, changeClass].join(' ')}>{change.text}</span>
                         </div>
@@ -791,8 +796,8 @@ export default function StatisticsPage() {
                   <div className={styles.compTotal}>
                     <span className={styles.compTotalLabel}>Total spent</span>
                     <div className={styles.compTotalFigures}>
-                      <span className={styles.compTotalAmount}>{formatHUF(Math.round(expense))}</span>
-                      <span className={styles.compTotalPrev}>vs {formatHUF(Math.round(prevExpense))} in {prevName}</span>
+                      <span className={styles.compTotalAmount}>{formatBase(Math.round(expense))}</span>
+                      <span className={styles.compTotalPrev}>vs {formatBase(Math.round(prevExpense))} in {prevName}</span>
                       <span className={[styles.compChangeBadge, changeClass].join(' ')}>{change.text}</span>
                     </div>
                   </div>

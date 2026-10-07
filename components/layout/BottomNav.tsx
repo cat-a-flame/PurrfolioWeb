@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAddRecord } from '@/components/transactions/AddRecordProvider';
 import { useRecurringAlert } from '@/contexts/RecurringAlertContext';
-import { isPublicPath } from '@/lib/publicPaths';
+import { hidesNav } from '@/lib/publicPaths';
 import styles from './BottomNav.module.css';
 
 const tabs = [
@@ -62,7 +62,7 @@ export default function BottomNav() {
   const hasUrgentPlanned = useRecurringAlert();
 
   // Logged-out pages have no app navigation.
-  if (isPublicPath(pathname)) return null;
+  if (hidesNav(pathname)) return null;
 
   return (
     <nav className={styles.nav} aria-label="Mobile navigation">

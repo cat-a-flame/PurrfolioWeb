@@ -133,6 +133,8 @@ export default function AccountPage() {
         setDeleteError(error.message);
         return;
       }
+      // No accounts are left, so onboarding runs again and picks a new base currency.
+      await supabase.auth.updateUser({ data: { base_currency: null } });
       // Full reload clears the data cached in contexts.
       window.location.assign('/dashboard');
       return;

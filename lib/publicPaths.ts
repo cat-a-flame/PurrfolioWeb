@@ -4,3 +4,8 @@ export const PUBLIC_PATHS = ['/login', '/signup', '/auth/callback'];
 export function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
 }
+
+// Pages that show no navigation (login screens and the onboarding flow).
+export function hidesNav(pathname: string): boolean {
+  return isPublicPath(pathname) || pathname === '/onboarding';
+}

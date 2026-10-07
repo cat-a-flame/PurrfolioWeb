@@ -1,6 +1,7 @@
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import type { Transaction } from '@/lib/types';
+import { useBaseCurrency } from '@/contexts/BaseCurrencyContext';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import styles from './TransactionItem.module.css';
 
@@ -15,9 +16,10 @@ export default function TransactionItem({
   onEdit,
   onDelete,
 }: TransactionItemProps) {
+  const baseCurrency = useBaseCurrency();
   const category = transaction.category;
   const labels = transaction.labels ?? [];
-  const currency = transaction.wallet?.currency ?? 'HUF';
+  const currency = transaction.wallet?.currency ?? baseCurrency;
 
   return (
     <div className={styles.item}>

@@ -19,8 +19,9 @@ import type { PeriodValue } from '@/components/ui/PeriodPicker';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
 import { createClient } from '@/lib/supabase/client';
 import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
-import { formatCurrency, formatHUF } from '@/lib/utils';
-import { getExchangeRates, getRatesForTransactions, txToHUF } from '@/lib/exchangeRates';
+import { formatCurrency } from '@/lib/utils';
+import { getExchangeRates, getRatesForTransactions, txToBase } from '@/lib/exchangeRates';
+import { useBaseCurrency, useFormatBase } from '@/contexts/BaseCurrencyContext';
 import type { Transaction, Category, Label, Wallet } from '@/lib/types';
 import styles from './page.module.css';
 
@@ -48,6 +49,8 @@ function defaultPeriod(): PeriodValue {
 const BULK_REMOVE_CATEGORY = '__bulk_remove_category__';
 
 export default function TransactionsPage() {
+  const baseCurrency = useBaseCurrency();
+  const formatBase = useFormatBase();
   const { openAddDialog } = useAddRecord();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -91,7 +94,7 @@ export default function TransactionsPage() {
 
   const [isPeriodLoading, setIsPeriodLoading] = useState(false);
 
-  // date → HUF per 1 unit of each currency
+  // date → base currency per 1 unit of each foreign currency
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
 
   const [displayCount, setDisplayCount] = useState(15);
@@ -130,7 +133,7 @@ export default function TransactionsPage() {
     ]);
 
     // Load rates before rendering so totals don't change after the skeleton.
-    const rates = await getRatesForTransactions(transactions);
+    const rates = await getRatesForTransactions(transactions, baseCurrency);
 
     setRatesByDate(prevRates => ({ ...prevRates, ...rates }));
     setTransactions(transactions);
@@ -138,7 +141,7 @@ export default function TransactionsPage() {
     if (lblRes.data) setLabels(lblRes.data);
     if (walletRes.data) setWallets(walletRes.data);
     setLoading(false);
-  }, [filterPeriod]);
+  }, [filterPeriod, baseCurrency]);
 
   useEffect(() => {
     setIsPeriodLoading(true);
@@ -173,10 +176,10 @@ export default function TransactionsPage() {
 
   const summaryIncome = filteredTransactions
     .filter(t => t.type === 'income' && !t.transfer_group_id)
-    .reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
+    .reduce((s, t) => s + txToBase(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}, baseCurrency), 0);
   const summaryExpense = filteredTransactions
     .filter(t => t.type === 'expense' && !t.transfer_group_id)
-    .reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
+    .reduce((s, t) => s + txToBase(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}, baseCurrency), 0);
 
   useEffect(() => {
     setDisplayCount(15);
@@ -215,12 +218,12 @@ export default function TransactionsPage() {
           date,
           transactions: [...txs].sort((a, b) => b.created_at.localeCompare(a.created_at)),
           net: txs.filter(t => t.type === 'income' && !t.transfer_group_id)
-            .reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, rates), 0)
+            .reduce((s, t) => s + txToBase(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, rates, baseCurrency), 0)
             - txs.filter(t => t.type === 'expense' && !t.transfer_group_id)
-              .reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, rates), 0),
+              .reduce((s, t) => s + txToBase(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, rates, baseCurrency), 0),
         };
       });
-  }, [visibleTransactions, ratesByDate]);
+  }, [visibleTransactions, ratesByDate, baseCurrency]);
 
   const allVisibleIds = visibleTransactions.map(t => t.id);
   const allSelected = allVisibleIds.length > 0 && allVisibleIds.every(id => selectedIds.has(id));
@@ -306,8 +309,8 @@ export default function TransactionsPage() {
 
     const getWalletRate = async (walletId: string, date: string): Promise<number | null> => {
       const wallet = wallets.find(w => w.id === walletId);
-      if (!wallet?.currency || wallet.currency === 'HUF') return null;
-      const rates = await getExchangeRates(date);
+      if (!wallet?.currency || wallet.currency === baseCurrency) return null;
+      const rates = await getExchangeRates(date, baseCurrency);
       return rates[wallet.currency] ?? null;
     };
 
@@ -508,11 +511,11 @@ export default function TransactionsPage() {
               </div>
               <div className={styles.summaryStat}>
                 <span className={styles.summaryLabel}>Spent</span>
-                <span className={[styles.summaryValue, styles.summaryExpense].join(' ')}>−{formatHUF(summaryExpense)}</span>
+                <span className={[styles.summaryValue, styles.summaryExpense].join(' ')}>−{formatBase(summaryExpense)}</span>
               </div>
               <div className={styles.summaryStat}>
                 <span className={styles.summaryLabel}>Received</span>
-                <span className={[styles.summaryValue, styles.summaryIncome].join(' ')}>+{formatHUF(summaryIncome)}</span>
+                <span className={[styles.summaryValue, styles.summaryIncome].join(' ')}>+{formatBase(summaryIncome)}</span>
               </div>
             </div>
           )}
@@ -577,7 +580,7 @@ export default function TransactionsPage() {
                   <div className={styles.dayHeader}>
                     <span className={styles.dayDate}>{formatDayHeader(date)}</span>
                     <span className={[styles.dayNet, net >= 0 ? styles.dayNetPos : styles.dayNetNeg].join(' ')}>
-                      {net < 0 ? '−' : '+'}{formatHUF(Math.abs(net))}
+                      {net < 0 ? '−' : '+'}{formatBase(Math.abs(net))}
                     </span>
                   </div>
                   <div className={styles.dayTxList}>
@@ -658,7 +661,7 @@ export default function TransactionsPage() {
                               styles.txAmount,
                               isTransfer ? styles.txTransfer : t.type === 'income' ? styles.txIncome : styles.txExpense,
                             ].join(' ')}>
-                              {t.type === 'income' ? '+' : '−'}{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
+                              {t.type === 'income' ? '+' : '−'}{formatCurrency(t.amount, t.wallet?.currency ?? baseCurrency)}
                             </span>
                           </div>
                         </div>

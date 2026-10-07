@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { CURRENCIES, parseCurrency } from '@/lib/baseCurrency';
 
 // Frankfurter (ECB rates). A weekend or holiday date returns the previous business day's rates.
 const FRANKFURTER = 'https://api.frankfurter.app';
@@ -8,10 +9,15 @@ export async function GET(req: NextRequest) {
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
   }
+  const base = parseCurrency(req.nextUrl.searchParams.get('base') ?? 'HUF');
+  if (!base) {
+    return NextResponse.json({ error: 'Invalid base currency' }, { status: 400 });
+  }
 
   try {
-    // Fetch HUF-based rates and invert them: 0.00254 EUR per HUF → 393.7 HUF per EUR.
-    const res = await fetch(`${FRANKFURTER}/${date}?from=HUF&to=EUR,USD`);
+    // Fetch base-based rates and invert them: with base HUF, 0.00254 EUR per HUF → 393.7 HUF per EUR.
+    const others = CURRENCIES.filter(c => c !== base).join(',');
+    const res = await fetch(`${FRANKFURTER}/${date}?from=${base}&to=${others}`);
 
     if (!res.ok) return NextResponse.json({ rates: {} });
 

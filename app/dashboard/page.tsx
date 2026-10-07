@@ -18,8 +18,9 @@ import { useAddRecord } from '@/components/transactions/AddRecordProvider';
 import { createClient } from '@/lib/supabase/client';
 import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
 import { fetchWalletBalanceSums } from '@/lib/supabase/fetchWalletBalanceSums';
-import { formatHUF, formatCurrency } from '@/lib/utils';
-import { getExchangeRates, getRatesForTransactions, txToHUF } from '@/lib/exchangeRates';
+import { formatCurrency } from '@/lib/utils';
+import { getExchangeRates, getRatesForTransactions, txToBase } from '@/lib/exchangeRates';
+import { useBaseCurrency, useFormatBase } from '@/contexts/BaseCurrencyContext';
 import { generateDueDates, frequencyLabel, isoDate } from '@/lib/recurringUtils';
 import type { Transaction, Wallet, Category, Label, RecurringPayment, RecurringOccurrence } from '@/lib/types';
 import styles from './page.module.css';
@@ -67,6 +68,8 @@ function formatDayLabel(dateStr: string): string {
 }
 
 export default function DashboardPage() {
+  const baseCurrency = useBaseCurrency();
+  const formatBase = useFormatBase();
   const { openAddDialog } = useAddRecord();
 
   const [periodTransactions, setPeriodTransactions] = useState<Transaction[]>([]);
@@ -123,9 +126,9 @@ export default function DashboardPage() {
     };
   }, []);
 
-  // date → HUF per 1 unit of each currency
+  // date → base currency per 1 unit of each foreign currency
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
-  // Today's rates, for the HUF net worth
+  // Today's rates, for the net worth
   const [currentRates, setCurrentRates] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -150,8 +153,8 @@ export default function DashboardPage() {
 
     // Load rates before rendering so totals don't change after the skeleton.
     const [rates, todayRates] = await Promise.all([
-      getRatesForTransactions([...txs, ...prevTxs]),
-      getExchangeRates(isoDate(new Date())),
+      getRatesForTransactions([...txs, ...prevTxs], baseCurrency),
+      getExchangeRates(isoDate(new Date()), baseCurrency),
     ]);
 
     setRatesByDate(prevRates => ({ ...prevRates, ...rates }));
@@ -171,7 +174,7 @@ export default function DashboardPage() {
     }
     if (occRes.data) setRecurringOccurrences(occRes.data as RecurringOccurrence[]);
     setLoading(false);
-  }, [period]);
+  }, [period, baseCurrency]);
 
   useEffect(() => {
     setPeriodLoading(true);
@@ -180,12 +183,12 @@ export default function DashboardPage() {
     return () => window.removeEventListener('transaction-added', fetchData);
   }, [fetchData]);
 
-  const income = periodTransactions.filter(t => t.type === 'income' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
-  const expense = periodTransactions.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
+  const income = periodTransactions.filter(t => t.type === 'income' && !t.transfer_group_id).reduce((s, t) => s + txToBase(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}, baseCurrency), 0);
+  const expense = periodTransactions.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToBase(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}, baseCurrency), 0);
   const balance = income - expense;
 
-  const prevBalance = prevTransactions.filter(t => t.type === 'income' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0)
-    - prevTransactions.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
+  const prevBalance = prevTransactions.filter(t => t.type === 'income' && !t.transfer_group_id).reduce((s, t) => s + txToBase(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}, baseCurrency), 0)
+    - prevTransactions.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToBase(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}, baseCurrency), 0);
 
   const vsPct = prevBalance === 0 ? null : Math.round(((balance - prevBalance) / Math.abs(prevBalance)) * 100);
 
@@ -336,8 +339,8 @@ export default function DashboardPage() {
 
     const getWalletRate = async (walletId: string, date: string): Promise<number | null> => {
       const wallet = wallets.find(w => w.id === walletId);
-      if (!wallet?.currency || wallet.currency === 'HUF') return null;
-      const rates = await getExchangeRates(date);
+      if (!wallet?.currency || wallet.currency === baseCurrency) return null;
+      const rates = await getExchangeRates(date, baseCurrency);
       return rates[wallet.currency] ?? null;
     };
 
@@ -499,7 +502,7 @@ export default function DashboardPage() {
                 <div className={styles.cashFlowTop}>
                   <div className={styles.cashFlowLeft}>
                     <span className={styles.cashFlowPeriodLabel}>{period.label}</span>
-                    <div className={styles.cashFlowBalance}>{hideNumbers ? NUMBER_MASK : formatHUF(animatedBalance)}</div>
+                    <div className={styles.cashFlowBalance}>{hideNumbers ? NUMBER_MASK : formatBase(animatedBalance)}</div>
                   </div>
                   {vsPct !== null && (
                     <div className={styles.cashFlowRight}>
@@ -514,7 +517,7 @@ export default function DashboardPage() {
                   <div className={styles.barRow}>
                     <div className={styles.barMeta}>
                       <span className={styles.barLabel}>Income</span>
-                      <span className={styles.barAmount}>{hideNumbers ? NUMBER_MASK : formatHUF(income)}</span>
+                      <span className={styles.barAmount}>{hideNumbers ? NUMBER_MASK : formatBase(income)}</span>
                     </div>
                     <div className={styles.barTrack}>
                       <div className={[styles.barFill, styles.barFillIncome].join(' ')} style={{ width: `${incomePct}%` }} />
@@ -523,7 +526,7 @@ export default function DashboardPage() {
                   <div className={styles.barRow}>
                     <div className={styles.barMeta}>
                       <span className={styles.barLabel}>Expense</span>
-                      <span className={styles.barAmount}>{hideNumbers ? NUMBER_MASK : `-${formatHUF(expense)}`}</span>
+                      <span className={styles.barAmount}>{hideNumbers ? NUMBER_MASK : `-${formatBase(expense)}`}</span>
                     </div>
                     <div className={styles.barTrack}>
                       <div className={[styles.barFill, styles.barFillExpense].join(' ')} style={{ width: `${expensePct}%` }} />
@@ -572,7 +575,7 @@ export default function DashboardPage() {
                       <span className={styles.plannedFreq}>{frequencyLabel(payment.frequency)}</span>
                     </div>
                     <span className={[styles.plannedAmount, payment.type === 'income' ? styles.amtIncome : styles.amtExpense].join(' ')}>
-                      {payment.type === 'income' ? '+' : '−'}{formatCurrency(payment.amount, payment.wallet?.currency ?? 'HUF')}
+                      {payment.type === 'income' ? '+' : '−'}{formatCurrency(payment.amount, payment.wallet?.currency ?? baseCurrency)}
                     </span>
                   </div>
                 ))}
@@ -664,7 +667,7 @@ export default function DashboardPage() {
                         styles.txAmount,
                         isTransfer ? styles.txTransfer : t.type === 'income' ? styles.amtIncome : styles.amtExpense,
                       ].join(' ')}>
-                        {t.type === 'income' ? '+' : '−'}{formatCurrency(t.amount, t.wallet?.currency ?? 'HUF')}
+                        {t.type === 'income' ? '+' : '−'}{formatCurrency(t.amount, t.wallet?.currency ?? baseCurrency)}
                       </span>
                       <span className={styles.txDate}>{formatDayLabel(t.date)}</span>
                     </div>
@@ -700,7 +703,7 @@ export default function DashboardPage() {
                 plannedDialogItem.payment.type === 'income' ? styles.amtIncome : styles.amtExpense,
               ].join(' ')}>
                 {plannedDialogItem.payment.type === 'income' ? '+' : '−'}
-                {formatCurrency(plannedDialogItem.payment.amount, plannedDialogItem.payment.wallet?.currency ?? 'HUF')}
+                {formatCurrency(plannedDialogItem.payment.amount, plannedDialogItem.payment.wallet?.currency ?? baseCurrency)}
               </span>
               {`Due ${plannedDialogItem.dueDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}. Add this as a transaction, or skip this occurrence?`}
             </>

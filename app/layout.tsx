@@ -7,8 +7,10 @@ import BottomNav from '@/components/layout/BottomNav';
 import MobileHeader from '@/components/layout/MobileHeader';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { RecurringAlertProvider } from '@/contexts/RecurringAlertContext';
+import { BaseCurrencyProvider } from '@/contexts/BaseCurrencyContext';
 import { RoleProvider } from '@/contexts/RoleContext';
 import { UserProvider } from '@/contexts/UserContext';
+import { getBaseCurrency } from '@/lib/baseCurrency';
 import { createClient } from '@/lib/supabase/server';
 import { toCurrentUser } from '@/lib/username';
 import './globals.css';
@@ -44,18 +46,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <ThemeProvider>
           <UserProvider initialUser={toCurrentUser(user)}>
-            <RoleProvider>
-              <RecurringAlertProvider>
-                <AddRecordProvider>
-                  <MobileHeader />
-                  {children}
-                  <BottomNav />
-                  <RoleGate allow={['user']}>
-                    <ReportBugButton />
-                  </RoleGate>
-                </AddRecordProvider>
-              </RecurringAlertProvider>
-            </RoleProvider>
+            <BaseCurrencyProvider initialBaseCurrency={getBaseCurrency(user)}>
+              <RoleProvider>
+                <RecurringAlertProvider>
+                  <AddRecordProvider>
+                    <MobileHeader />
+                    {children}
+                    <BottomNav />
+                    <RoleGate allow={['user']}>
+                      <ReportBugButton />
+                    </RoleGate>
+                  </AddRecordProvider>
+                </RecurringAlertProvider>
+              </RoleProvider>
+            </BaseCurrencyProvider>
           </UserProvider>
         </ThemeProvider>
       </body>

@@ -1,7 +1,8 @@
 import EmojiBox from '@/components/ui/EmojiBox';
 import Skeleton from '@/components/ui/Skeleton';
-import { toHUF } from '@/lib/exchangeRates';
-import { formatCurrency, formatHUF } from '@/lib/utils';
+import { useBaseCurrency, useFormatBase } from '@/contexts/BaseCurrencyContext';
+import { toBase } from '@/lib/exchangeRates';
+import { formatCurrency } from '@/lib/utils';
 import type { AccountType, Wallet } from '@/lib/types';
 import styles from './AccountsOverview.module.css';
 
@@ -21,7 +22,7 @@ export interface WalletSummary {
 
 interface AccountsOverviewProps {
   summaries: WalletSummary[];
-  /** HUF per 1 unit of each currency */
+  /** Base currency per 1 unit of each foreign currency */
   rates: Record<string, number>;
   loading: boolean;
   hideNumbers: boolean;
@@ -35,6 +36,9 @@ function groupFor(wallet: Wallet): GroupKey {
 }
 
 export default function AccountsOverview({ summaries, rates, loading, hideNumbers, mask }: AccountsOverviewProps) {
+  const baseCurrency = useBaseCurrency();
+  const formatBase = useFormatBase();
+
   if (loading) {
     return (
       <section className={styles.card} aria-busy="true">
@@ -61,14 +65,14 @@ export default function AccountsOverview({ summaries, rates, loading, hideNumber
 
   const groups = GROUPS.map(g => {
     const items = summaries.filter(s => groupFor(s.wallet) === g.key);
-    const totalHUF = items.reduce((sum, s) => sum + toHUF(s.balance, s.wallet.currency, rates), 0);
-    const approximate = items.some(s => s.wallet.currency !== 'HUF');
-    return { ...g, items, totalHUF, approximate };
+    const total = items.reduce((sum, s) => sum + toBase(s.balance, s.wallet.currency, rates, baseCurrency), 0);
+    const approximate = items.some(s => s.wallet.currency !== baseCurrency);
+    return { ...g, items, total, approximate };
   }).filter(g => g.items.length > 0);
 
-  const netWorth = groups.reduce((sum, g) => sum + g.totalHUF, 0);
+  const netWorth = groups.reduce((sum, g) => sum + g.total, 0);
   const netApproximate = groups.some(g => g.approximate);
-  const barTotal = groups.reduce((sum, g) => sum + Math.max(0, g.totalHUF), 0);
+  const barTotal = groups.reduce((sum, g) => sum + Math.max(0, g.total), 0);
 
   const money = (text: string, approximate: boolean) =>
     hideNumbers ? mask : `${approximate ? '≈ ' : ''}${text}`;
@@ -77,17 +81,17 @@ export default function AccountsOverview({ summaries, rates, loading, hideNumber
     <section className={styles.card} aria-label="Accounts">
       <div className={styles.header}>
         <span className={styles.headerLabel}>Net worth</span>
-        <span className={styles.headerValue}>{money(formatHUF(netWorth), netApproximate)}</span>
+        <span className={styles.headerValue}>{money(formatBase(netWorth), netApproximate)}</span>
       </div>
 
       {barTotal > 0 && (
         <div className={styles.bar} role="img" aria-label="Share of net worth by account group">
-          {groups.filter(g => g.totalHUF > 0).map(g => (
+          {groups.filter(g => g.total > 0).map(g => (
             <span
               key={g.key}
               className={`${styles.segment} ${styles[g.key]}`}
-              style={{ flexGrow: g.totalHUF / barTotal }}
-              title={`${g.label}: ${Math.round((g.totalHUF / barTotal) * 100)}%`}
+              style={{ flexGrow: g.total / barTotal }}
+              title={`${g.label}: ${Math.round((g.total / barTotal) * 100)}%`}
             />
           ))}
         </div>
@@ -101,7 +105,7 @@ export default function AccountsOverview({ summaries, rates, loading, hideNumber
                 <span className={styles.dot} aria-hidden="true" />
                 {g.label}
               </span>
-              <span className={styles.groupTotal}>{money(formatHUF(g.totalHUF), g.approximate)}</span>
+              <span className={styles.groupTotal}>{money(formatBase(g.total), g.approximate)}</span>
             </div>
             <ul className={styles.list}>
               {g.items.map(({ wallet, balance }) => (

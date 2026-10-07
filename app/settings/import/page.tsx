@@ -5,6 +5,7 @@ import Link from 'next/link';
 import ReactSelect from 'react-select';
 import { createClient } from '@/lib/supabase/client';
 import { getExchangeRates } from '@/lib/exchangeRates';
+import { useBaseCurrency } from '@/contexts/BaseCurrencyContext';
 import Button from '@/components/ui/Button';
 import Toast from '@/components/ui/Toast';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
@@ -143,6 +144,7 @@ interface PreviewRow {
 }
 
 export default function ImportPage() {
+  const baseCurrency = useBaseCurrency();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [csv, setCsv] = useState<ParsedCsv | null>(null);
   const [fileName, setFileName] = useState('');
@@ -475,21 +477,21 @@ export default function ImportPage() {
     const datesToFetch = new Set<string>();
     for (const r of valid) {
       const fromWallet = wallets.find(w => w.id === r.walletId);
-      if (fromWallet?.currency && fromWallet.currency !== 'HUF') datesToFetch.add(r.date!);
+      if (fromWallet?.currency && fromWallet.currency !== baseCurrency) datesToFetch.add(r.date!);
       if (r.type === 'transfer') {
         const toWallet = wallets.find(w => w.id === r.transferToWalletId);
-        if (toWallet?.currency && toWallet.currency !== 'HUF') datesToFetch.add(r.date!);
+        if (toWallet?.currency && toWallet.currency !== baseCurrency) datesToFetch.add(r.date!);
       }
     }
     const ratesCache: Record<string, Record<string, number>> = {};
     await Promise.all([...datesToFetch].map(async date => {
-      ratesCache[date] = await getExchangeRates(date);
+      ratesCache[date] = await getExchangeRates(date, baseCurrency);
     }));
 
     function rateFor(walletId: string | null, date: string | null): number | null {
       if (!walletId || !date) return null;
       const wallet = wallets.find(w => w.id === walletId);
-      if (!wallet?.currency || wallet.currency === 'HUF') return null;
+      if (!wallet?.currency || wallet.currency === baseCurrency) return null;
       return ratesCache[date]?.[wallet.currency] ?? null;
     }
 
