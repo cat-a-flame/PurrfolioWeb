@@ -6,7 +6,6 @@
   gap: var(--space-6);
 }
 
-/* ── Page header ── */
 .pageHeader {
   display: flex;
   align-items: flex-start;
@@ -27,7 +26,6 @@
   color: transparent;
 }
 
-/* ── Filter tabs ── */
 .filterTabs {
   display: flex;
   background: var(--color-surface);
@@ -84,21 +82,18 @@
   color: var(--color-accent);
 }
 
-/* ── Period row ── */
 .periodRow {
   display: flex;
   justify-content: center;
   margin-top: var(--space-2);
 }
 
-/* ── Section ── */
 .section {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
 
-/* ── Due group ── */
 .dueGroup {
   display: flex;
   flex-direction: column;
@@ -340,7 +335,6 @@
   color: var(--color-error, #ef4444);
 }
 
-/* ── Modal (matches TransactionForm style) ── */
 .overlay {
   position: fixed;
   inset: 0;
@@ -409,7 +403,6 @@
   gap: var(--space-5);
 }
 
-/* Type tabs */
 .typeTabs {
   display: flex;
   background: var(--color-surface-2);
@@ -435,7 +428,6 @@
 .typeTabExpense { background: var(--color-expense); color: #fff; }
 .typeTabIncome  { background: var(--color-income);  color: #fff; }
 
-/* Field */
 .field {
   display: flex;
   flex-direction: column;

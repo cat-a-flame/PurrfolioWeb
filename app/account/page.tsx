@@ -97,8 +97,7 @@ export default function AccountPage() {
       return;
     }
     setPasswordLoading(true);
-    // Check the current password first, so someone with access to an
-    // already signed-in browser can't change it and lock the owner out.
+    // Stops someone at an unlocked, signed-in browser from changing the password.
     if (!(await verifyPassword(email, currentPassword))) {
       setPasswordLoading(false);
       setPasswordError('Current password is incorrect.');
@@ -135,7 +134,7 @@ export default function AccountPage() {
         setDeleteError(error.message);
         return;
       }
-      // Full reload so cached data in shared contexts is dropped too.
+      // Full reload clears the data cached in contexts.
       window.location.assign('/dashboard');
       return;
     }
@@ -146,7 +145,7 @@ export default function AccountPage() {
       setDeleteError(error.message);
       return;
     }
-    // The user no longer exists server-side, so only clear the local session.
+    // The auth user is already deleted, so only clear the local session.
     await supabase.auth.signOut({ scope: 'local' });
     window.location.assign('/login');
   }
@@ -156,7 +155,6 @@ export default function AccountPage() {
       <div className={styles.container}>
         <h1 className={styles.pageTitle}>Account</h1>
 
-          {/* Profile section */}
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Profile</h2>
             <form onSubmit={handleUsernameUpdate} className={styles.form}>
@@ -185,7 +183,6 @@ export default function AccountPage() {
             </form>
           </section>
 
-          {/* Change password section */}
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Change password</h2>
             <form onSubmit={handlePasswordUpdate} className={styles.form}>
@@ -233,7 +230,6 @@ export default function AccountPage() {
 
           <TwoFactorSection onMessage={showToast} />
 
-          {/* Session section */}
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Session</h2>
             <div className={styles.formActions}>
@@ -243,7 +239,6 @@ export default function AccountPage() {
             </div>
           </section>
 
-          {/* Danger zone */}
           <section className={`${styles.section} ${styles.dangerSection}`}>
             <h2 className={`${styles.sectionTitle} ${styles.dangerTitle}`}>Danger zone</h2>
 

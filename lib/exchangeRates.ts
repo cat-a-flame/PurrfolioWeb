@@ -1,4 +1,4 @@
-// Module-level cache — persists across renders, cleared on page reload
+// Rates by date. Module-level, so it lasts until the page reloads.
 const cache = new Map<string, Record<string, number>>();
 const inflight = new Map<string, Promise<Record<string, number>>>();
 
@@ -23,14 +23,14 @@ export async function getExchangeRates(date: string): Promise<Record<string, num
   return p;
 }
 
-/** Convert an amount in any currency to HUF. Falls back to the raw amount if rate is unavailable. */
+/** HUF value of `amount`; returns `amount` unchanged if the rate is missing. */
 export function toHUF(amount: number, currency: string | undefined, rates: Record<string, number>): number {
   if (!currency || currency === 'HUF') return amount;
   const rate = rates[currency];
   return rate ? amount * rate : amount;
 }
 
-/** Like toHUF but prefers a stored per-transaction rate over a live lookup map. */
+/** Like toHUF, but a stored per-transaction rate wins. */
 export function txToHUF(
   amount: number,
   currency: string | undefined,
@@ -48,11 +48,7 @@ type RateLookupTx = {
   wallet?: { currency?: string } | null;
 };
 
-/**
- * Fetches the exchange rates needed to convert the given transactions to HUF,
- * keyed by date. Only foreign-currency transactions without a stored rate need one.
- * Await this alongside the data fetch so totals are final before loading ends.
- */
+/** Rates per date for foreign-currency transactions without a stored rate. */
 export async function getRatesForTransactions(
   transactions: RateLookupTx[],
 ): Promise<Record<string, Record<string, number>>> {

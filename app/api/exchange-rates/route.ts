@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Frankfurter API — ECB reference rates, free & cloud-accessible.
-// Fetches with HUF as base and inverts, matching Purrfolio's exchange.ts exactly.
-// Automatically resolves to the nearest published business day.
+// Frankfurter (ECB rates). A weekend or holiday date returns the previous business day's rates.
 const FRANKFURTER = 'https://api.frankfurter.app';
 
 export async function GET(req: NextRequest) {
@@ -12,9 +10,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Match Purrfolio exactly: fetch with HUF as base, then invert each rate.
-    // ?from=HUF gives { rates: { EUR: 0.00254, USD: 0.0028, … } }
-    // Inverting gives HUF-per-unit: { EUR: 393.7, USD: 357.1, … }
+    // Fetch HUF-based rates and invert them: 0.00254 EUR per HUF → 393.7 HUF per EUR.
     const res = await fetch(`${FRANKFURTER}/${date}?from=HUF&to=EUR,USD`);
 
     if (!res.ok) return NextResponse.json({ rates: {} });

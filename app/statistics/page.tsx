@@ -16,7 +16,6 @@ import { generateDueDates, isoDate as recurringIsoDate } from '@/lib/recurringUt
 import type { Transaction, RecurringPayment, RecurringOccurrence, TransactionType } from '@/lib/types';
 import styles from './page.module.css';
 
-// ─── palette ────────────────────────────────────────────────────────────────
 const PALETTE = [
   '#f26e4d','#f59e0b','#10b981','#6366f1','#ec4899',
   '#14b8a6','#8b5cf6','#f97316','#06b6d4','#84cc16',
@@ -74,7 +73,6 @@ function filterRange(txs: Transaction[], from: string, to: string) {
   return txs.filter(t => t.date >= from && t.date <= to);
 }
 
-// ─── stat card icons ────────────────────────────────────────────────────────
 function IncomeIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -126,17 +124,14 @@ function changeInfo(current: number, prev: number): { text: string; tone: 'up' |
   return { text: `${pct > 0 ? '+' : ''}${pct}%`, tone: pct > 0 ? 'up' : 'down' };
 }
 
-// ─── predictions ────────────────────────────────────────────────────────────
 const HISTORY_MONTHS = 6;
-// A category needs to show up in at least this many of the history buckets
-// before it's treated as a real pattern rather than a one-off transaction.
+// Minimum history buckets a category must appear in to count as a pattern.
 const MIN_BUCKETS_SEEN = 2;
 const MAX_PREDICTIONS_PER_TYPE = 10;
 
 const AVG_DAYS_PER_MONTH = 365.25 / 12;
 
-// How many months a period spans: whole calendar months count exactly (so a
-// monthly bill predicts its real amount), anything else is pro-rated by days.
+// Whole calendar months count exactly; other periods are pro-rated by days.
 function periodLengthInMonths(fromIso: string, toIso: string): number {
   const from = new Date(fromIso + 'T00:00:00');
   const to   = new Date(toIso   + 'T00:00:00');
@@ -162,8 +157,7 @@ type PredictionItem = {
   rangeHigh: number;
 };
 
-// Mean + coefficient of variation of a set of per-bucket totals — used to turn
-// "how big does this usually run" into a confidence score and a stable/range call.
+// Mean and coefficient of variation of per-bucket totals, for the confidence score.
 function sampleStats(samples: number[]): { mean: number; cv: number } {
   const mean = samples.reduce((s, v) => s + v, 0) / samples.length;
   if (mean <= 0) return { mean, cv: 0 };
@@ -171,7 +165,6 @@ function sampleStats(samples: number[]): { mean: number; cv: number } {
   return { mean, cv: Math.sqrt(variance) / mean };
 }
 
-// ─── prediction panel ───────────────────────────────────────────────────────
 function PredictionPanel({ variant, title, items, loading }: {
   variant: 'income' | 'expense';
   title: string;
@@ -244,16 +237,13 @@ function PredictionPanel({ variant, title, items, loading }: {
   );
 }
 
-// ─── page ────────────────────────────────────────────────────────────────────
 export default function StatisticsPage() {
   const [allTxs, setAllTxs]   = useState<Transaction[]>([]);
   const [prevTxsData, setPrevTxsData] = useState<Transaction[]>([]);
   const [historyTxs, setHistoryTxs] = useState<Transaction[]>([]);
   const [historyRange, setHistoryRange] = useState<{ from: string; to: string } | null>(null);
   const [loading, setLoading] = useState(true);
-  // True while a period change is being fetched (distinct from `loading`, which only
-  // covers the very first load) — lets us skeleton the content while keeping the
-  // header and period picker visible.
+  // Period refetch in progress (`loading` only covers the first load).
   const [periodLoading, setPeriodLoading] = useState(false);
   const [period, setPeriod]   = useState<PeriodValue>(defaultPeriod);
   const [todayRates, setTodayRates] = useState<Record<string, number>>({});
@@ -269,7 +259,7 @@ export default function StatisticsPage() {
     const to   = new Date(period.to   + 'T00:00:00');
     const prev = getPrevRange(period);
     const now = new Date();
-    // The last HISTORY_MONTHS full calendar months; the current, partial month is left out
+    // Last HISTORY_MONTHS full months; the current month is excluded.
     const histFrom = isoDate(new Date(now.getFullYear(), now.getMonth() - HISTORY_MONTHS, 1));
     const histTo   = isoDate(new Date(now.getFullYear(), now.getMonth(), 0));
     const [transactions, prevTransactions, historyTransactions, pmtRes, occRes] = await Promise.all([
@@ -281,8 +271,7 @@ export default function StatisticsPage() {
         .gte('due_date', recurringIsoDate(from)).lte('due_date', recurringIsoDate(to)),
     ]);
 
-    // Resolve exchange rates before anything renders, so every total is final
-    // when the skeleton disappears.
+    // Load rates before rendering so totals don't change after the skeleton.
     const [rates, today] = await Promise.all([
       getRatesForTransactions([...transactions, ...prevTransactions, ...historyTransactions]),
       getExchangeRates(isoDate(new Date())),
@@ -325,7 +314,6 @@ export default function StatisticsPage() {
   const periodTxs = allTxs;
   const prevTxs   = prevTxsData;
 
-  // ── summary numbers ────────────────────────────────────────────────────
   const income  = useMemo(() => periodTxs.filter(t => t.type === 'income'  && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
   const expense = useMemo(() => periodTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0), [periodTxs, ratesByDate]);
   const prevExpense = useMemo(() => prevTxs.filter(t => t.type === 'expense' && !t.transfer_group_id).reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0), [prevTxs, ratesByDate]);
@@ -338,12 +326,11 @@ export default function StatisticsPage() {
   const animatedNet     = useCountUp(income - expense);
   const animatedTxCount = useCountUp(txCount);
 
-  // ── Cash flow projection (selected period) ──────────────────────────────
   const cashFlowProjection = useMemo(() => {
     const from = new Date(period.from + 'T00:00:00');
     const to   = new Date(period.to   + 'T00:00:00');
 
-    // Pending planned payments due within the selected period — convert to HUF using today's rates
+    // Unpaid planned payments in the period, converted at today's rates.
     const actionedKeys = new Set(recurringOccurrences.map(o => `${o.recurring_payment_id}|${o.due_date.slice(0, 10)}`));
     let plannedIncome  = 0;
     let plannedExpense = 0;
@@ -357,11 +344,9 @@ export default function StatisticsPage() {
       }
     }
 
-    // Actual for the period — periodTxs is already scoped to period.from/period.to
     return { actualIncome: income, actualExpense: expense, plannedIncome, plannedExpense };
   }, [period, income, expense, recurringPayments, recurringOccurrences, todayRates]);
 
-  // ── 2. Expenses by category ───────────────────────────────────────────
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [otherExpanded, setOtherExpanded] = useState(false);
 
@@ -396,7 +381,6 @@ export default function StatisticsPage() {
     };
   }, [periodTxs, ratesByDate]);
 
-  // ── 3. Period comparison ──────────────────────────────────────────────
   const comparisonData = useMemo(() => {
     const catMap = new Map<string, { current: number; prev: number; icon: string; color: string }>();
     for (const t of [...periodTxs, ...prevTxs]) {
@@ -422,14 +406,8 @@ export default function StatisticsPage() {
       .map(([name, v]) => ({ name, icon: v.icon, color: v.color, current: Math.round(v.current), prev: Math.round(v.prev) }));
   }, [periodTxs, prevTxs, ratesByDate]);
 
-  // ── 4. Predicted transactions ──────────────────────────────────────────
-  // Learns a per-category (and, where one vendor dominates, per-payer) pattern
-  // from the last 6 full calendar months: how many of those months it showed
-  // up in, its typical monthly total, and how much that total varies. That's
-  // then scaled onto the selected period (1× for a month, 12× for a year). A category needs to
-  // show up in at least MIN_BUCKETS_SEEN of the 6 buckets to be treated as a
-  // pattern rather than a one-off transaction, and the most reliable patterns
-  // (highest confidence, then largest typical amount) win the limited slots.
+  // Per category (or per payer when one dominates): months seen out of 6, typical monthly
+  // total and its spread, scaled to the period. Needs MIN_BUCKETS_SEEN months to count.
   const predictions = useMemo(() => {
     if (!historyRange) return { income: [] as PredictionItem[], expense: [] as PredictionItem[] };
 
@@ -512,8 +490,7 @@ export default function StatisticsPage() {
       });
     }
 
-    // Rank by how reliable a pattern is (confidence, then typical amount) so a
-    // frequent/consistent category always wins a slot over a sparser one.
+    // Most reliable first: confidence, then typical amount.
     const byReliability = (a: PredictionItem, b: PredictionItem) =>
       b.confidencePct - a.confidencePct || b.predictedAmount - a.predictedAmount;
 
@@ -533,7 +510,6 @@ export default function StatisticsPage() {
     <AppShell>
         <div className={styles.container}>
 
-          {/* ── Page header ── */}
           <div className={styles.pageHeader}>
             <h1 className={styles.pageTitle}>Statistics</h1>
           </div>
@@ -542,7 +518,6 @@ export default function StatisticsPage() {
             <PeriodPicker value={period} onChange={setPeriod} />
           </div>
 
-          {/* ── Summary row (with optional projected line) ── */}
           {showSkeleton ? (
             <div className={styles.summaryRow}>
               {Array.from({ length: 4 }).map((_, i) => (
@@ -652,10 +627,8 @@ export default function StatisticsPage() {
             );
           })()}
 
-          {/* ── Main grid ── */}
           <div className={styles.grid}>
 
-            {/* ── Expenses by category ── */}
             <div className={[styles.card, styles.cardWide].join(' ')}>
               <div className={styles.catHeader}>
                 <div>
@@ -757,7 +730,6 @@ export default function StatisticsPage() {
               })()}
             </div>
 
-            {/* ── Period comparison ── */}
             <div className={[styles.card, styles.cardWide].join(' ')}>
               <div className={styles.compHeader}>
                 <div>
@@ -829,7 +801,6 @@ export default function StatisticsPage() {
               })()}
             </div>
 
-            {/* ── Predicted transactions ── */}
             <PredictionPanel
               variant="expense"
               title="Expected expenses"

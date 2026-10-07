@@ -18,7 +18,7 @@ interface SearchableSelectProps {
   size?: 'sm' | 'md';
 }
 
-// Convert flat options with optional group into react-select grouped format
+// Converts flat options to react-select's grouped format.
 function toRsOptions(options: SelectOption[]) {
   const ungrouped: SelectOption[] = [];
   const groups: Map<string, SelectOption[]> = new Map();
@@ -48,7 +48,6 @@ export default function SearchableSelect({
   size = 'md',
 }: SearchableSelectProps) {
   const rsOptions = toRsOptions(options);
-  // Find selected option (search both ungrouped and inside groups)
   const selected = options.find(o => o.value === value) ?? null;
 
   const styles = makeRsStyles<SelectOption>(size);

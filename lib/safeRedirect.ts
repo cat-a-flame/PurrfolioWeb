@@ -1,13 +1,9 @@
-/**
- * Returns `next` if it is a same-site path, otherwise `fallback`. Stops
- * ?next=@evil.com, //evil.com, /\evil.com and the like from turning a
- * redirect into a jump to another site.
- */
+/** Returns `next` only if it's a path on this site (blocks @evil.com, //evil.com, /\evil.com). */
 export function safeNextPath(next: string | null, fallback = '/dashboard'): string {
   if (!next || !next.startsWith('/') || next.startsWith('//') || next.includes('\\')) {
     return fallback;
   }
-  // Tabs/newlines are stripped by URL parsers and could re-form "//".
+  // URL parsers drop control characters, which could turn "/\t/" into "//".
   if (/[\u0000-\u001f\u007f]/.test(next)) return fallback;
   return next;
 }

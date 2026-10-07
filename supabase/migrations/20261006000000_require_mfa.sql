@@ -1,33 +1,9 @@
--- Enforces two-factor authentication (authenticator app / TOTP) in the database.
---
--- The apps ask for the 6-digit code after the password, but that alone only
--- protects the UI: someone who knows the password could still call the API
--- directly with the first-step (aal1) session. These policies close that gap.
---
---   * mfa_satisfied(): true when the caller's session is aal2 (they entered a
---     code), or when they have no verified authenticator factor at all (2FA
---     not enabled, so a password-only session is fine).
---   * A RESTRICTIVE policy on every user data table requires mfa_satisfied()
---     on top of the existing ownership policies (restrictive policies are
---     AND-ed with the permissive ones, so nothing else gets looser).
---   * delete_my_data() / delete_my_account() are security definer and bypass
---     RLS, so they check mfa_satisfied() themselves.
---   * wallet_balance_sums() is security invoker, so the policies already apply.
---
--- Safety:
---   * mfa_satisfied() is security definer only so it can read auth.mfa_factors;
---     it takes no arguments and only looks at the caller's own factors.
---   * Users without 2FA are unaffected.
---
--- To remove:
---   do $$ declare t text; begin
---     foreach t in array array['transactions','transaction_labels','wallets','categories',
---       'labels','recurring_payments','recurring_payment_labels','recurring_occurrences',
---       'templates','template_labels'] loop
---       execute format('drop policy if exists require_mfa on public.%I', t);
---     end loop; end $$;
---   -- re-run 20261005000000_delete_my_data_and_account.sql to restore the old functions
---   drop function public.mfa_satisfied();
+-- Enforces 2FA in the database, so a password-only (aal1) session can't read or write data through the API.
+-- mfa_satisfied(): true at aal2, or when the user has no verified factor.
+-- A restrictive require_mfa policy on each table below requires it.
+-- delete_my_data()/delete_my_account() bypass RLS, so they check it themselves.
+-- Remove: drop policy require_mfa on each table below, re-run 20261005000000_delete_my_data_and_account.sql,
+--   then drop function public.mfa_satisfied();
 
 create or replace function public.mfa_satisfied()
 returns boolean

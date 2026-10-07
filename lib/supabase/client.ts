@@ -8,11 +8,7 @@ export function createClient() {
   );
 }
 
-/**
- * True when `password` is the account's current password. Signs in on a
- * throwaway in-memory client, so the real session (and its 2FA level) is left
- * untouched, then revokes that extra session straight away.
- */
+/** Checks the password on a throwaway client, so the real session (and its 2FA level) is untouched. */
 export async function verifyPassword(email: string, password: string): Promise<boolean> {
   if (!email || !password) return false;
   const temp = createPlainClient(

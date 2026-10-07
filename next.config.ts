@@ -7,8 +7,7 @@ const isDev = process.env.NODE_ENV !== 'production';
 
 const csp = [
   "default-src 'self'",
-  // Next.js inlines small bootstrapping scripts (and the theme script in
-  // app/layout.tsx); dev mode also needs eval for fast refresh.
+  // Next.js and app/layout.tsx use inline scripts; dev mode also needs eval.
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
@@ -17,7 +16,7 @@ const csp = [
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
-  // Nobody may embed the app in a frame (clickjacking on e.g. "Delete account").
+  // Blocks framing (clickjacking).
   "frame-ancestors 'none'",
 ].join('; ');
 

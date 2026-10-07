@@ -35,7 +35,7 @@
   animation: wiggle 600ms ease-in-out;
 }
 
-/* Collapsed to just the bug; the label slides out on hover / keyboard focus. */
+/* Shows only the bug; the label slides out on hover or keyboard focus. */
 .fabLabel {
   max-width: 0;
   overflow: hidden;

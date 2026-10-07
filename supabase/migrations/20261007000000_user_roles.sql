@@ -1,26 +1,8 @@
--- User roles, for showing or hiding parts of the app per role.
---
---   * user_roles: one optional row per user. No row means the default role
---     'user', so new sign-ups need nothing. Roles are only ever granted from
---     the SQL editor (see the bottom of this file); there are no insert/update
---     policies, so nobody can promote themselves through the API.
---   * is_admin(): true when the caller has the 'admin' role. Use it in RLS
---     policies that admins should bypass.
---
--- Roles describe who someone is (owner/admin vs regular user). Paid features
--- (tips now, maybe a subscription later) should get their own table rather
--- than new roles, so a user can be both e.g. an admin and a supporter.
---
--- Safety:
---   * is_admin() is security definer so it can be used inside policies on
---     user_roles itself without recursion; it takes no arguments and only
---     looks at the caller's own row.
---   * Rows are removed with the auth user (on delete cascade), so
---     delete_my_account() needs no change.
---
--- To remove:
---   drop function public.is_admin();
---   drop table public.user_roles;
+-- user_roles: optional row per user; no row means 'user'. There are no insert/update
+--   policies, so roles can only be set from the SQL editor (see the bottom of this file).
+-- is_admin(): true when the caller's role is 'admin'. security definer so policies on
+--   user_roles can call it without recursion.
+-- Remove: drop function public.is_admin(); drop table public.user_roles;
 
 create table if not exists public.user_roles (
   user_id uuid primary key references auth.users (id) on delete cascade,

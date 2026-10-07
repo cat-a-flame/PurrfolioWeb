@@ -29,7 +29,6 @@
   max-width: 320px;
 }
 
-/* ── Compact variant: for smaller/tighter spots like a dashboard side card ── */
 .wrapCompact {
   padding: var(--space-6) var(--space-4);
   gap: var(--space-2);

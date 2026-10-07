@@ -1,14 +1,6 @@
--- Per-wallet income/expense totals for the signed-in user, computed in the
--- database so the app doesn't have to download every transaction to add them up.
---
--- Safety:
---   * security invoker: runs with the caller's permissions, so the row-level
---     security policies on public.transactions still apply.
---   * Only ever reads the caller's own rows (auth.uid()); it takes no user id
---     argument, so it can't be asked for anyone else's totals.
---   * Read-only (stable, a single SELECT).
---
--- To remove: drop function public.wallet_balance_sums();
+-- Per-wallet income/expense totals for the caller.
+-- security invoker, so RLS on transactions applies; reads only auth.uid()'s rows.
+-- Remove: drop function public.wallet_balance_sums();
 
 create or replace function public.wallet_balance_sums()
 returns table (wallet_id text, income numeric, expense numeric)

@@ -8,7 +8,6 @@
   overflow: hidden;
 }
 
-/* Two big, softly moving colour blobs behind the card */
 .page::before,
 .page::after {
   content: '';
@@ -45,7 +44,7 @@
   to { transform: translate(-140px, -60px) scale(0.9); }
 }
 
-/* Animatable angle for the rotating gradient border */
+/* @property makes the angle animatable. */
 @property --ring-angle {
   syntax: '<angle>';
   initial-value: 0deg;

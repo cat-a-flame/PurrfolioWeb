@@ -1,7 +1,5 @@
-/* A soft highlight glides across each block, then rests before the next pass.
-   The gradient is sized relative to the element (300%), so every skeleton —
-   however narrow — gets a full sweep. Start and end positions keep the
-   highlight fully off-element, so the loop has no visible seam. */
+/* 300% background size gives every block a full sweep; start and end positions are off-element,
+   so the loop has no seam. */
 @keyframes shimmer {
   0%   { background-position: 100% 0; }
   65%  { background-position: 0% 0; }
@@ -26,7 +24,7 @@
   );
 }
 
-/* For placement on dark/colored surfaces (e.g. the cash flow gradient card) */
+/* For dark surfaces like the cash flow card. */
 .light {
   background-color: rgba(255, 255, 255, 0.16);
   background-image: linear-gradient(

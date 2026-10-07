@@ -15,13 +15,10 @@ function addSpaces(raw: string): string {
 
 function stripNonNumeric(val: string): string {
   const cleaned = val.replace(/[^\d.-]/g, '');
-  // At most one decimal point
   const parts = cleaned.split('.');
   return parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned;
 }
 
-// Given a position in the displayed (spaced) string, return how many
-// non-space characters appear before that position.
 function nonSpacesBefore(str: string, pos: number): number {
   let count = 0;
   for (let i = 0; i < pos && i < str.length; i++) {
@@ -30,8 +27,6 @@ function nonSpacesBefore(str: string, pos: number): number {
   return count;
 }
 
-// Given the formatted string and a number of non-space chars that should
-// precede the cursor, return the cursor index in the formatted string.
 function cursorAfterNonSpaces(formatted: string, nonSpaces: number): number {
   let count = 0;
   for (let i = 0; i < formatted.length; i++) {
@@ -54,7 +49,6 @@ export default function NumberInput({ value, onChange, className, ...rest }: Pro
     const displayed = el.value;
     const cursor = el.selectionStart ?? displayed.length;
 
-    // How many real (non-space) chars were before the cursor
     const nonSpaceCount = nonSpacesBefore(displayed, cursor);
 
     const raw = stripNonNumeric(displayed);
@@ -62,7 +56,7 @@ export default function NumberInput({ value, onChange, className, ...rest }: Pro
 
     const formatted = addSpaces(raw);
 
-    // Restore cursor at the equivalent position in the new formatted string
+    // Keep the cursor after the same digit once spaces are re-added.
     requestAnimationFrame(() => {
       if (!inputRef.current) return;
       const newCursor = cursorAfterNonSpaces(formatted, nonSpaceCount);

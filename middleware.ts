@@ -47,7 +47,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Signed in with the password but 2FA code not entered yet: only /mfa is allowed.
+  // 2FA on but code not entered yet: only /mfa is allowed.
   const mfaPending = !!user && (await needsMfaCode(supabase, user));
 
   if (mfaPending && pathname !== '/mfa' && pathname !== '/auth/callback') {

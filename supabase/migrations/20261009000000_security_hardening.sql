@@ -1,36 +1,10 @@
--- Security hardening from the October 2026 review.
---
--- 1. Cross-user references. The existing "own rows" policies only check the
---    row's own user_id, not the ids it points at. A user calling the API
---    directly could save a transaction against someone else's wallet_id (or
---    tag it with someone else's label, etc.) as long as they knew the uuid.
---    Nothing would be readable that way (the other user's rows stay hidden by
---    RLS), but it would let them confirm an id exists and, worse, block the
---    owner: wallets are ON DELETE RESTRICT, so the owner could no longer delete
---    that wallet, wipe their data or delete their account.
---    A RESTRICTIVE policy per table now requires every referenced id to belong
---    to the caller on insert and update. Restrictive policies are AND-ed with
---    the existing ones, so nothing gets looser, and reads are unaffected
---    (using (true)).
---
--- 2. report_bug() rate limit. Any signed-in user could call it in a loop and
---    flood the Discord channel (and get the webhook rate-limited or disabled).
---    It now allows 5 reports per user per hour. Only the send times are kept,
---    in bug_report_log, which has RLS on and no policies, so the API can't read
---    or change it; rows older than an hour are removed on the next call and all
---    of a user's rows go with their auth user.
---
--- To remove:
---   do $$ declare t text; begin
---     foreach t in array array['transactions','templates','recurring_payments','recurring_occurrences',
---       'categories','transaction_labels','template_labels','recurring_payment_labels'] loop
---       execute format('drop policy if exists own_references on public.%I', t);
---     end loop; end $$;
---   drop function public.is_my_category(uuid);
---   -- re-run 20261008000000_report_bug_discord.sql to restore report_bug()
---   drop table public.bug_report_log;
-
--- ─── 1. Referenced ids must belong to the caller ─────────────────────────────
+-- 1. own_references: restrictive policies requiring every referenced id (wallet, category, label,
+--    parent category, recurring payment, transaction) to belong to the caller on insert/update.
+--    Without them, a user could attach rows to another user's wallet (ON DELETE RESTRICT), so the
+--    owner couldn't delete that wallet, wipe their data or delete their account.
+-- 2. report_bug(): max 5 reports per user per hour, tracked in bug_report_log (no API access).
+-- Remove: drop policy own_references on each table below; drop function public.is_my_category(uuid);
+--   drop table public.bug_report_log; re-run 20261008000000_report_bug_discord.sql.
 
 drop policy if exists own_references on public.transactions;
 create policy own_references on public.transactions
@@ -76,9 +50,7 @@ create policy own_references on public.recurring_occurrences
       select 1 from public.transactions t where t.id = recurring_occurrences.transaction_id and t.user_id = (select auth.uid())))
   );
 
--- A policy on categories can't query categories itself (infinite recursion),
--- so the parent check goes through this helper. security definer only to skip
--- that recursion; it only ever answers for the caller's own rows.
+-- A policy on categories can't query categories (infinite recursion), so the parent check uses this.
 create or replace function public.is_my_category(category_id uuid)
 returns boolean
 language sql
@@ -125,8 +97,6 @@ create policy own_references on public.recurring_payment_labels
     exists (select 1 from public.labels l where l.id = recurring_payment_labels.label_id and l.user_id = (select auth.uid()))
   );
 
--- ─── 2. report_bug() rate limit ──────────────────────────────────────────────
-
 create table if not exists public.bug_report_log (
   user_id uuid not null references auth.users (id) on delete cascade,
   sent_at timestamptz not null default now()
@@ -169,8 +139,7 @@ begin
     raise exception 'The report is too long (max 4000 characters).';
   end if;
 
-  -- At most 5 reports per user per hour. The lock serialises concurrent calls
-  -- from the same user so they can't all slip under the limit at once.
+  -- Per-user lock, so parallel calls can't all pass the 5-per-hour check.
   perform pg_advisory_xact_lock(hashtext('report_bug:' || uid::text));
   delete from public.bug_report_log
     where user_id = uid and sent_at < now() - interval '1 hour';

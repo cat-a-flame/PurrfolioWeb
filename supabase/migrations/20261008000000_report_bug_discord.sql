@@ -1,27 +1,8 @@
--- report_bug(): sends a bug report straight to a Discord channel. Nothing is
--- stored in the database.
---
---   * The app calls it with the message, the current page, the browser's user
---     agent and whether the reporter is happy to be contacted by email
---     (can_contact); the function adds the reporter's email and posts it to a
---     Discord webhook with pg_net (queued and sent in the background).
---   * The webhook URL lives in Supabase Vault as 'discord_bug_report_webhook'
---     (see the bottom of this file), never in the repo.
---   * Earlier versions of this branch saved reports in a bug_reports table and
---     posted them from a trigger; that table and trigger are dropped here.
---
--- Safety:
---   * security definer so it can read the secret and the caller's email; it
---     only ever uses auth.uid(), never a user id passed in.
---   * Only signed-in users may call it, with the same 2FA rule as the data
---     tables (mfa_satisfied()).
---   * allowed_mentions is empty, so text like "@everyone" in a report can't
---     ping the channel.
---   * pg_net keeps Discord's responses for a few hours (net._http_response);
---     Discord's reply to a webhook is empty, so the report text isn't kept.
---
--- To remove:
---   drop function public.report_bug(text, text, text, boolean);
+-- report_bug(): posts a bug report to the Discord webhook stored in Vault as
+--   'discord_bug_report_webhook'. Nothing is stored in the database.
+-- security definer to read the secret and the caller's email. Signed-in callers only, with the
+--   2FA check. allowed_mentions is empty, so "@everyone" in a report can't ping the channel.
+-- Remove: drop function public.report_bug(text, text, text, boolean);
 --   delete from vault.secrets where name = 'discord_bug_report_webhook';
 
 drop table if exists public.bug_reports;

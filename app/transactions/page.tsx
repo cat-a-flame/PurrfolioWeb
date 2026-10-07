@@ -45,8 +45,7 @@ function defaultPeriod(): PeriodValue {
   };
 }
 
-// Distinct from '' (the untouched default) so the bulk-edit category select
-// doesn't render "Remove category" as pre-selected before the user picks anything.
+// Not '' (the default), so the bulk-edit select doesn't show "Remove category" before a pick.
 const BULK_REMOVE_CATEGORY = '__bulk_remove_category__';
 
 export default function TransactionsPage() {
@@ -57,7 +56,7 @@ export default function TransactionsPage() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters — initialised from sessionStorage so state persists across navigation
+  // Initialised from sessionStorage so filters survive navigation.
   const [filterType, setFilterType] = useState<FilterType>(() => {
     if (typeof window !== 'undefined') {
       const saved = sessionStorage.getItem('purrfolio_tx_filters');
@@ -101,7 +100,6 @@ export default function TransactionsPage() {
     return '';
   });
 
-  // Persist filters to sessionStorage whenever they change
   useEffect(() => {
     sessionStorage.setItem('purrfolio_tx_filters', JSON.stringify({
       type: filterType,
@@ -116,8 +114,7 @@ export default function TransactionsPage() {
     sessionStorage.setItem('purrfolio_period', JSON.stringify(filterPeriod));
   }, [filterPeriod]);
 
-  // Brief loading indicator whenever a client-side filter changes (period changes
-  // trigger a real refetch instead — see isPeriodLoading below)
+  // Short loading flash on filter change (period changes refetch instead).
   const [isFiltering, setIsFiltering] = useState(false);
   useEffect(() => {
     if (loading) return;
@@ -127,26 +124,21 @@ export default function TransactionsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterType, filterCategoryId, filterLabelId, filterWalletId, filterSearch]);
 
-  // Skeleton loading whenever the selected period changes and data is being refetched
   const [isPeriodLoading, setIsPeriodLoading] = useState(false);
 
-  // Exchange rates: date → { EUR: number, USD: number, … } (HUF per 1 unit)
+  // date → HUF per 1 unit of each currency
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
 
-  // Lazy load
   const [displayCount, setDisplayCount] = useState(15);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
 
-  // Edit dialog
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
   const [editingTransferPair, setEditingTransferPair] = useState<Transaction | undefined>();
 
-  // Toast
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
   const dismissToast = useCallback(() => setToast(null), []);
 
-  // Multi-select & bulk edit
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<'edit' | 'delete' | null>(null);
   const [bulkDate, setBulkDate] = useState('');
@@ -172,8 +164,7 @@ export default function TransactionsPage() {
       supabase.from('wallets').select('*').eq('user_id', user.id).order('name'),
     ]);
 
-    // Resolve exchange rates before anything renders, so the balance card
-    // totals are final when the skeleton disappears.
+    // Load rates before rendering so totals don't change after the skeleton.
     const rates = await getRatesForTransactions(transactions);
 
     setRatesByDate(prevRates => ({ ...prevRates, ...rates }));
@@ -582,11 +573,9 @@ export default function TransactionsPage() {
         </div>
 
         <div className={styles.bodyLayout}>
-          {/* ── Filter sidebar ── */}
           <aside className={styles.filterSidebar}>
             <p className={styles.filterSidebarTitle}>Filters</p>
 
-            {/* Type */}
             <div className={styles.filterField}>
               <FormLabel htmlFor="filter-type">Type</FormLabel>
               <ReactSelect<{ value: string; label: string }>
@@ -601,7 +590,6 @@ export default function TransactionsPage() {
               />
             </div>
 
-            {/* Category */}
             <div className={styles.filterField}>
               <FormLabel htmlFor="filter-cat">Category</FormLabel>
               <SearchableSelect
@@ -613,7 +601,6 @@ export default function TransactionsPage() {
               />
             </div>
 
-            {/* Label */}
             <div className={styles.filterField}>
               <FormLabel htmlFor="filter-label">Label</FormLabel>
               {(() => {
@@ -636,7 +623,6 @@ export default function TransactionsPage() {
               })()}
             </div>
 
-            {/* Account */}
             <div className={styles.filterField}>
               <FormLabel htmlFor="filter-wallet">Account</FormLabel>
               {(() => {
@@ -659,7 +645,6 @@ export default function TransactionsPage() {
               })()}
             </div>
 
-            {/* Notes / payee search */}
             <div className={styles.filterField}>
               <FormLabel htmlFor="filter-search">Search notes & payee</FormLabel>
               <div className={styles.searchWrapper}>
@@ -680,9 +665,7 @@ export default function TransactionsPage() {
             </Button>
           </aside>
 
-          {/* ── Content ── */}
           <div className={styles.contentArea}>
-            {/* ── Cash flow summary ── */}
             {!loading && !isPeriodLoading && filteredTransactions.length > 0 && filterType !== 'transfer' && (
               <div className={styles.summaryCard}>
                 {showBalance && (
@@ -724,7 +707,6 @@ export default function TransactionsPage() {
               </div>
             )}
 
-            {/* ── Selection bar ── */}
             {selectedIds.size > 0 && (
               <div className={styles.selectionBar}>
                 <label className={styles.selectionLabel}>
@@ -895,7 +877,6 @@ export default function TransactionsPage() {
         />
       )}
 
-      {/* ── Bulk edit dialog ── */}
       {bulkAction === 'edit' && (
         <Dialog
           title={`Edit ${selectedIds.size} transaction${selectedIds.size !== 1 ? 's' : ''}`}
@@ -951,7 +932,6 @@ export default function TransactionsPage() {
         </Dialog>
       )}
 
-      {/* ── Bulk delete confirm ── */}
       {bulkAction === 'delete' && (
         <Dialog
           title={`Delete ${selectedIds.size} transaction${selectedIds.size !== 1 ? 's' : ''}?`}

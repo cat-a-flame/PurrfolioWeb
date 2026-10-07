@@ -26,7 +26,7 @@ export function generateDueDates(
   // Fast-forward to the first occurrence on or after 'from'
   while (cur < from) {
     const next = advanceDate(cur, payment.frequency);
-    if (next <= cur) break; // safety
+    if (next <= cur) break; // stop if the date didn't advance
     cur = next;
     if (end && cur > end) return [];
   }

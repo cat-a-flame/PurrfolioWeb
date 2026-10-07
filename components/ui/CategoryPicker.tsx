@@ -38,9 +38,8 @@ export default function CategoryPicker({
 
   const matchesMode = (c: Category) => c.type === 'both' || c.type === mode;
 
-  // Same grouping rules as before: a parent with any children is never
-  // itself selectable — only its mode-matching children are. A parent
-  // with no children is selectable directly if it matches the mode.
+  // A parent with children isn't selectable, only its mode-matching children;
+  // a childless parent is selectable if it matches the mode.
   const topNodes: CategoryNode[] = useMemo(() => {
     const parents = categories.filter(c => !c.parent_id);
     const children = categories.filter(c => c.parent_id);

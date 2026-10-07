@@ -7,7 +7,7 @@ interface SkeletonProps {
   radius?: string | number;
   className?: string;
   style?: CSSProperties;
-  /** Use 'light' when placing a skeleton on a dark/colored surface (e.g. a gradient card). */
+  /** For dark or coloured surfaces. */
   variant?: 'default' | 'light';
 }
 

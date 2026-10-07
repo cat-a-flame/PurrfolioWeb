@@ -6,7 +6,6 @@
   gap: var(--space-8);
 }
 
-/* ── Page header ── */
 .pageHeader {
   display: flex;
   align-items: center;
@@ -28,14 +27,12 @@
   color: transparent;
 }
 
-/* ── Period row ── */
 .periodRow {
   display: flex;
   justify-content: center;
   margin-top: var(--space-2);
 }
 
-/* ── Summary row ── */
 .summaryRow {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -168,7 +165,6 @@
 .statBarFillExpense { background: var(--color-expense); }
 .statBarFillNet     { background: var(--color-accent); }
 
-/* ── Card grid ── */
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -208,7 +204,6 @@
 }
 
 
-/* ── Expenses by category ── */
 .catHeader {
   display: flex;
   align-items: flex-start;
@@ -239,7 +234,7 @@
   color: var(--color-text-muted);
 }
 
-/* Whole-period split: one segment per category, widths via flex-grow = amount */
+/* flex-grow = amount, so segment widths are proportional. */
 .catStack {
   display: flex;
   gap: 3px;
@@ -328,7 +323,7 @@
 }
 
 .catOtherRow {
-  /* Hover background bleeds slightly past the row so content stays aligned */
+  /* Bleeds past the row so the content stays aligned. */
   box-sizing: border-box;
   width: calc(100% + var(--space-2) * 2);
   margin: calc(var(--space-2) * -1);
@@ -391,7 +386,6 @@
   .catOtherHint { display: none; }
 }
 
-/* ── Expense comparison by category ── */
 .compHeader {
   display: flex;
   align-items: flex-start;
@@ -428,8 +422,7 @@
 .compDotCurrent { background: var(--color-accent); }
 .compDotPrev    { background: rgba(var(--color-accent-glow2), 0.35); }
 
-/* One grid for the whole list; each row adopts its column tracks via subgrid,
-   so category, bars, amounts and badge line up across every row. */
+/* Rows use subgrid so columns line up across the whole list. */
 .compList {
   display: grid;
   grid-template-columns: minmax(0, 200px) minmax(0, 1fr) auto auto;
@@ -444,7 +437,7 @@
   align-items: center;
 }
 
-/* Fallback for browsers without subgrid: fixed tracks keep the columns aligned */
+/* Fallback when subgrid isn't supported. */
 @supports not (grid-template-columns: subgrid) {
   .compRow {
     grid-template-columns: minmax(0, 200px) minmax(0, 1fr) 130px 96px;
@@ -464,8 +457,7 @@
     column-gap: var(--space-4);
   }
 
-  /* Compact two-column layout per row: name + amounts, then bars + badge.
-     Rows still share the list's column tracks, so bars end at the same point. */
+  /* Two lines per row, still on the list's shared column tracks. */
   .compRow {
     grid-template-columns: subgrid;
     grid-template-areas:
@@ -563,7 +555,6 @@
 .compChangeDown { background: var(--color-income-light);  color: var(--color-income); }
 .compChangeFlat { background: var(--color-surface-2); color: var(--color-text-muted); }
 
-/* Total row under the per-category list: whole-period spend vs the previous one */
 .compTotal {
   display: flex;
   align-items: center;
@@ -609,9 +600,6 @@
   }
 }
 
-/* ── Cash flow projection ── */
-
-/* ── Predicted transactions ── */
 .predictionBanner {
   display: flex;
   align-items: center;
@@ -661,9 +649,7 @@
   flex-direction: column;
 }
 
-/* Real <table> layout (with fixed column widths via <colgroup>) so the
-   category, confidence bar and amount columns always line up across every
-   row, regardless of how long a given title or subtitle is. */
+/* A real <table> with <colgroup> keeps columns aligned whatever the text length. */
 .predictionTable {
   width: 100%;
   border-collapse: collapse;
