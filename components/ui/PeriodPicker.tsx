@@ -2,8 +2,6 @@
 
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { FiCalendar } from 'react-icons/fi';
-import { FilterControl } from './FilterDropdown';
 import styles from './PeriodPicker.module.css';
 
 const DROPDOWN_WIDTH = 300;
@@ -35,8 +33,6 @@ interface Props {
   onChange: (v: PeriodValue) => void;
   onClear?: () => void;
   hideNav?: boolean;
-  /** 'select' looks like the filter selects (calendar icon, no arrows) and opens left-aligned. */
-  variant?: 'default' | 'select';
 }
 
 function isoDate(d: Date): string {
@@ -74,7 +70,7 @@ function weeksForMonth(year: number, month: number) {
   return rows;
 }
 
-export default function PeriodPicker({ value, onChange, onClear, hideNav, variant = 'default' }: Props) {
+export default function PeriodPicker({ value, onChange, onClear, hideNav }: Props) {
   const now = new Date();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<PeriodTab>(value.tab);
@@ -107,7 +103,7 @@ export default function PeriodPicker({ value, onChange, onClear, hideNav, varian
       const el = triggerRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      let left = variant === 'select' ? rect.left : rect.left + rect.width / 2 - DROPDOWN_WIDTH / 2;
+      let left = rect.left + rect.width / 2 - DROPDOWN_WIDTH / 2;
       left = Math.max(DROPDOWN_MARGIN, Math.min(left, window.innerWidth - DROPDOWN_WIDTH - DROPDOWN_MARGIN));
       setPos({ top: rect.bottom + DROPDOWN_MARGIN, left });
     };
@@ -118,7 +114,7 @@ export default function PeriodPicker({ value, onChange, onClear, hideNav, varian
       window.removeEventListener('scroll', update, true);
       window.removeEventListener('resize', update);
     };
-  }, [open, variant]);
+  }, [open]);
 
   function emit(from: string, to: string, label: string, t: PeriodTab) {
     onChange({ from, to, label, tab: t });
@@ -180,31 +176,25 @@ export default function PeriodPicker({ value, onChange, onClear, hideNav, varian
 
   return (
     <div className={styles.container} ref={triggerRef}>
-      {variant === 'select' ? (
-        <FilterControl open={open} icon={<FiCalendar />} aria-haspopup="dialog" onClick={() => setOpen(o => !o)}>
-          {value.label}
-        </FilterControl>
-      ) : (
-        <div className={styles.trigger}>
-          {!hideNav && (
-            <button className={styles.navBtn} onClick={() => navigate(-1)} aria-label="Previous" disabled={!value.from}>
-              <Chevron direction="left" />
-            </button>
-          )}
-          <button className={styles.labelBtn} onClick={() => setOpen(o => !o)}>
-            {value.label}
+      <div className={styles.trigger}>
+        {!hideNav && (
+          <button className={styles.navBtn} onClick={() => navigate(-1)} aria-label="Previous" disabled={!value.from}>
+            <Chevron direction="left" />
           </button>
-          {onClear && value.from ? (
-            <button className={styles.clearBtn} onClick={onClear} aria-label="Clear date filter">×</button>
-          ) : (
-            !hideNav && (
-              <button className={styles.navBtn} onClick={() => navigate(1)} aria-label="Next" disabled={!value.from}>
-                <Chevron direction="right" />
-              </button>
-            )
-          )}
-        </div>
-      )}
+        )}
+        <button className={styles.labelBtn} onClick={() => setOpen(o => !o)}>
+          {value.label}
+        </button>
+        {onClear && value.from ? (
+          <button className={styles.clearBtn} onClick={onClear} aria-label="Clear date filter">×</button>
+        ) : (
+          !hideNav && (
+            <button className={styles.navBtn} onClick={() => navigate(1)} aria-label="Next" disabled={!value.from}>
+              <Chevron direction="right" />
+            </button>
+          )
+        )}
+      </div>
 
       {open && pos && createPortal(
         <div className={styles.dropdown} ref={dropdownRef} style={{ top: pos.top, left: pos.left }}>

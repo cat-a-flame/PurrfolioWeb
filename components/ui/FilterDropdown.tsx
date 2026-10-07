@@ -136,12 +136,11 @@ interface FilterControlProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   open: boolean;
   /** Shows the text in the placeholder colour. */
   placeholder?: boolean;
-  icon?: ReactNode;
   ref?: Ref<HTMLButtonElement>;
 }
 
-/** The closed select: same look as the form selects. Also used by PeriodPicker's 'select' variant. */
-export function FilterControl({ open, placeholder = false, icon, children, ref, ...props }: FilterControlProps) {
+/** The closed select: same look as the form selects. */
+function FilterControl({ open, placeholder = false, children, ref, ...props }: FilterControlProps) {
   return (
     <button
       ref={ref}
@@ -150,7 +149,6 @@ export function FilterControl({ open, placeholder = false, icon, children, ref, 
       aria-expanded={open}
       {...props}
     >
-      {icon && <span className={styles.controlIcon}>{icon}</span>}
       <span className={placeholder ? styles.controlPlaceholder : styles.controlValue}>{children}</span>
       <FiChevronDown className={styles.chevron} />
     </button>

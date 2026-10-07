@@ -122,7 +122,7 @@ export default function TransactionFilters({ filters, onChange, period, onPeriod
   return (
     <div className={styles.bar}>
       <div className={styles.filterRow}>
-        <PeriodPicker value={period} onChange={onPeriodChange} variant="select" />
+        <PeriodPicker value={period} onChange={onPeriodChange} />
 
         <span className={styles.divider} aria-hidden />
 
