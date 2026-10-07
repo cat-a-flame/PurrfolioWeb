@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { FiChevronDown, FiChevronLeft, FiChevronRight, FiSearch } from 'react-icons/fi';
 import type { Category, TransactionType } from '@/lib/types';
 import styles from './CategoryPicker.module.css';
@@ -8,6 +8,13 @@ import styles from './CategoryPicker.module.css';
 interface CategoryNode {
   category: Category;
   children: Category[];
+}
+
+/** One keyboard-navigable row of the open menu. */
+interface MenuRow {
+  key: string;
+  kind: 'back' | 'parent' | 'leaf';
+  category: Category;
 }
 
 interface CategoryPickerProps {
@@ -30,11 +37,13 @@ export default function CategoryPicker({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [drillId, setDrillId] = useState<string | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; width: number; maxHeight: number }>({ top: 0, left: 0, width: 0, maxHeight: 320 });
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const controlRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const listId = useId();
 
   const matchesMode = (c: Category) => c.type === 'both' || c.type === mode;
 
@@ -74,6 +83,17 @@ export default function CategoryPicker({
     ? allSelectable.filter(c => c.name.toLowerCase().includes(search.trim().toLowerCase()))
     : null;
 
+  const rows: MenuRow[] = searchResults
+    ? searchResults.map(c => ({ key: c.id, kind: 'leaf', category: c }))
+    : drillNode
+      ? [
+          { key: `back-${drillNode.category.id}`, kind: 'back', category: drillNode.category },
+          ...drillNode.children.map((c): MenuRow => ({ key: c.id, kind: 'leaf', category: c })),
+        ]
+      : topNodes.map(n => ({ key: n.category.id, kind: n.children.length > 0 ? 'parent' : 'leaf', category: n.category }));
+
+  const optionId = (i: number) => `${listId}-option-${i}`;
+
   function updateMenuPosition() {
     const rect = controlRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -85,18 +105,46 @@ export default function CategoryPicker({
     updateMenuPosition();
     setSearch('');
     setDrillId(null);
+    // Start on the current selection's top-level row, if it has one.
+    const selectedTop = topNodes.findIndex(n =>
+      n.category.id === value || n.children.some(c => c.id === value));
+    setActiveIndex(Math.max(0, selectedTop));
     setOpen(true);
     requestAnimationFrame(() => searchInputRef.current?.focus());
   }
 
-  function closeMenu() {
+  function closeMenu(refocus = false) {
     setOpen(false);
+    if (refocus) controlRef.current?.focus();
   }
 
   function selectCategory(c: Category) {
     onChange(c.id);
-    closeMenu();
+    closeMenu(true);
   }
+
+  function drillInto(parentId: string) {
+    setDrillId(parentId);
+    setActiveIndex(1); // first child; row 0 is the back row
+  }
+
+  function drillOut() {
+    const parentId = drillId;
+    setDrillId(null);
+    setActiveIndex(Math.max(0, topNodes.findIndex(n => n.category.id === parentId)));
+  }
+
+  function activateRow(row: MenuRow) {
+    if (row.kind === 'back') drillOut();
+    else if (row.kind === 'parent') drillInto(row.category.id);
+    else selectCategory(row.category);
+  }
+
+  // Keep the highlighted row visible while arrowing through a long list.
+  useEffect(() => {
+    if (!open) return;
+    document.getElementById(optionId(activeIndex))?.scrollIntoView({ block: 'nearest' });
+  }, [open, activeIndex, drillId, search]);
 
   useEffect(() => {
     if (!open) return;
@@ -106,31 +154,109 @@ export default function CategoryPicker({
         closeMenu();
       }
     }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') closeMenu();
-    }
     function onReposition() {
       updateMenuPosition();
     }
 
     document.addEventListener('mousedown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
     window.addEventListener('resize', onReposition);
     document.addEventListener('scroll', onReposition, true);
     return () => {
       document.removeEventListener('mousedown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('resize', onReposition);
       document.removeEventListener('scroll', onReposition, true);
     };
   }, [open]);
 
   function onSearchKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && searchResults && searchResults.length > 0) {
-      e.preventDefault();
-      selectCategory(searchResults[0]);
+    const row = rows[activeIndex];
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        if (rows.length) setActiveIndex(i => (i + 1) % rows.length);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        if (rows.length) setActiveIndex(i => (i - 1 + rows.length) % rows.length);
+        break;
+      case 'Home':
+      case 'End':
+        // Leave Home/End to the text cursor while there's text to move through.
+        if (search) break;
+        e.preventDefault();
+        setActiveIndex(e.key === 'Home' ? 0 : Math.max(0, rows.length - 1));
+        break;
+      case 'ArrowRight':
+        if (row?.kind === 'parent' && !search) {
+          e.preventDefault();
+          drillInto(row.category.id);
+        }
+        break;
+      case 'ArrowLeft':
+        if (drillNode && !search) {
+          e.preventDefault();
+          drillOut();
+        }
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (row) activateRow(row);
+        break;
+      case 'Tab':
+        closeMenu();
+        break;
     }
   }
+
+  // Escape should close only the menu, not the dialog the picker sits in.
+  // The dialog listens on document, where React's own listener also lives,
+  // so plain stopPropagation isn't enough; React's listener is registered
+  // first, so stopping immediate propagation keeps the dialog's from firing.
+  function onMenuKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.nativeEvent.stopImmediatePropagation();
+      closeMenu(true);
+    }
+  }
+
+  function onControlKeyDown(e: React.KeyboardEvent) {
+    if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault();
+      openMenu();
+    }
+  }
+
+  function renderRow(row: MenuRow, i: number) {
+    const active = i === activeIndex;
+    const isBack = row.kind === 'back';
+    return (
+      <button
+        key={row.key}
+        id={optionId(i)}
+        type="button"
+        role="option"
+        tabIndex={-1}
+        aria-selected={row.kind !== 'back' && row.category.id === value}
+        className={[isBack ? styles.backItem : styles.item, active ? styles.itemActive : ''].filter(Boolean).join(' ')}
+        onMouseMove={() => { if (!active) setActiveIndex(i); }}
+        onClick={() => activateRow(row)}
+      >
+        {isBack ? (
+          <><FiChevronLeft /> {row.category.icon} {row.category.name}</>
+        ) : (
+          <>
+            <span className={styles.itemLabel}>{row.category.icon} {row.category.name}</span>
+            {row.kind === 'parent' && <FiChevronRight className={styles.itemChevron} />}
+          </>
+        )}
+      </button>
+    );
+  }
+
+  const emptyMessage = searchResults
+    ? 'No categories found'
+    : !drillNode && topNodes.length === 0 ? 'No categories available' : null;
 
   return (
     <div className={styles.wrapper} ref={wrapperRef}>
@@ -140,6 +266,7 @@ export default function CategoryPicker({
         type="button"
         className={[styles.control, open ? styles.controlOpen : ''].filter(Boolean).join(' ')}
         onClick={() => (open ? closeMenu() : openMenu())}
+        onKeyDown={onControlKeyDown}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
@@ -153,7 +280,7 @@ export default function CategoryPicker({
         <div
           className={styles.menu}
           style={{ top: menuStyle.top, left: menuStyle.left, width: menuStyle.width, maxHeight: menuStyle.maxHeight }}
-          role="listbox"
+          onKeyDown={onMenuKeyDown}
         >
           <div className={styles.searchRow}>
             <FiSearch className={styles.searchIcon} />
@@ -163,48 +290,20 @@ export default function CategoryPicker({
               className={styles.searchInput}
               placeholder="Search categories…"
               value={search}
-              onChange={e => { setSearch(e.target.value); setDrillId(null); }}
+              onChange={e => { setSearch(e.target.value); setDrillId(null); setActiveIndex(0); }}
               onKeyDown={onSearchKeyDown}
+              role="combobox"
+              aria-expanded
+              aria-controls={listId}
+              aria-autocomplete="list"
+              aria-activedescendant={rows[activeIndex] ? optionId(activeIndex) : undefined}
             />
           </div>
 
-          <div className={styles.list}>
-            {searchResults ? (
-              searchResults.length === 0 ? (
-                <div className={styles.empty}>No categories found</div>
-              ) : (
-                searchResults.map(c => (
-                  <button key={c.id} type="button" className={styles.item} onClick={() => selectCategory(c)}>
-                    <span className={styles.itemLabel}>{c.icon} {c.name}</span>
-                  </button>
-                ))
-              )
-            ) : drillNode ? (
-              <>
-                <button type="button" className={styles.backItem} onClick={() => setDrillId(null)}>
-                  <FiChevronLeft /> {drillNode.category.icon} {drillNode.category.name}
-                </button>
-                {drillNode.children.map(c => (
-                  <button key={c.id} type="button" className={styles.item} onClick={() => selectCategory(c)}>
-                    <span className={styles.itemLabel}>{c.icon} {c.name}</span>
-                  </button>
-                ))}
-              </>
-            ) : topNodes.length === 0 ? (
-              <div className={styles.empty}>No categories available</div>
-            ) : (
-              topNodes.map(node => (
-                <button
-                  key={node.category.id}
-                  type="button"
-                  className={styles.item}
-                  onClick={() => (node.children.length > 0 ? setDrillId(node.category.id) : selectCategory(node.category))}
-                >
-                  <span className={styles.itemLabel}>{node.category.icon} {node.category.name}</span>
-                  {node.children.length > 0 && <FiChevronRight className={styles.itemChevron} />}
-                </button>
-              ))
-            )}
+          <div className={styles.list} id={listId} role="listbox">
+            {rows.length === 0 && emptyMessage
+              ? <div className={styles.empty}>{emptyMessage}</div>
+              : rows.map(renderRow)}
           </div>
         </div>
       )}

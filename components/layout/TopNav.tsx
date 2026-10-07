@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useCurrentUser } from '@/contexts/UserContext';
 import { useRecurringAlert } from '@/contexts/RecurringAlertContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { FiCreditCard, FiDownload, FiFolder, FiTag, FiUpload } from 'react-icons/fi';
 import styles from './TopNav.module.css';
 
 const navItems = [
@@ -17,11 +18,11 @@ const navItems = [
 ];
 
 const settingsItems = [
-  { label: 'Accounts', href: '/settings/accounts' },
-  { label: 'Categories', href: '/settings/categories' },
-  { label: 'Labels', href: '/settings/labels' },
-  { label: 'Import', href: '/settings/import' },
-  { label: 'Export', href: '/settings/export' },
+  { label: 'Accounts', href: '/settings/accounts', Icon: FiCreditCard },
+  { label: 'Categories', href: '/settings/categories', Icon: FiFolder },
+  { label: 'Labels', href: '/settings/labels', Icon: FiTag },
+  { label: 'Import', href: '/settings/import', Icon: FiDownload },
+  { label: 'Export', href: '/settings/export', Icon: FiUpload },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -133,9 +134,10 @@ export default function TopNav() {
                       key={item.href}
                       href={item.href}
                       role="menuitem"
-                      className={[styles.menuItem, active ? styles.menuItemActive : ''].filter(Boolean).join(' ')}
+                      className={[styles.menuItem, styles.menuItemWithIcon, active ? styles.menuItemActive : ''].filter(Boolean).join(' ')}
                       aria-current={active ? 'page' : undefined}
                     >
+                      <item.Icon className={styles.menuIcon} size={16} aria-hidden />
                       {item.label}
                     </Link>
                   );
