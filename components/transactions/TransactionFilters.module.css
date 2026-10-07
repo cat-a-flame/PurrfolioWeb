@@ -1,21 +1,15 @@
-/* One row: period and search, a divider, then the filter selects. */
+/* Period and filter selects on top, search (with Clear all) below. */
 .bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.filterRow {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-3);
-}
-
-.lead {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex: 1 1 340px;
-  min-width: 0;
-}
-
-.search {
-  flex: 1;
 }
 
 .divider {
@@ -25,14 +19,14 @@
   background: var(--color-border);
 }
 
-.selects {
+.searchRow {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
-.clearAll {
-  border-radius: var(--radius-md);
+.search {
+  flex: 1;
 }
 
 /* Same as CategoryPicker's drill-in chevron and back row. */
@@ -77,32 +71,25 @@
   outline: none;
 }
 
-/* Below this the selects wrap onto their own row, where a divider would dangle. */
-@media (max-width: 1100px) {
+@media (max-width: 768px) {
   .divider {
     display: none;
   }
-}
-
-@media (max-width: 768px) {
-  .lead {
-    flex-basis: 100%;
-  }
 
   /* Swipe through the selects instead of wrapping them. */
-  .selects {
-    width: calc(100% + var(--space-4) * 2);
+  .filterRow {
+    flex-wrap: nowrap;
     margin: 0 calc(var(--space-4) * -1);
     padding: 0 var(--space-4) var(--space-1);
     overflow-x: auto;
     scrollbar-width: none;
   }
 
-  .selects::-webkit-scrollbar {
+  .filterRow::-webkit-scrollbar {
     display: none;
   }
 
-  .selects > * {
+  .filterRow > * {
     flex-shrink: 0;
   }
 }

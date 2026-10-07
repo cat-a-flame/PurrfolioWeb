@@ -121,21 +121,11 @@ export default function TransactionFilters({ filters, onChange, period, onPeriod
 
   return (
     <div className={styles.bar}>
-      <div className={styles.lead}>
+      <div className={styles.filterRow}>
         <PeriodPicker value={period} onChange={onPeriodChange} variant="select" />
-        <SearchInput
-          variant="field"
-          className={styles.search}
-          placeholder="Search payee or notes"
-          aria-label="Search payee or notes"
-          value={filters.search}
-          onChange={e => set('search', e.target.value)}
-        />
-      </div>
 
-      <span className={styles.divider} aria-hidden />
+        <span className={styles.divider} aria-hidden />
 
-      <div className={styles.selects}>
         <CategoryFilter
           categories={categories}
           selected={filters.categoryIds}
@@ -171,14 +161,22 @@ export default function TransactionFilters({ filters, onChange, period, onPeriod
           selected={filters.currencies}
           onChange={cs => set('currencies', cs)}
         />
-        <Button
-          variant="secondary"
-          className={styles.clearAll}
-          onClick={() => onChange(EMPTY_FILTERS)}
-          disabled={!hasActiveFilters(filters)}
-        >
-          Clear all
-        </Button>
+      </div>
+
+      <div className={styles.searchRow}>
+        <SearchInput
+          variant="field"
+          className={styles.search}
+          placeholder="Search payee or notes"
+          aria-label="Search payee or notes"
+          value={filters.search}
+          onChange={e => set('search', e.target.value)}
+        />
+        {hasActiveFilters(filters) && (
+          <Button variant="link" onClick={() => onChange(EMPTY_FILTERS)}>
+            Clear all
+          </Button>
+        )}
       </div>
     </div>
   );
