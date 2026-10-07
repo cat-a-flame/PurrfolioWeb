@@ -24,6 +24,7 @@ export function makeRsStyles<
     singleValue: (base) => ({ ...base, color: 'var(--color-text)' }),
     placeholder: (base) => ({ ...base, color: 'var(--color-text-faint)' }),
     input: (base) => ({ ...base, color: 'var(--color-text)', fontFamily: 'var(--font-nunito)', margin: 0, padding: 0 }),
+    menuPortal: (base) => ({ ...base, zIndex: 1000 }),
     menu: (base) => ({
       ...base,
       background: 'var(--color-surface)',

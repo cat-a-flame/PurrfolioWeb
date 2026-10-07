@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { isPublicPath } from '@/lib/publicPaths';
 import { needsMfaCode } from '@/lib/mfa';
+import { getBaseCurrency } from '@/lib/baseCurrency';
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -59,6 +60,28 @@ export async function middleware(request: NextRequest) {
   if (!mfaPending && pathname === '/mfa') {
     const url = request.nextUrl.clone();
     url.pathname = user ? '/dashboard' : '/login';
+    return NextResponse.redirect(url);
+  }
+
+  // A user without a base currency who has no transactions is new: onboarding comes before anything else.
+  // (One with transactions is from before base currencies; the client keeps them on HUF.)
+  if (user && !mfaPending && !isPublic && !pathname.startsWith('/api/') && pathname !== '/onboarding') {
+    if (!getBaseCurrency(user)) {
+      const { count } = await supabase
+        .from('transactions')
+        .select('id', { count: 'exact', head: true });
+      if (count === 0) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/onboarding';
+        url.search = '';
+        return NextResponse.redirect(url);
+      }
+    }
+  }
+
+  if (user && !mfaPending && pathname === '/onboarding' && getBaseCurrency(user)) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/dashboard';
     return NextResponse.redirect(url);
   }
 

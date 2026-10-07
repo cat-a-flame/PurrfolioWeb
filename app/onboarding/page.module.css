@@ -1,3 +1,7 @@
+form.form {
+  gap: var(--space-6);
+}
+
 .intro {
   font-size: 0.9375rem;
   color: var(--color-text-muted);
@@ -44,11 +48,4 @@
   font-size: 0.75rem;
   color: var(--color-text-muted);
   text-align: center;
-}
-
-.hint {
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-  line-height: 1.45;
-  margin: 0;
 }
