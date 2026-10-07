@@ -43,9 +43,13 @@ export function makeRsStyles<
       color: state.isSelected ? 'var(--color-accent)' : 'var(--color-text)',
       fontFamily: 'var(--font-nunito)',
       fontSize: fs,
-      fontWeight: state.isSelected ? 600 : 400,
+      fontWeight: 600,
       cursor: 'pointer',
       padding: '8px 12px',
+      // Long options end in an ellipsis instead of wrapping.
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
     }),
     groupHeading: (base) => ({
       ...base,

@@ -293,8 +293,8 @@ function AccountFilter({ wallets, selected, onChange }: {
   onChange: (ids: string[]) => void;
 }) {
   const groups = ACCOUNT_GROUPS
-    // Wallets from before account types existed have no type; count them as bank.
-    .map(g => ({ label: g.label, wallets: wallets.filter(w => g.types.includes(w.type ?? 'bank')) }))
+    // Archived accounts are left out. Wallets from before account types existed have no type; count them as bank.
+    .map(g => ({ label: g.label, wallets: wallets.filter(w => !w.is_archived && g.types.includes(w.type ?? 'bank')) }))
     .filter(g => g.wallets.length > 0);
 
   return (
@@ -317,7 +317,6 @@ function AccountFilter({ wallets, selected, onChange }: {
                 nested
                 checked={selected.includes(w.id)}
                 onToggle={() => onChange(toggle(selected, w.id))}
-                meta={w.currency}
               >
                 {w.icon} {w.name}
               </FilterOption>

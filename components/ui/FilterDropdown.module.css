@@ -95,6 +95,7 @@
   border: none;
   font-family: var(--font-nunito);
   font-size: 0.9375rem;
+  font-weight: 600;
   color: var(--color-text);
   text-align: left;
   cursor: pointer;
@@ -109,7 +110,6 @@
 
 .rowChecked .option {
   color: var(--color-accent);
-  font-weight: 600;
 }
 
 .rowChecked .option:hover,
@@ -121,12 +121,10 @@
   padding-left: calc(12px + 16px + var(--space-3));
 }
 
+/* A block, not flex, so a long label can end in an ellipsis. */
 .optionLabel {
   flex: 1;
   min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -153,6 +151,7 @@
   letter-spacing: 0.05em;
   color: var(--color-text-faint);
   text-align: left;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -163,10 +162,12 @@
 }
 
 .dot {
+  display: inline-block;
   width: 8px;
   height: 8px;
+  margin-right: 6px;
   border-radius: 50%;
-  flex-shrink: 0;
+  vertical-align: middle;
 }
 
 .empty {
