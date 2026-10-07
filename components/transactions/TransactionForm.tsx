@@ -68,11 +68,11 @@ export default function TransactionForm({
     const [payer, setPayer] = useState<string>(transaction?.payer ?? '');
     const [labelIds, setLabelIds] = useState<string[]>(transaction?.labels?.map(l => l.id) ?? []);
 
-    // Transfer-specific state (pre-populated from the paired leg when editing)
+    // Prefilled from the paired leg when editing
     const [toWalletId, setToWalletId] = useState<string>(transferPair?.wallet_id ?? '');
     const [toAmount, setToAmount] = useState<string>(transferPair ? String(transferPair.amount) : '');
 
-    // External transfer state — inferred from editing a transfer with no pair
+    // A transfer with no paired leg is external
     const isEditingExternal = !!transaction?.transfer_group_id && !transferPair;
     const [transferScope, setTransferScope] = useState<'internal' | 'external'>(
         isEditingExternal ? 'external' : 'internal'
@@ -93,8 +93,7 @@ export default function TransactionForm({
         !!(transaction?.payer || transaction?.notes || transaction?.labels?.length)
     );
 
-    // Snapshot of the form's starting values, so "dirty" reflects actual edits
-    // rather than just whether we're editing an existing record.
+    // Starting values; the form is dirty only when a field differs from these.
     const initial = useRef({
         mode, walletId, amount, categoryId, date, notes, payer,
         labelIds: [...labelIds].sort(),
@@ -140,11 +139,11 @@ export default function TransactionForm({
     const toWallet = wallets.find(w => w.id === toWalletId);
     const sameCurrency = selectedWallet && toWallet && selectedWallet.currency === toWallet.currency;
 
-    // For dropdowns: hide archived wallets but keep the currently selected one visible
+    // Hide archived wallets except the selected one
     const activeWallets = wallets.filter(w => !w.is_archived || w.id === walletId);
     const activeToWallets = wallets.filter(w => !w.is_archived || w.id === toWalletId);
 
-    // Auto-fill to-amount when same currency
+    // Same currency: copy the amount to the to-amount
     function handleFromAmountChange(val: string) {
         setAmount(val);
         if (sameCurrency) setToAmount(val);
@@ -166,7 +165,7 @@ export default function TransactionForm({
         }
     }
 
-    // Clear a selected category that no longer matches the active mode (e.g. after switching tabs)
+    // Clear a category that doesn't match the mode (e.g. after switching tabs)
     useEffect(() => {
         if (mode === 'transfer' || !categoryId) return;
         const selected = categories.find(c => c.id === categoryId);
@@ -293,7 +292,6 @@ export default function TransactionForm({
                 </div>
 
                 <form onSubmit={handleSubmit} className={styles.form}>
-                    {/* Mode tabs */}
                     <div className={styles.typeTabs}>
                         <button type="button" className={[styles.typeTab, mode === 'expense' ? styles.typeTabExpenseActive : ''].filter(Boolean).join(' ')} onClick={() => setMode('expense')}>Expense</button>
                         <button type="button" className={[styles.typeTab, mode === 'income' ? styles.typeTabIncomeActive : ''].filter(Boolean).join(' ')} onClick={() => setMode('income')}>Income</button>
@@ -301,9 +299,7 @@ export default function TransactionForm({
                     </div>
 
                     {mode === 'transfer' ? (
-                        /* ── Transfer form ── */
                         <div className={styles.transferGrid}>
-                            {/* Internal / External scope toggle */}
                             <div className={`${styles.field} ${styles.transferScopeRow}`}>
                                 <button
                                     type="button"
@@ -323,7 +319,6 @@ export default function TransactionForm({
 
                             {transferScope === 'external' ? (
                                 <>
-                                    {/* Direction toggle */}
                                     <div className={`${styles.field} ${styles.transferScopeRow}`}>
                                         <button
                                             type="button"
@@ -341,7 +336,6 @@ export default function TransactionForm({
                                         </button>
                                     </div>
 
-                                    {/* My account */}
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="ext-wallet" required>
                                             {externalDirection === 'out' ? 'From account' : 'To account'}
@@ -359,7 +353,6 @@ export default function TransactionForm({
                                         />
                                     </div>
 
-                                    {/* Amount */}
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="ext-amount" required>Amount</FormLabel>
                                         <div className={styles.amountRow}>
@@ -368,7 +361,6 @@ export default function TransactionForm({
                                         </div>
                                     </div>
 
-                                    {/* External account name */}
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="ext-account" required>External account</FormLabel>
                                         <Input
@@ -380,13 +372,11 @@ export default function TransactionForm({
                                         />
                                     </div>
 
-                                    {/* Date */}
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="ext-date" required>Date</FormLabel>
                                         <Input id="ext-date" type="date" value={date} onChange={e => setDate(e.target.value)} required />
                                     </div>
 
-                                    {/* Note */}
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="ext-notes">Note</FormLabel>
                                         <textarea id="ext-notes" className={styles.textarea} value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Optional note" />
@@ -394,7 +384,6 @@ export default function TransactionForm({
                                 </>
                             ) : (
                                 <>
-                                    {/* From account */}
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="from-wallet" required>From account</FormLabel>
                                         <ReactSelect<{ value: string; label: string }>
@@ -410,7 +399,6 @@ export default function TransactionForm({
                                         />
                                     </div>
 
-                                    {/* Amount sent */}
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="from-amount" required>Amount sent</FormLabel>
                                         <div className={styles.amountRow}>
@@ -419,12 +407,10 @@ export default function TransactionForm({
                                         </div>
                                     </div>
 
-                                    {/* Arrow */}
                                     <div className={styles.transferArrowRow}>
                                         <span className={styles.transferArrow}>↓</span>
                                     </div>
 
-                                    {/* To account */}
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="to-wallet" required>To account</FormLabel>
                                         {(() => {
@@ -446,7 +432,6 @@ export default function TransactionForm({
                                         })()}
                                     </div>
 
-                                    {/* Amount received */}
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="to-amount" required>Amount received</FormLabel>
                                         <div className={styles.amountRow}>
@@ -463,13 +448,11 @@ export default function TransactionForm({
                                         {sameCurrency && <p className={styles.sameHint}>Same currency — amount auto-matched</p>}
                                     </div>
 
-                                    {/* Date */}
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="transfer-date" required>Date</FormLabel>
                                         <Input id="transfer-date" type="date" value={date} onChange={e => setDate(e.target.value)} required />
                                     </div>
 
-                                    {/* Note */}
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="transfer-notes">Note</FormLabel>
                                         <textarea id="transfer-notes" className={styles.textarea} value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Optional note" />
@@ -478,9 +461,7 @@ export default function TransactionForm({
                             )}
                         </div>
                     ) : (
-                        /* ── Income / Expense form ── */
                         <div className={styles.recordFields}>
-                            {/* Amount */}
                             <div className={styles.amountDisplay}>
                                 <label htmlFor="amount" className={styles.amountDisplayLabel}>Amount</label>
                                 <div className={styles.amountDisplayRow}>
@@ -509,7 +490,6 @@ export default function TransactionForm({
                                 </div>
                             </div>
 
-                            {/* Category */}
                             <div className={styles.field}>
                                 <FormLabel htmlFor="category">Category</FormLabel>
                                 <CategoryPicker
@@ -522,7 +502,6 @@ export default function TransactionForm({
                                 />
                             </div>
 
-                            {/* Account + Date */}
                             <div className={styles.miniFieldsRow}>
                                 <div className={styles.field}>
                                     <FormLabel htmlFor="wallet" required>Account</FormLabel>
@@ -545,7 +524,6 @@ export default function TransactionForm({
                                 </div>
                             </div>
 
-                            {/* More options toggle */}
                             <button
                                 type="button"
                                 className={styles.moreOptionsToggle}

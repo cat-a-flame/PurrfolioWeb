@@ -35,7 +35,7 @@ function Chevron() {
   );
 }
 
-/** Open/close state for a click-to-open menu: closes on outside click, Escape and navigation. */
+/** Closes on outside click, Escape and navigation. */
 function useDropdown(pathname: string) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);

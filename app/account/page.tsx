@@ -9,7 +9,7 @@ import Input from '@/components/ui/Input';
 import Toast from '@/components/ui/Toast';
 import DeleteConfirmModal from '@/components/account/DeleteConfirmModal';
 import TwoFactorSection from '@/components/account/TwoFactorSection';
-import { createClient } from '@/lib/supabase/client';
+import { createClient, verifyPassword } from '@/lib/supabase/client';
 import styles from './page.module.css';
 
 export default function AccountPage() {
@@ -97,6 +97,12 @@ export default function AccountPage() {
       return;
     }
     setPasswordLoading(true);
+    // Stops someone at an unlocked, signed-in browser from changing the password.
+    if (!(await verifyPassword(email, currentPassword))) {
+      setPasswordLoading(false);
+      setPasswordError('Current password is incorrect.');
+      return;
+    }
     const supabase = createClient();
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setPasswordLoading(false);
@@ -128,7 +134,7 @@ export default function AccountPage() {
         setDeleteError(error.message);
         return;
       }
-      // Full reload so cached data in shared contexts is dropped too.
+      // Full reload clears the data cached in contexts.
       window.location.assign('/dashboard');
       return;
     }
@@ -139,7 +145,7 @@ export default function AccountPage() {
       setDeleteError(error.message);
       return;
     }
-    // The user no longer exists server-side, so only clear the local session.
+    // The auth user is already deleted, so only clear the local session.
     await supabase.auth.signOut({ scope: 'local' });
     window.location.assign('/login');
   }
@@ -149,7 +155,6 @@ export default function AccountPage() {
       <div className={styles.container}>
         <h1 className={styles.pageTitle}>Account</h1>
 
-          {/* Profile section */}
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Profile</h2>
             <form onSubmit={handleUsernameUpdate} className={styles.form}>
@@ -178,7 +183,6 @@ export default function AccountPage() {
             </form>
           </section>
 
-          {/* Change password section */}
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Change password</h2>
             <form onSubmit={handlePasswordUpdate} className={styles.form}>
@@ -226,7 +230,6 @@ export default function AccountPage() {
 
           <TwoFactorSection onMessage={showToast} />
 
-          {/* Session section */}
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Session</h2>
             <div className={styles.formActions}>
@@ -236,7 +239,6 @@ export default function AccountPage() {
             </div>
           </section>
 
-          {/* Danger zone */}
           <section className={`${styles.section} ${styles.dangerSection}`}>
             <h2 className={`${styles.sectionTitle} ${styles.dangerTitle}`}>Danger zone</h2>
 

@@ -4,14 +4,7 @@ const BATCH = 1000;
 
 type Sums = Map<string, { income: number; expense: number }>;
 
-/**
- * Fetches per-wallet income/expense totals across all time.
- *
- * Uses the `wallet_balance_sums` database function (see
- * supabase/migrations/20260927000000_wallet_balance_sums.sql), which returns one
- * row per wallet. If that function isn't installed yet, falls back to summing
- * the transactions client-side.
- */
+/** Per-wallet income/expense totals from wallet_balance_sums(); sums client-side if it isn't installed. */
 export async function fetchWalletBalanceSums(userId: string): Promise<Sums> {
   const supabase = createClient();
   const { data, error } = await supabase.rpc('wallet_balance_sums');
@@ -27,10 +20,7 @@ export async function fetchWalletBalanceSums(userId: string): Promise<Sums> {
   return fetchWalletBalanceSumsClientSide(userId);
 }
 
-/**
- * Fallback: pages through the three lightweight columns needed for the balance
- * calculation and sums them in the browser.
- */
+/** Fallback: sums wallet_id/type/amount in the browser. */
 async function fetchWalletBalanceSumsClientSide(userId: string): Promise<Sums> {
   const supabase = createClient();
   const map: Sums = new Map();
@@ -41,8 +31,7 @@ async function fetchWalletBalanceSumsClientSide(userId: string): Promise<Sums> {
       .from('transactions')
       .select('wallet_id, type, amount')
       .eq('user_id', userId)
-      // A stable order is required for range() paging, otherwise rows can be
-      // skipped or counted twice across batches.
+      // range() paging needs a stable order, or rows get skipped or counted twice.
       .order('id')
       .range(from, from + BATCH - 1);
 

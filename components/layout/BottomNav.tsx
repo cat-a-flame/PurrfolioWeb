@@ -61,7 +61,7 @@ export default function BottomNav() {
   const { openAddDialog } = useAddRecord();
   const hasUrgentPlanned = useRecurringAlert();
 
-  // Logged-out users only see the auth pages, which have no app navigation.
+  // Logged-out pages have no app navigation.
   if (isPublicPath(pathname)) return null;
 
   return (

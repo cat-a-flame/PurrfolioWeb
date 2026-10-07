@@ -21,7 +21,7 @@ export interface WalletSummary {
 
 interface AccountsOverviewProps {
   summaries: WalletSummary[];
-  /** Current exchange rates, HUF per 1 unit of each currency. */
+  /** HUF per 1 unit of each currency */
   rates: Record<string, number>;
   loading: boolean;
   hideNumbers: boolean;
@@ -29,7 +29,7 @@ interface AccountsOverviewProps {
 }
 
 function groupFor(wallet: Wallet): GroupKey {
-  // Wallets created before account types existed have no type; treat them as bank accounts.
+  // Wallets from before account types existed have no type; count them as bank.
   const type = wallet.type ?? 'bank';
   return GROUPS.find(g => g.types.includes(type))?.key ?? 'other';
 }

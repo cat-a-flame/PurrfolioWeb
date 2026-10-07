@@ -80,7 +80,7 @@ export default function AddRecordProvider({ children }: { children: React.ReactN
     }
 
     if (data.transfer) {
-      // Generate a shared UUID to link both legs
+      // Shared id linking both transfer legs
       const transferGroupId = crypto.randomUUID();
       const common = { user_id: user.id, date: data.date, notes: data.notes || null, transfer_group_id: transferGroupId };
 

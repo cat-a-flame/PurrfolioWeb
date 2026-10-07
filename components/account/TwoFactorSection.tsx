@@ -18,7 +18,6 @@ interface TwoFactorSectionProps {
   onMessage: (message: string, variant: 'success' | 'error') => void;
 }
 
-/** Account page section for turning authenticator-app 2FA (TOTP) on and off. */
 export default function TwoFactorSection({ onMessage }: TwoFactorSectionProps) {
   const [factorId, setFactorId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -44,8 +43,7 @@ export default function TwoFactorSection({ onMessage }: TwoFactorSectionProps) {
     setStarting(true);
     const supabase = createClient();
 
-    // A setup that was abandoned earlier leaves an unverified factor behind,
-    // which would block a new one with the same name.
+    // An abandoned setup leaves an unverified factor that blocks a new one with the same name.
     const { data: factors } = await supabase.auth.mfa.listFactors();
     for (const f of factors?.all ?? []) {
       if (f.status !== 'verified') await supabase.auth.mfa.unenroll({ factorId: f.id });
@@ -116,7 +114,7 @@ export default function TwoFactorSection({ onMessage }: TwoFactorSectionProps) {
       setError(unenrollError.message);
       return;
     }
-    // Pick up the user's new factor list in the stored session.
+    // Refresh so the stored session drops the removed factor.
     await supabase.auth.refreshSession();
     setDisabling(false);
     setFactorId(null);

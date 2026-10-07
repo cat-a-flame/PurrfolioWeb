@@ -78,8 +78,7 @@ export default function DashboardPage() {
   const [recurringPayments, setRecurringPayments] = useState<RecurringPayment[]>([]);
   const [recurringOccurrences, setRecurringOccurrences] = useState<RecurringOccurrence[]>([]);
   const [loading, setLoading] = useState(true);
-  // True while a period change is being fetched (distinct from `loading`, which only
-  // covers the very first load) — lets us skeleton just the period-dependent cards.
+  // Period refetch in progress (`loading` only covers the first load).
   const [periodLoading, setPeriodLoading] = useState(false);
   const [period, setPeriod] = useState<PeriodValue>(() => {
     if (typeof window !== 'undefined') {
@@ -104,8 +103,7 @@ export default function DashboardPage() {
   const [plannedDialogItem, setPlannedDialogItem] = useState<{ payment: RecurringPayment; dueDate: Date } | undefined>();
   const [plannedActionLoading, setPlannedActionLoading] = useState(false);
 
-  // Cash Flow card's own content sets the row height; the side cards are
-  // clamped to match it (with internal scrolling) rather than the reverse.
+  // The Cash Flow card sets the row height; the side cards scroll inside it.
   const cashFlowRef = useRef<HTMLDivElement>(null);
   const [sideCardHeight, setSideCardHeight] = useState<number | undefined>(undefined);
 
@@ -125,9 +123,9 @@ export default function DashboardPage() {
     };
   }, []);
 
-  // Exchange rates: date → { EUR: number, USD: number, … } (HUF per 1 unit)
+  // date → HUF per 1 unit of each currency
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
-  // Today's rates, for converting account balances into a HUF net worth
+  // Today's rates, for the HUF net worth
   const [currentRates, setCurrentRates] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -150,8 +148,7 @@ export default function DashboardPage() {
       supabase.from('recurring_occurrences').select('*').eq('user_id', user.id).gte('due_date', period.from).lte('due_date', period.to),
     ]);
 
-    // Resolve exchange rates before anything renders, so the cash flow totals
-    // are final when the skeleton disappears.
+    // Load rates before rendering so totals don't change after the skeleton.
     const [rates, todayRates] = await Promise.all([
       getRatesForTransactions([...txs, ...prevTxs]),
       getExchangeRates(isoDate(new Date())),
@@ -209,7 +206,6 @@ export default function DashboardPage() {
       return { wallet, balance: wallet.starting_balance + sums.income - sums.expense };
     });
 
-  // Top expense categories in the selected period, by total spend
   const topCategories = useMemo(() => {
     const totals = new Map<string, { category: Category | null; total: number }>();
     for (const t of periodTransactions) {
@@ -223,7 +219,7 @@ export default function DashboardPage() {
     return Array.from(totals.values()).sort((a, b) => b.total - a.total).slice(0, 5);
   }, [periodTransactions, ratesByDate]);
 
-  // Planned payments due within the selected period that haven't been paid/skipped yet
+  // Planned payments due in the period, excluding ones marked paid or skipped.
   const plannedDue = useMemo(() => {
     const actioned = new Set(
       recurringOccurrences
@@ -242,7 +238,6 @@ export default function DashboardPage() {
     return items.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
   }, [recurringPayments, recurringOccurrences, period]);
 
-  // Latest 10 transactions in the selected period
   const recentTransactions = useMemo(() => {
     return [...periodTransactions]
       .sort((a, b) => (a.date === b.date ? b.created_at.localeCompare(a.created_at) : b.date.localeCompare(a.date)))
@@ -360,7 +355,6 @@ export default function DashboardPage() {
     };
 
     if (data.externalTransfer) {
-      // Delete original record(s)
       if (editingTransaction.transfer_group_id) {
         await supabase.from('transactions').delete().eq('transfer_group_id', editingTransaction.transfer_group_id);
       } else {
@@ -382,7 +376,7 @@ export default function DashboardPage() {
       });
       if (error) throw error;
     } else if (data.transfer) {
-      // Delete original record(s) — both legs if it was already a transfer
+      // Deletes both legs if it was a transfer.
       if (editingTransaction.transfer_group_id) {
         await supabase.from('transactions').delete().eq('transfer_group_id', editingTransaction.transfer_group_id);
       } else {
@@ -400,7 +394,7 @@ export default function DashboardPage() {
       ]);
       if (error) throw error;
     } else {
-      // If it was a transfer being converted to a regular transaction, delete the paired leg
+      // Converting a transfer to a regular record: delete the paired leg.
       if (editingTransaction.transfer_group_id) {
         const { data: paired } = await supabase
           .from('transactions')
@@ -494,7 +488,6 @@ export default function DashboardPage() {
         </div>
 
         <div className={styles.topRow}>
-          {/* Cash Flow card */}
           <div className={styles.cashFlowCard} ref={cashFlowRef}>
             <p className={styles.cashFlowTitle}>Cash flow</p>
             {loading || periodLoading ? (
@@ -554,7 +547,6 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Planned payments card */}
           <div className={styles.sideCard} style={sideCardHeight ? { height: sideCardHeight } : undefined}>
             <div className={styles.sideCardHeader}>
               <h2 className={styles.sideCardTitle}>Planned payments</h2>
@@ -601,7 +593,6 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Top categories card */}
           <div className={styles.sideCard} style={sideCardHeight ? { height: sideCardHeight } : undefined}>
             <div className={styles.sideCardHeader}>
               <h2 className={styles.sideCardTitle}>Top categories</h2>
@@ -638,7 +629,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Recent transactions */}
         <section className={styles.recentCard}>
           <div className={styles.recentHeader}>
             <h2 className={styles.recentTitle}>Recent transactions</h2>

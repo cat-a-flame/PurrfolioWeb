@@ -96,9 +96,7 @@ export default function PeriodPicker({ value, onChange, onClear, hideNav }: Prop
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
-  // Position the dropdown against the trigger via a portal so it can't be
-  // clipped by a scrollable/overflow-hidden ancestor (e.g. the transactions
-  // page's filter sidebar).
+  // Portaled so overflow-hidden ancestors (e.g. the transactions filter sidebar) can't clip it.
   useLayoutEffect(() => {
     if (!open) return;
     const update = () => {
@@ -212,7 +210,6 @@ export default function PeriodPicker({ value, onChange, onClear, hideNav }: Prop
             ))}
           </div>
 
-          {/* Months */}
           {tab === 'months' && (
             <div className={styles.panel}>
               <div className={styles.panelNav}>
@@ -238,7 +235,6 @@ export default function PeriodPicker({ value, onChange, onClear, hideNav }: Prop
             </div>
           )}
 
-          {/* Weeks */}
           {tab === 'weeks' && (
             <div className={styles.panel}>
               <div className={styles.panelNav}>
@@ -285,7 +281,6 @@ export default function PeriodPicker({ value, onChange, onClear, hideNav }: Prop
             </div>
           )}
 
-          {/* Years */}
           {tab === 'years' && (
             <div className={styles.panel}>
               <div className={styles.panelNav}>
@@ -311,7 +306,6 @@ export default function PeriodPicker({ value, onChange, onClear, hideNav }: Prop
             </div>
           )}
 
-          {/* Custom */}
           {tab === 'custom' && (
             <div className={styles.panel}>
               <div className={styles.customFields}>

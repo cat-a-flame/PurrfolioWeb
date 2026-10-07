@@ -6,7 +6,6 @@
   gap: var(--space-6);
 }
 
-/* ── Page header ── */
 .pageHeader {
   display: flex;
   align-items: center;
@@ -15,7 +14,7 @@
   gap: var(--space-4);
 }
 
-/* Hidden on mobile: the bottom nav bar already provides an add-record CTA there */
+/* Phones use the bottom nav's add button instead. */
 @media (max-width: 768px) {
   .headerAddBtn {
     display: none;
@@ -35,7 +34,6 @@
   color: transparent;
 }
 
-/* ── Period row ── */
 .titleGroup {
   display: flex;
   align-items: center;
@@ -78,7 +76,6 @@
   color: var(--color-accent);
 }
 
-/* ── Top row: Cash Flow + Planned payments + Top categories ── */
 .topRow {
   display: flex;
   gap: var(--space-6);
@@ -86,7 +83,6 @@
   flex-wrap: wrap;
 }
 
-/* ── Cash Flow card ── */
 .cashFlowCard {
   border-radius: var(--radius-xl);
   padding: var(--space-6) var(--space-8) var(--space-8);
@@ -106,9 +102,7 @@
   min-width: 300px;
 }
 
-/* Light orbs inside the hero card. Kept static: an animated blur(40px) layer
-   repaints every frame and the frosted title/badges above it would have to
-   re-blur it each time. */
+/* Static: an animated blur(40px) here would make the frosted elements above re-blur every frame. */
 .cashFlowCard::before,
 .cashFlowCard::after {
   content: '';
@@ -225,7 +219,7 @@
   animation: popIn 500ms var(--ease-spring) 300ms backwards;
 }
 
-/* Fixed light-on-dark colours: the hero card is dark in both themes */
+/* The hero card is dark in both themes. */
 .vsTagPos {
   background: rgba(124, 245, 196, 0.2);
   color: #c9ffe8;
@@ -297,7 +291,6 @@
   box-shadow: 0 0 16px rgba(255, 106, 91, 0.6);
 }
 
-/* ── Side cards: Planned payments / Top categories ── */
 .sideCard {
   flex: 1 1 280px;
   min-width: 260px;
@@ -377,7 +370,6 @@
   padding-right: var(--space-1);
 }
 
-/* Planned payment row */
 .plannedRow {
   display: flex;
   align-items: center;
@@ -472,7 +464,6 @@
   margin-bottom: var(--space-2);
 }
 
-/* Top category row */
 .catRow {
   display: flex;
   align-items: center;
@@ -501,7 +492,6 @@
   flex-shrink: 0;
 }
 
-/* ── Recent transactions ── */
 .recentCard {
   background: var(--color-glass-strong);
   border: 1px solid var(--color-glass-border);
@@ -576,7 +566,6 @@
   background: var(--color-surface-2);
 }
 
-/* Accent bar slides in on hover */
 .txRow::before {
   content: '';
   position: absolute;

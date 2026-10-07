@@ -14,7 +14,7 @@
   gap: var(--space-4);
 }
 
-/* Hidden on mobile: the bottom nav bar already provides an add-record CTA there */
+/* Phones use the bottom nav's add button instead. */
 @media (max-width: 768px) {
   .headerAddBtn {
     display: none;
@@ -34,14 +34,12 @@
   color: transparent;
 }
 
-/* ── Two-column body layout ── */
 .bodyLayout {
   display: flex;
   gap: var(--space-6);
   align-items: flex-start;
 }
 
-/* ── Filter sidebar ── */
 .filterSidebar {
   width: 300px;
   flex-shrink: 0;
@@ -66,7 +64,6 @@
   color: var(--color-text-muted);
 }
 
-/* ── Content area ── */
 .contentArea {
   flex: 1;
   min-width: 0;
@@ -75,14 +72,13 @@
   gap: var(--space-5);
 }
 
-/* ── Filter fields ── */
 .filterField {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
 }
 
-/* Make SearchableSelect trigger match filter input height */
+/* Match the filter inputs' height. */
 .filterField :global([class*="trigger"]) {
   height: 38px;
   font-size: 0.875rem;
@@ -114,7 +110,6 @@
 }
 
 
-/* ── Selection bar ── */
 .selectionBar {
   position: sticky;
   top: calc(var(--top-bar-h) + var(--space-4));
@@ -179,7 +174,6 @@
   color: var(--color-text);
 }
 
-/* ── Transaction row: checkbox + selected state ── */
 .txCheckbox {
   width: 16px;
   height: 16px;
@@ -193,7 +187,6 @@
   background: var(--color-accent-light) !important;
 }
 
-/* ── Bulk edit dialog ── */
 .bulkColumns {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -261,7 +254,6 @@
   border-top: 1px solid var(--color-border);
 }
 
-/* ── Notes search ── */
 .searchWrapper {
   position: relative;
   display: flex;
@@ -305,7 +297,6 @@
   cursor: pointer;
 }
 
-/* ── Filtering animation ── */
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
@@ -338,7 +329,6 @@
   transition: opacity 0.15s ease;
 }
 
-/* ── Skeleton loader (initial page load) ── */
 @keyframes shimmer {
   0%   { background-position: -400px 0; }
   100% { background-position: 400px 0; }
@@ -364,7 +354,6 @@
 }
 
 
-/* ── Grouped transaction list ── */
 .groupedList {
   display: flex;
   flex-direction: column;
@@ -405,7 +394,6 @@
   box-shadow: var(--shadow-md);
 }
 
-/* ── Transaction row ── */
 .txRow {
   display: flex;
   align-items: center;
@@ -579,7 +567,6 @@
   }
 }
 
-/* ── Cash flow summary card ── */
 .periodRow {
   display: flex;
   justify-content: center;

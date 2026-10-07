@@ -16,9 +16,7 @@
   }
 }
 
-/* Staggered entrance for each page's top-level sections.
-   `backwards` fill leaves no transform behind once finished, so fixed-position
-   dialogs rendered inside the page are never re-anchored. */
+/* `backwards` fill leaves no transform afterwards, so fixed dialogs inside pages stay anchored to the viewport. */
 .main > :global(*) > :global(*) {
   animation: riseIn 560ms var(--ease-out) backwards;
 }

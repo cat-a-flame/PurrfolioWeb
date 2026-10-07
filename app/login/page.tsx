@@ -34,7 +34,7 @@ export default function LoginPage() {
       return;
     }
 
-    // With 2FA on, the password only gets an aal1 session; the code comes next.
+    // With 2FA on, the password only gives an aal1 session; the code is entered on /mfa.
     const mfa = await needsMfaCode(supabase, data.user);
     router.push(mfa ? '/mfa' : '/dashboard');
     router.refresh();

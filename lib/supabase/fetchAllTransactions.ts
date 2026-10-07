@@ -14,11 +14,7 @@ const SELECT =
   '*, wallet:wallets(*), category:categories(*), labels:transaction_labels(label:labels(*))';
 const BATCH = 1000;
 
-/**
- * Fetches every transaction for a user, paginating in batches of 1 000 rows
- * so the result is never truncated by PostgREST's max-rows limit.
- * Returned newest-first (date DESC).
- */
+/** All of a user's transactions, newest first, fetched 1000 at a time to get past PostgREST's row limit. */
 export async function fetchAllTransactions(userId: string): Promise<Transaction[]> {
   const supabase = createClient();
   const rows: Transaction[] = [];

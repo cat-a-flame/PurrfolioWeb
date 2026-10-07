@@ -1,23 +1,7 @@
--- Lets a signed-in user wipe their own data, or delete their account entirely.
---
---   * delete_my_data():    removes every row the caller owns (transactions,
---                          recurring payments, templates, accounts/wallets,
---                          categories, labels and their link tables) but keeps
---                          the login.
---   * delete_my_account(): does the same, then removes the caller's auth user.
---
--- Safety:
---   * Both only ever act on auth.uid(); they take no user id argument, so they
---     can't be pointed at anyone else's data.
---   * security definer is needed to delete from auth.users (and lets the wipe
---     run regardless of per-table delete policies); search_path is pinned to ''
---     and every name is schema-qualified.
---   * Each call runs in one transaction: if any step fails, nothing is deleted.
---   * Only the authenticated role may call them.
---
--- To remove:
---   drop function public.delete_my_account();
---   drop function public.delete_my_data();
+-- delete_my_data(): deletes all of the caller's rows, keeps the login.
+-- delete_my_account(): same, then deletes the caller's auth user.
+-- Both act only on auth.uid(). security definer to delete from auth.users; search_path is ''.
+-- Remove: drop function public.delete_my_account(); drop function public.delete_my_data();
 
 create or replace function public.delete_my_data()
 returns void

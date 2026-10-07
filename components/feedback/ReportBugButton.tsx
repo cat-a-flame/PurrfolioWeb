@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client';
 import { isPublicPath } from '@/lib/publicPaths';
 import styles from './ReportBugButton.module.css';
 
-/** Floating bottom-right button that sends a bug report to Discord (report_bug()). */
+/** Sends a bug report to Discord via report_bug(). */
 export default function ReportBugButton() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);

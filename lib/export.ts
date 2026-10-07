@@ -3,10 +3,7 @@ import type { Transaction, Wallet, Category, Label } from './types';
 
 const BATCH = 1000;
 
-/**
- * Fetches every row of a user-owned table, paginating in batches of 1 000 so
- * the result is never truncated by PostgREST's max-rows limit.
- */
+/** All rows for the user, fetched 1000 at a time to get past PostgREST's row limit. */
 export async function fetchAllRows<T = Record<string, unknown>>(
   table: string,
   userId: string,
@@ -72,12 +69,12 @@ export async function fetchTransactionsForExport(
   return rows;
 }
 
-// ─── CSV ──────────────────────────────────────────────────────────────────────
-
 function csvField(v: string | number | null | undefined): string {
   if (v === null || v === undefined) return '';
-  // Flatten line breaks: the Import page reads one record per line.
-  const s = String(v).replace(/\r\n|\r|\n/g, ' ');
+  // The importer reads one record per line.
+  let s = String(v).replace(/\r\n|\r|\n/g, ' ');
+  // Prefix formula-like text with ' so Excel/Sheets don't run it; the importer strips it.
+  if (typeof v === 'string' && /^[=+\-@\t]/.test(s)) s = `'${s}`;
   return /[",]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
@@ -87,11 +84,7 @@ export const CSV_HEADERS = [
   'Category', 'Parent category', 'Notes', 'Payer', 'Labels',
 ] as const;
 
-/**
- * Builds a CSV in the same shape the Import page understands: one row per
- * income/expense, and one "Transfer" row per transfer pair (source account and
- * amount from the outgoing leg, "To account"/"To amount" from the incoming leg).
- */
+/** Same shape the importer reads: one row per income/expense, one "Transfer" row per transfer pair. */
 export function buildTransactionsCsv(
   txs: (Transaction & { label_ids: string[] })[],
   wallets: Wallet[],
@@ -102,7 +95,6 @@ export function buildTransactionsCsv(
   const categoryById = new Map(categories.map(c => [c.id, c]));
   const labelById = new Map(labels.map(l => [l.id, l]));
 
-  // Group transfer legs so each pair becomes one row.
   const groups = new Map<string, Transaction[]>();
   for (const t of txs) {
     if (!t.transfer_group_id) continue;
@@ -150,10 +142,8 @@ export function buildTransactionsCsv(
   return lines.join('\r\n') + '\r\n';
 }
 
-// ─── Download ─────────────────────────────────────────────────────────────────
-
 export function downloadFile(content: string, fileName: string, mime: string) {
-  // Prefix CSVs with a BOM so Excel opens accented names as UTF-8.
+  // BOM so Excel reads UTF-8.
   const body = mime.startsWith('text/csv') ? '﻿' + content : content;
   const url = URL.createObjectURL(new Blob([body], { type: mime }));
   const a = document.createElement('a');

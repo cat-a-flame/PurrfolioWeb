@@ -11,12 +11,15 @@ import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import type { Wallet, Category, Label, TransactionType } from '@/lib/types';
 import styles from './page.module.css';
 
-// ─── CSV helpers ──────────────────────────────────────────────────────────────
-
 function detectDelimiter(firstLine: string): string {
   const sc = (firstLine.match(/;/g) || []).length;
   const cm = (firstLine.match(/,/g) || []).length;
   return sc >= cm ? ';' : ',';
+}
+
+// Undoes the ' that the export adds in front of formula-like text (see csvField in lib/export.ts).
+function unescapeFormula(field: string): string {
+  return /^'[=+\-@\t]/.test(field) ? field.slice(1) : field;
 }
 
 function parseCsvLine(line: string, delimiter: string): string[] {
@@ -29,11 +32,11 @@ function parseCsvLine(line: string, delimiter: string): string[] {
       if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
       else inQ = !inQ;
     } else if (c === delimiter && !inQ) {
-      fields.push(cur.trim());
+      fields.push(unescapeFormula(cur.trim()));
       cur = '';
     } else cur += c;
   }
-  fields.push(cur.trim());
+  fields.push(unescapeFormula(cur.trim()));
   return fields;
 }
 
@@ -94,8 +97,6 @@ function uniqueColValues(rows: string[][], idx: number): string[] {
   return Array.from(seen).sort();
 }
 
-// ─── Internal types ───────────────────────────────────────────────────────────
-
 const TRANSFER_SENTINEL = '__transfer__';
 
 type TypeSource = 'column' | 'fixed-income' | 'fixed-expense';
@@ -112,16 +113,13 @@ interface ColumnMap {
   walletCol: string;
   walletFixed: string;
   walletMapping: Record<string, string | null>;
-  // Transfer destination
   transferToWalletSource: TransferToWalletSource;
   transferToWalletFixed: string;
   transferToWalletCol: string;
   transferToWalletMapping: Record<string, string | null>; // csv-value→walletId (column mode) or sourceWalletId→destWalletId (by-source mode)
   transferToAmountCol: string;
-  // Category
   categoryCol: string;
   categoryMapping: Record<string, string | null>;
-  // Other optional
   notesCol: string;
   payerCol: string;
   labelsCol: string;
@@ -143,8 +141,6 @@ interface PreviewRow {
   errors: string[];
   isCategoryTransfer: boolean; // single-leg transfer detected via category sentinel
 }
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ImportPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -193,8 +189,6 @@ export default function ImportPage() {
     load();
   }, []);
 
-  // ─── File handling ────────────────────────────────────────────────────────
-
   function handleFile(file: File) {
     if (!file.name.match(/\.csv$/i)) {
       setToast({ message: 'Please select a CSV file.', variant: 'error' });
@@ -235,8 +229,6 @@ export default function ImportPage() {
     const f = e.dataTransfer.files[0];
     if (f) handleFile(f);
   }
-
-  // ─── Column helpers ────────────────────────────────────────────────────────
 
   function colIdx(name: string) {
     return (csv?.headers ?? []).indexOf(name);
@@ -300,16 +292,14 @@ export default function ImportPage() {
     setColMap(m => ({ ...m, categoryCol: col, categoryMapping: mapping }));
   }
 
-  // ─── Derived flags ────────────────────────────────────────────────────────
-
-  // Category-sentinel transfers: each CSV row is already one leg (sign gives direction).
-  // Type-column transfers: one CSV row becomes a full expense+income pair.
+  // Category-sentinel transfer: each row is one leg; the amount's sign gives the direction.
+  // Type-column transfer: each row becomes an expense + income pair.
   const hasTypeColumnTransfers = colMap.typeSource === 'column' && Object.values(colMap.typeMapping).includes('transfer');
   const hasCategoryTransfers   = Object.values(colMap.categoryMapping).includes(TRANSFER_SENTINEL);
   const hasTransferType        = hasTypeColumnTransfers || hasCategoryTransfers;
   const unmappedCategories = Object.entries(colMap.categoryMapping).filter(([, v]) => v === null || v === '');
 
-  // Source wallet IDs on type-column transfer rows — used for 'by-source' destination mode
+  // Source wallets of type-column transfer rows, for the 'by-source' destination mapping
   const transferSourceWalletIds: string[] = (() => {
     if (!csv || !hasTypeColumnTransfers) return [];
     const typIdx = colIdx(colMap.typeCol);
@@ -325,8 +315,6 @@ export default function ImportPage() {
     }
     return [...seen];
   })();
-
-  // ─── Step 2 validation ────────────────────────────────────────────────────
 
   function validateStep2(): string | null {
     if (!colMap.amount) return 'Select the Amount column.';
@@ -362,8 +350,6 @@ export default function ImportPage() {
     return null;
   }
 
-  // ─── Build preview rows ───────────────────────────────────────────────────
-
   function buildPreview(): PreviewRow[] {
     if (!csv) return [];
     const { rows } = csv;
@@ -389,8 +375,7 @@ export default function ImportPage() {
       const parsedDate = parseDate(rawDate);
       if (!parsedDate) errors.push('Invalid date');
 
-      // Detect category-sentinel transfer before type determination so it can override.
-      // These rows already represent one leg — sign of the raw amount gives direction.
+      // Category-sentinel rows are detected before the type column, so they override it.
       const catRawVal = catI >= 0 ? (row[catI] ?? '').trim() : '';
       const isCategoryTransfer = catRawVal !== '' && colMap.categoryMapping[catRawVal] === TRANSFER_SENTINEL;
 
@@ -420,7 +405,7 @@ export default function ImportPage() {
       }
       if (!walletId) errors.push('No account');
 
-      // Transfer destination — only for type-column transfers (full pair from one row)
+      // Only type-column transfers have a destination.
       let transferToWalletId: string | null = null;
       let transferToAmount: number | null = null;
       if (!isCategoryTransfer && txType === 'transfer') {
@@ -441,7 +426,7 @@ export default function ImportPage() {
         if (transferToAmount === null) transferToAmount = amount;
       }
 
-      // Category: use the explicit mapping; sentinel rows get no category (they're transfers)
+      // Sentinel transfer rows get no category.
       let categoryId: string | null = null;
       if (catI >= 0 && !isCategoryTransfer && catRawVal) {
         categoryId = colMap.categoryMapping[catRawVal] ?? null;
@@ -475,8 +460,6 @@ export default function ImportPage() {
     setStep(3);
   }
 
-  // ─── Import ───────────────────────────────────────────────────────────────
-
   async function handleImport() {
     const valid = previewRows.filter(r => r.errors.length === 0);
     if (!valid.length) {
@@ -488,7 +471,7 @@ export default function ImportPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setImporting(false); return; }
 
-    // Pre-fetch exchange rates for all non-HUF dates in one pass
+    // Fetch rates for all foreign-currency dates up front.
     const datesToFetch = new Set<string>();
     for (const r of valid) {
       const fromWallet = wallets.find(w => w.id === r.walletId);
@@ -517,7 +500,6 @@ export default function ImportPage() {
     const categoryTransfers = valid.filter(r => r.isCategoryTransfer);
     const typeColTransfers  = valid.filter(r => !r.isCategoryTransfer && r.type === 'transfer');
 
-    // Regular rows: batch insert
     const BATCH = 100;
     for (let i = 0; i < regular.length; i += BATCH) {
       const slice = regular.slice(i, i + BATCH);
@@ -544,7 +526,7 @@ export default function ImportPage() {
       }
     }
 
-    // Category-sentinel transfers: each CSV row is already one leg — insert as income/expense with transfer_group_id
+    // Category-sentinel transfers: one leg per row, linked by transfer_group_id.
     for (let i = 0; i < categoryTransfers.length; i += BATCH) {
       const slice = categoryTransfers.slice(i, i + BATCH);
       const batch = slice.map(r => ({
@@ -571,7 +553,7 @@ export default function ImportPage() {
       }
     }
 
-    // Type-column transfers: each CSV row becomes two linked transactions (expense + income pair)
+    // Type-column transfers: each row becomes an expense + income pair.
     for (const r of typeColTransfers) {
       const transferGroupId = crypto.randomUUID();
       const common = { user_id: user.id, date: r.date as string, notes: r.notes, transfer_group_id: transferGroupId };
@@ -607,8 +589,6 @@ export default function ImportPage() {
     }
   }
 
-  // ─── Reset ────────────────────────────────────────────────────────────────
-
   function reset() {
     setStep(1);
     setCsv(null);
@@ -626,8 +606,6 @@ export default function ImportPage() {
       notesCol: '', payerCol: '', labelsCol: '',
     }));
   }
-
-  // ─── Render helpers ───────────────────────────────────────────────────────
 
   const headers = csv?.headers ?? [];
   const colOptions = headers.map(h => ({ value: h, label: h }));
@@ -671,7 +649,6 @@ export default function ImportPage() {
         </div>
       </div>
 
-      {/* ── Step 1: Upload ── */}
       {step === 1 && (
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Upload a CSV file</h2>
@@ -729,7 +706,6 @@ export default function ImportPage() {
         </section>
       )}
 
-      {/* ── Step 2: Map columns ── */}
       {step === 2 && csv && (
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Map columns</h2>
@@ -737,11 +713,9 @@ export default function ImportPage() {
             Tell the app which CSV columns correspond to each field. The sample value is taken from the first data row.
           </p>
 
-          {/* Required fields */}
           <div className={styles.fieldGroup}>
             <p className={styles.groupTitle}>Required</p>
 
-            {/* Amount */}
             <div className={styles.mapRow}>
               <span className={styles.fieldName}><span className={styles.req}>*</span>Amount</span>
               <div className={styles.mapControls}>
@@ -757,7 +731,6 @@ export default function ImportPage() {
               </div>
             </div>
 
-            {/* Date */}
             <div className={styles.mapRow}>
               <span className={styles.fieldName}><span className={styles.req}>*</span>Date</span>
               <div className={styles.mapControls}>
@@ -773,7 +746,6 @@ export default function ImportPage() {
               </div>
             </div>
 
-            {/* Type */}
             <div className={styles.mapRow}>
               <span className={styles.fieldName}><span className={styles.req}>*</span>Type</span>
               <div className={styles.mapControls}>
@@ -811,7 +783,6 @@ export default function ImportPage() {
               </div>
             </div>
 
-            {/* Type value mapping — now includes Transfer */}
             {colMap.typeSource === 'column' && colMap.typeCol && Object.keys(colMap.typeMapping).length > 0 && (
               <div className={styles.valueMapBlock}>
                 <p className={styles.valueMapTitle}>Assign each value to Income, Expense, or Transfer:</p>
@@ -843,7 +814,6 @@ export default function ImportPage() {
               </div>
             )}
 
-            {/* Account */}
             <div className={styles.mapRow}>
               <span className={styles.fieldName}><span className={styles.req}>*</span>Account</span>
               <div className={styles.mapControls}>
@@ -898,8 +868,7 @@ export default function ImportPage() {
             )}
           </div>
 
-          {/* Transfer settings — only needed when a type column maps values to 'transfer' (full pair per row).
-              Category-sentinel transfers are single-leg rows and don't need a destination configured. */}
+          {/* Only for type-column transfers; sentinel transfers are single legs and need no destination. */}
           {hasTypeColumnTransfers && (
             <div className={styles.fieldGroup}>
               <p className={styles.groupTitle}>Transfer settings</p>
@@ -950,7 +919,7 @@ export default function ImportPage() {
                 </div>
               </div>
 
-              {/* By-source mapping: one destination picker per source account */}
+              {/* One destination picker per source account */}
               {colMap.transferToWalletSource === 'by-source' && transferSourceWalletIds.length > 0 && (
                 <div className={styles.valueMapBlock}>
                   <p className={styles.valueMapTitle}>Where does money go from each account?</p>
@@ -983,7 +952,6 @@ export default function ImportPage() {
                 <p className={styles.fieldHint}>Map the account and type columns first — source accounts will appear here.</p>
               )}
 
-              {/* Column mapping */}
               {colMap.transferToWalletSource === 'column' && colMap.transferToWalletCol && Object.keys(colMap.transferToWalletMapping).length > 0 && (
                 <div className={styles.valueMapBlock}>
                   <p className={styles.valueMapTitle}>Match each destination account name:</p>
@@ -1024,11 +992,9 @@ export default function ImportPage() {
             </div>
           )}
 
-          {/* Optional fields */}
           <div className={styles.fieldGroup}>
             <p className={styles.groupTitle}>Optional</p>
 
-            {/* Category */}
             <div className={styles.mapRow}>
               <span className={styles.fieldName}>Category</span>
               <div className={styles.mapControls}>
@@ -1044,7 +1010,6 @@ export default function ImportPage() {
               </div>
             </div>
 
-            {/* Category value mapping */}
             {colMap.categoryCol && Object.keys(colMap.categoryMapping).length > 0 && (
               <div className={styles.valueMapBlock}>
                 <p className={styles.valueMapTitle}>
@@ -1076,7 +1041,6 @@ export default function ImportPage() {
               </div>
             )}
 
-            {/* Notes */}
             <div className={styles.mapRow}>
               <span className={styles.fieldName}>Notes</span>
               <div className={styles.mapControls}>
@@ -1092,7 +1056,6 @@ export default function ImportPage() {
               </div>
             </div>
 
-            {/* Payer */}
             <div className={styles.mapRow}>
               <span className={styles.fieldName}>Payer / payee</span>
               <div className={styles.mapControls}>
@@ -1108,7 +1071,6 @@ export default function ImportPage() {
               </div>
             </div>
 
-            {/* Labels */}
             <div className={styles.mapRow}>
               <span className={styles.fieldName}>Labels</span>
               <div className={styles.mapControls}>
@@ -1137,7 +1099,6 @@ export default function ImportPage() {
         </section>
       )}
 
-      {/* ── Step 3: Preview & import ── */}
       {step === 3 && (
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Preview & import</h2>

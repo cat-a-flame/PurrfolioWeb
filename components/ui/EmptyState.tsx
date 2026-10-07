@@ -6,7 +6,7 @@ interface EmptyStateProps {
   title?: string;
   hint?: string;
   action?: ReactNode;
-  /** Use for tighter spots (e.g. a dashboard side card) — smaller icon, no border/background. */
+  /** Smaller icon, no border or background, for tight spots. */
   compact?: boolean;
   className?: string;
 }

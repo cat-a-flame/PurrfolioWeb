@@ -76,9 +76,7 @@ export default function RecurringPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [labels, setLabels]         = useState<Label[]>([]);
   const [loading, setLoading]       = useState(true);
-  // True while a period change is being fetched (distinct from `loading`, which only
-  // covers the very first load) — lets us skeleton the Due section while keeping the
-  // header, period picker, and full payments list visible.
+  // Period refetch in progress (`loading` only covers the first load).
   const [periodLoading, setPeriodLoading] = useState(false);
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -104,7 +102,6 @@ export default function RecurringPage() {
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
   const dismissToast = useCallback(() => setToast(null), []);
 
-  // Viewed period for due items (default: current month)
   const today = new Date();
   const [period, setPeriod] = useState<PeriodValue>(() => {
     if (typeof window !== 'undefined') {
@@ -145,7 +142,7 @@ export default function RecurringPage() {
     if (catRes.data)    setCategories(catRes.data);
     if (lblRes.data)    setLabels(lblRes.data);
 
-    // Fetch occurrences for a wider window (1 month of padding around the viewed period)
+    // 1 month of padding on each side of the viewed period
     const from = new Date(period.from + 'T00:00:00');
     const to   = new Date(period.to + 'T00:00:00');
     const wideFrom = new Date(from); wideFrom.setMonth(wideFrom.getMonth() - 1);
@@ -192,7 +189,6 @@ export default function RecurringPage() {
     return () => document.removeEventListener('click', close);
   }, [openMenuId]);
 
-  // Compute pending due items for the viewed period
   const dueItems: DueItem[] = (() => {
     const from = new Date(period.from + 'T00:00:00');
     const to   = new Date(period.to + 'T00:00:00');
@@ -212,8 +208,6 @@ export default function RecurringPage() {
   const todayItems    = dueItems.filter(i => isoDate(i.dueDate) === todayIsoStr);
   const upcomingItems = dueItems.filter(i => isoDate(i.dueDate) > todayIsoStr);
 
-  // ─── Mark as paid ────────────────────────────────────────────────────────────
-
   async function handlePay(item: DueItem) {
     const key = `${item.payment.id}|${isoDate(item.dueDate)}`;
     setActionLoading(key);
@@ -223,7 +217,6 @@ export default function RecurringPage() {
 
     const wallet = item.payment.wallet_id ? wallets.find(w => w.id === item.payment.wallet_id) : null;
 
-    // Insert the transaction
     const { data: txData, error: txErr } = await supabase
       .from('transactions')
       .insert({
@@ -245,7 +238,6 @@ export default function RecurringPage() {
       return;
     }
 
-    // Record the occurrence
     const { error: occErr } = await supabase.from('recurring_occurrences').insert({
       recurring_payment_id: item.payment.id,
       user_id: user.id,
@@ -269,8 +261,6 @@ export default function RecurringPage() {
     setActionLoading(null);
     fetchAll();
   }
-
-  // ─── Skip ────────────────────────────────────────────────────────────────────
 
   async function handleSkip(item: DueItem) {
     const key = `${item.payment.id}|${isoDate(item.dueDate)}`;
@@ -296,8 +286,6 @@ export default function RecurringPage() {
     setActionLoading(null);
     fetchAll();
   }
-
-  // ─── Add ─────────────────────────────────────────────────────────────────────
 
   function validateForm(form: FormFields): string | null {
     if (!form.name.trim()) return 'Name is required.';
@@ -347,8 +335,6 @@ export default function RecurringPage() {
     setAddSaving(false);
   }
 
-  // ─── Edit ────────────────────────────────────────────────────────────────────
-
   function openEdit(p: RecurringPayment) {
     setEditForm({
       name: p.name, type: p.type, amount: String(p.amount),
@@ -397,8 +383,6 @@ export default function RecurringPage() {
     setEditSaving(false);
   }
 
-  // ─── Toggle active ────────────────────────────────────────────────────────────
-
   async function handleToggleActive(p: RecurringPayment) {
     const supabase = createClient();
 
@@ -409,10 +393,7 @@ export default function RecurringPage() {
       return;
     }
 
-    // Resuming: while paused, no due dates were generated, but generateDueDates
-    // has no memory of that — it just walks forward from start_date. Without this,
-    // every date that fell inside the paused window reappears as a pending item
-    // the user has to skip by hand. Auto-skip that backlog so resuming starts clean.
+    // generateDueDates walks from start_date and ignores pauses, so skip every date inside the pause.
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -453,8 +434,6 @@ export default function RecurringPage() {
     fetchAll();
   }
 
-  // ─── Delete ───────────────────────────────────────────────────────────────────
-
   async function handleDelete() {
     if (!deletingPayment) return;
     setDeleteLoading(true);
@@ -469,8 +448,6 @@ export default function RecurringPage() {
     setDeletingPayment(null);
     setDeleteLoading(false);
   }
-
-  // ─── Helpers ──────────────────────────────────────────────────────────────────
 
   function walletCurrency(walletId: string | null): 'HUF' | 'USD' | 'EUR' {
     return (wallets.find(w => w.id === walletId)?.currency ?? 'HUF') as 'HUF' | 'USD' | 'EUR';
@@ -493,7 +470,6 @@ export default function RecurringPage() {
     <AppShell>
         <div className={styles.container}>
 
-          {/* ── Page header ── */}
           <div className={styles.pageHeader}>
             <div>
               <h1 className={styles.pageTitle}>Planned payments</h1>
@@ -526,7 +502,6 @@ export default function RecurringPage() {
           </div>
           )}
 
-          {/* ── Due ── */}
           {view === 'due' && (
           <section className={styles.section}>
             {loading || periodLoading ? (
@@ -598,7 +573,6 @@ export default function RecurringPage() {
           </section>
           )}
 
-          {/* ── All recurring payments ── */}
           {view === 'all' && (
           <section className={styles.section}>
             {loading ? (
@@ -753,7 +727,6 @@ export default function RecurringPage() {
         />
       )}
 
-      {/* Delete confirm */}
       {deletingPayment && (
         <ConfirmDialog
           title="Delete recurring payment"
@@ -769,8 +742,6 @@ export default function RecurringPage() {
     </AppShell>
   );
 }
-
-// ─── Payment modal ─────────────────────────────────────────────────────────────
 
 function buildCategoryOptions(categories: Category[]): SelectOption[] {
   const parents = categories.filter(c => !c.parent_id);
@@ -820,7 +791,6 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
         </div>
 
         <div className={styles.modalForm}>
-          {/* Type tabs */}
           <div className={styles.typeTabs}>
             <button type="button"
               className={[styles.typeTab, form.type === 'expense' ? styles.typeTabExpense : ''].join(' ')}
@@ -830,13 +800,11 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
               onClick={() => set({ ...form, type: 'income' })}>Income</button>
           </div>
 
-          {/* Name */}
           <div className={styles.field}>
             <FormLabel required>Name</FormLabel>
             <Input value={form.name} onChange={e => set({ ...form, name: e.target.value })} placeholder="Mortgage, Phone bill…" />
           </div>
 
-          {/* Amount + Frequency */}
           <div className={styles.twoCol}>
             <div className={styles.field}>
               <FormLabel required>Amount</FormLabel>
@@ -856,7 +824,6 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
             </div>
           </div>
 
-          {/* Account + Category */}
           <div className={styles.twoCol}>
             <div className={styles.field}>
               <FormLabel required>Account</FormLabel>
@@ -882,7 +849,6 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
             </div>
           </div>
 
-          {/* Start + End date */}
           <div className={styles.twoCol}>
             <div className={styles.field}>
               <FormLabel required>Start date</FormLabel>
@@ -894,7 +860,6 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
             </div>
           </div>
 
-          {/* Payer + Notes */}
           <div className={styles.twoCol}>
             <div className={styles.field}>
               <FormLabel>Payer / payee <span className={styles.optional}>(optional)</span></FormLabel>
@@ -906,7 +871,6 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
             </div>
           </div>
 
-          {/* Labels */}
           {labels.length > 0 && (
             <div className={styles.field}>
               <FormLabel>Labels <span className={styles.optional}>(optional)</span></FormLabel>
@@ -927,8 +891,6 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
     </div>
   );
 }
-
-// ─── Due card sub-component ────────────────────────────────────────────────────
 
 function DueCard({ item, onSelect, currency, dueDateLabel }: {
   item: DueItem;
