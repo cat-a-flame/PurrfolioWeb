@@ -154,20 +154,15 @@ export default function CategoryPicker({
         closeMenu();
       }
     }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') closeMenu(true);
-    }
     function onReposition() {
       updateMenuPosition();
     }
 
     document.addEventListener('mousedown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
     window.addEventListener('resize', onReposition);
     document.addEventListener('scroll', onReposition, true);
     return () => {
       document.removeEventListener('mousedown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('resize', onReposition);
       document.removeEventListener('scroll', onReposition, true);
     };
@@ -210,6 +205,18 @@ export default function CategoryPicker({
       case 'Tab':
         closeMenu();
         break;
+    }
+  }
+
+  // Escape should close only the menu, not the dialog the picker sits in.
+  // The dialog listens on document, where React's own listener also lives,
+  // so plain stopPropagation isn't enough; React's listener is registered
+  // first, so stopping immediate propagation keeps the dialog's from firing.
+  function onMenuKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.nativeEvent.stopImmediatePropagation();
+      closeMenu(true);
     }
   }
 
@@ -273,6 +280,7 @@ export default function CategoryPicker({
         <div
           className={styles.menu}
           style={{ top: menuStyle.top, left: menuStyle.left, width: menuStyle.width, maxHeight: menuStyle.maxHeight }}
+          onKeyDown={onMenuKeyDown}
         >
           <div className={styles.searchRow}>
             <FiSearch className={styles.searchIcon} />
