@@ -342,8 +342,8 @@ export default function TransactionForm({
                                         </FormLabel>
                                         <ReactSelect<{ value: string; label: string }>
                                             inputId="ext-wallet"
-                                            options={activeWallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }))}
-                                            value={selectedWallet ? { value: walletId, label: `${selectedWallet.icon} ${selectedWallet.name} (${selectedWallet.currency})` } : null}
+                                            options={activeWallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` }))}
+                                            value={selectedWallet ? { value: walletId, label: `${selectedWallet.icon} ${selectedWallet.name}` } : null}
                                             onChange={(opt) => opt && setWalletId(opt.value)}
                                             isSearchable
                                             styles={makeRsStyles()}
@@ -388,8 +388,8 @@ export default function TransactionForm({
                                         <FormLabel htmlFor="from-wallet" required>From account</FormLabel>
                                         <ReactSelect<{ value: string; label: string }>
                                             inputId="from-wallet"
-                                            options={activeWallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }))}
-                                            value={selectedWallet ? { value: walletId, label: `${selectedWallet.icon} ${selectedWallet.name} (${selectedWallet.currency})` } : null}
+                                            options={activeWallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` }))}
+                                            value={selectedWallet ? { value: walletId, label: `${selectedWallet.icon} ${selectedWallet.name}` } : null}
                                             onChange={(opt) => opt && handleFromWalletChange(opt.value)}
                                             isSearchable
                                             styles={makeRsStyles()}
@@ -414,7 +414,7 @@ export default function TransactionForm({
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="to-wallet" required>To account</FormLabel>
                                         {(() => {
-                                            const toWalletOptions = activeToWallets.filter(w => w.id !== walletId).map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }));
+                                            const toWalletOptions = activeToWallets.filter(w => w.id !== walletId).map(w => ({ value: w.id, label: `${w.icon} ${w.name}` }));
                                             const toWalletValue = toWalletOptions.find(o => o.value === toWalletId) ?? null;
                                             return (
                                                 <ReactSelect<{ value: string; label: string }>
@@ -507,8 +507,8 @@ export default function TransactionForm({
                                     <FormLabel htmlFor="wallet" required>Account</FormLabel>
                                     <ReactSelect<{ value: string; label: string }>
                                         inputId="wallet"
-                                        options={activeWallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }))}
-                                        value={selectedWallet ? { value: walletId, label: `${selectedWallet.icon} ${selectedWallet.name} (${selectedWallet.currency})` } : null}
+                                        options={activeWallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` }))}
+                                        value={selectedWallet ? { value: walletId, label: `${selectedWallet.icon} ${selectedWallet.name}` } : null}
                                         onChange={(opt) => opt && setWalletId(opt.value)}
                                         isSearchable
                                         styles={makeRsStyles()}
