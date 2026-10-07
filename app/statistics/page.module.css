@@ -600,50 +600,6 @@
   }
 }
 
-.predictionBanner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin: calc(var(--space-5) * -1) calc(var(--space-5) * -1) 0;
-  padding: var(--space-4) var(--space-5);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-}
-
-.predictionBannerIncome  { background: var(--color-income-light); }
-.predictionBannerExpense { background: var(--color-expense-light); }
-
-.predictionBannerLeft {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-width: 0;
-}
-
-.predictionBannerIcon {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-full);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-}
-
-.predictionBannerIncome  .predictionBannerIcon { background: var(--color-income); }
-.predictionBannerExpense .predictionBannerIcon { background: var(--color-expense); }
-
-.predictionBannerTitle {
-  font-family: var(--font-lora);
-  font-size: 1.0625rem;
-  font-weight: 700;
-  color: var(--color-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .predictionList {
   display: flex;
   flex-direction: column;

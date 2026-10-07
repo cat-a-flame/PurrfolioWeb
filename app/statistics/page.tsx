@@ -165,9 +165,10 @@ function sampleStats(samples: number[]): { mean: number; cv: number } {
   return { mean, cv: Math.sqrt(variance) / mean };
 }
 
-function PredictionPanel({ variant, title, items, loading }: {
+function PredictionPanel({ variant, title, subtitle, items, loading }: {
   variant: 'income' | 'expense';
   title: string;
+  subtitle: string;
   items: PredictionItem[];
   loading: boolean;
 }) {
@@ -175,11 +176,9 @@ function PredictionPanel({ variant, title, items, loading }: {
   const sign = isIncome ? '+' : '−';
   return (
     <div className={styles.card}>
-      <div className={[styles.predictionBanner, isIncome ? styles.predictionBannerIncome : styles.predictionBannerExpense].join(' ')}>
-        <div className={styles.predictionBannerLeft}>
-          <span className={styles.predictionBannerIcon}>{isIncome ? <IncomeIcon /> : <ExpenseIcon />}</span>
-          <span className={styles.predictionBannerTitle}>{title}</span>
-        </div>
+      <div>
+        <h2 className={styles.cardTitle}>{title}</h2>
+        <p className={styles.cardSubtitle}>{subtitle}</p>
       </div>
       {loading ? (
         <div className={styles.predictionList}>
@@ -804,12 +803,14 @@ export default function StatisticsPage() {
             <PredictionPanel
               variant="expense"
               title="Expected expenses"
+              subtitle={`${period.label} · based on the last ${HISTORY_MONTHS} months`}
               items={predictions.expense}
               loading={showSkeleton}
             />
             <PredictionPanel
               variant="income"
               title="Expected income"
+              subtitle={`${period.label} · based on the last ${HISTORY_MONTHS} months`}
               items={predictions.income}
               loading={showSkeleton}
             />
