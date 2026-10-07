@@ -8,6 +8,7 @@ import { needsMfaCode } from '@/lib/mfa';
 import Button from '@/components/ui/Button';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
+import PasswordInput from '@/components/ui/PasswordInput';
 import styles from './page.module.css';
 
 export default function LoginPage() {
@@ -71,9 +72,8 @@ export default function LoginPage() {
             <FormLabel htmlFor="password" required>
               Password
             </FormLabel>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
