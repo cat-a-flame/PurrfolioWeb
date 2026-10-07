@@ -101,3 +101,10 @@
     align-items: stretch;
   }
 }
+
+/* Desktop signs out from the top nav user menu; phones have no user menu, so keep it there. */
+@media (min-width: 769px) {
+  .sessionSection {
+    display: none;
+  }
+}

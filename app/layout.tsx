@@ -8,6 +8,9 @@ import MobileHeader from '@/components/layout/MobileHeader';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { RecurringAlertProvider } from '@/contexts/RecurringAlertContext';
 import { RoleProvider } from '@/contexts/RoleContext';
+import { UserProvider } from '@/contexts/UserContext';
+import { createClient } from '@/lib/supabase/server';
+import { toCurrentUser } from '@/lib/username';
 import './globals.css';
 
 const lora = Lora({ subsets: ['latin'], variable: '--font-display-src', display: 'swap' });
@@ -25,7 +28,10 @@ export const metadata: Metadata = {
   description: 'Your personal budget tracker',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   return (
     <html lang="en" className={`${lora.variable} ${nunito.variable}`}>
       <head>
@@ -37,18 +43,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <ThemeProvider>
-          <RoleProvider>
-            <RecurringAlertProvider>
-              <AddRecordProvider>
-                <MobileHeader />
-                {children}
-                <BottomNav />
-                <RoleGate allow={['user']}>
-                  <ReportBugButton />
-                </RoleGate>
-              </AddRecordProvider>
-            </RecurringAlertProvider>
-          </RoleProvider>
+          <UserProvider initialUser={toCurrentUser(user)}>
+            <RoleProvider>
+              <RecurringAlertProvider>
+                <AddRecordProvider>
+                  <MobileHeader />
+                  {children}
+                  <BottomNav />
+                  <RoleGate allow={['user']}>
+                    <ReportBugButton />
+                  </RoleGate>
+                </AddRecordProvider>
+              </RecurringAlertProvider>
+            </RoleProvider>
+          </UserProvider>
         </ThemeProvider>
       </body>
     </html>

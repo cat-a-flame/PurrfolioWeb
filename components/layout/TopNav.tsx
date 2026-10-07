@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useCurrentUser } from '@/contexts/UserContext';
 import { useRecurringAlert } from '@/contexts/RecurringAlertContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import styles from './TopNav.module.css';
@@ -68,18 +69,11 @@ export default function TopNav() {
   const router = useRouter();
   const hasUrgentPlanned = useRecurringAlert();
   const { theme, toggleTheme } = useTheme();
-  const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
+  const currentUser = useCurrentUser();
+  const email = currentUser?.email ?? '';
+  const username = currentUser?.username ?? '';
   const settings = useDropdown(pathname);
   const user = useDropdown(pathname);
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user?.email) setEmail(data.user.email);
-      if (data.user?.user_metadata?.username) setUsername(data.user.user_metadata.username as string);
-    });
-  }, []);
 
   async function handleSignOut() {
     const supabase = createClient();

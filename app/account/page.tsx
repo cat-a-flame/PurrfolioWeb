@@ -10,6 +10,7 @@ import Toast from '@/components/ui/Toast';
 import DeleteConfirmModal from '@/components/account/DeleteConfirmModal';
 import TwoFactorSection from '@/components/account/TwoFactorSection';
 import { createClient, verifyPassword } from '@/lib/supabase/client';
+import { getUsername } from '@/lib/username';
 import styles from './page.module.css';
 
 export default function AccountPage() {
@@ -47,9 +48,7 @@ export default function AccountPage() {
         data: { user },
       } = await supabase.auth.getUser();
       if (user?.email) setEmail(user.email);
-      if (user?.user_metadata?.username) {
-        setUsername(user.user_metadata.username as string);
-      }
+      setUsername(getUsername(user));
     }
     loadProfile();
   }, []);
@@ -71,7 +70,7 @@ export default function AccountPage() {
     setUsernameLoading(true);
     const supabase = createClient();
     const { error } = await supabase.auth.updateUser({
-      data: { username: username.trim() },
+      data: { name: username.trim() },
     });
     setUsernameLoading(false);
     if (error) {
@@ -176,7 +175,7 @@ export default function AccountPage() {
                 />
               </div>
               <div className={styles.formActions}>
-                <Button type="submit" variant="primary" size="sm" loading={usernameLoading}>
+                <Button type="submit" variant="secondary" size="sm" loading={usernameLoading}>
                   Save username
                 </Button>
               </div>
@@ -221,7 +220,7 @@ export default function AccountPage() {
                 />
               </div>
               <div className={styles.formActions}>
-                <Button type="submit" variant="primary" size="sm" loading={passwordLoading}>
+                <Button type="submit" variant="secondary" size="sm" loading={passwordLoading}>
                   Update password
                 </Button>
               </div>
@@ -230,7 +229,7 @@ export default function AccountPage() {
 
           <TwoFactorSection onMessage={showToast} />
 
-          <section className={styles.section}>
+          <section className={`${styles.section} ${styles.sessionSection}`}>
             <h2 className={styles.sectionTitle}>Session</h2>
             <div className={styles.formActions}>
               <Button variant="danger" size="sm" onClick={handleSignOut} loading={signingOut}>
