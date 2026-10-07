@@ -16,7 +16,7 @@ export function makeRsStyles<
       boxShadow: state.isFocused ? '0 0 0 3px var(--color-accent-light)' : 'none',
       fontFamily: 'var(--font-nunito)',
       fontSize: fs,
-      fontWeight: 800,
+      fontWeight: 700,
       cursor: 'pointer',
       '&:hover': { borderColor: 'var(--color-border-focus)' },
     }),

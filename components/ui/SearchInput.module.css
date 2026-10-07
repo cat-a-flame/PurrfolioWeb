@@ -19,7 +19,7 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-weight: 800;
+  font-weight: 700;
   transition: border-color var(--transition-fast), box-shadow var(--transition-base);
 }
 
