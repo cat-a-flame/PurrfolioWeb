@@ -1,4 +1,4 @@
-/* Control and menu match CategoryPicker and the react-select styles in rsStyles.ts. */
+/* Control matches PeriodPicker's trigger (height, radius, weight); the menu matches CategoryPicker and rsStyles.ts. */
 .wrapper {
   position: relative;
   min-width: 0;
@@ -9,13 +9,14 @@
   align-items: center;
   width: 100%;
   max-width: 240px;
-  height: 42px;
+  height: 38px;
   padding: 0 var(--space-3);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   font-family: var(--font-nunito);
   font-size: 0.9375rem;
+  font-weight: 800;
   color: var(--color-text);
   cursor: pointer;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
@@ -38,9 +39,14 @@
   white-space: nowrap;
 }
 
+/* A picked value shows in the accent colour; the filter's name shows in the normal text colour. */
+.controlValue {
+  color: var(--color-accent);
+}
+
 .controlPlaceholder {
   composes: controlValue;
-  color: var(--color-text-faint);
+  color: var(--color-text);
 }
 
 .chevron {
