@@ -1,0 +1,26 @@
+.box {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--color-accent-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: #fff;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.box[data-state='checked'],
+.box[data-state='mixed'] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.dash {
+  width: 10px;
+  height: 2.5px;
+  border-radius: 2px;
+  background: #fff;
+}

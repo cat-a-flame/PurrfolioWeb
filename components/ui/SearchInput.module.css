@@ -1,0 +1,71 @@
+.wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  border: 1px solid transparent;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+.filled {
+  height: 40px;
+  padding: 0 var(--space-3);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+}
+
+.filled:focus-within {
+  background: var(--color-surface);
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-accent-light);
+}
+
+.outlined {
+  height: 44px;
+  padding: 0 var(--space-4);
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.outlined:hover:not(:focus-within) {
+  border-color: var(--color-accent-border);
+}
+
+.outlined:focus-within {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-accent-light);
+}
+
+.icon {
+  flex-shrink: 0;
+  font-size: 1.0625rem;
+  color: var(--color-text-faint);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.input::placeholder {
+  color: var(--color-text-faint);
+  font-weight: 500;
+}
+
+/* The page and menus already style focus on the wrapper. */
+.input:focus-visible {
+  outline: none;
+}
+
+.input::-webkit-search-cancel-button {
+  cursor: pointer;
+}
