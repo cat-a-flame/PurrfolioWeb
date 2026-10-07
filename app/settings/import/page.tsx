@@ -19,6 +19,11 @@ function detectDelimiter(firstLine: string): string {
   return sc >= cm ? ';' : ',';
 }
 
+// Undoes the ' that the export adds in front of formula-like text (see csvField in lib/export.ts).
+function unescapeFormula(field: string): string {
+  return /^'[=+\-@\t]/.test(field) ? field.slice(1) : field;
+}
+
 function parseCsvLine(line: string, delimiter: string): string[] {
   const fields: string[] = [];
   let cur = '';
@@ -29,11 +34,11 @@ function parseCsvLine(line: string, delimiter: string): string[] {
       if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
       else inQ = !inQ;
     } else if (c === delimiter && !inQ) {
-      fields.push(cur.trim());
+      fields.push(unescapeFormula(cur.trim()));
       cur = '';
     } else cur += c;
   }
-  fields.push(cur.trim());
+  fields.push(unescapeFormula(cur.trim()));
   return fields;
 }
 

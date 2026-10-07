@@ -9,7 +9,7 @@ import Input from '@/components/ui/Input';
 import Toast from '@/components/ui/Toast';
 import DeleteConfirmModal from '@/components/account/DeleteConfirmModal';
 import TwoFactorSection from '@/components/account/TwoFactorSection';
-import { createClient } from '@/lib/supabase/client';
+import { createClient, verifyPassword } from '@/lib/supabase/client';
 import styles from './page.module.css';
 
 export default function AccountPage() {
@@ -97,6 +97,13 @@ export default function AccountPage() {
       return;
     }
     setPasswordLoading(true);
+    // Check the current password first, so someone with access to an
+    // already signed-in browser can't change it and lock the owner out.
+    if (!(await verifyPassword(email, currentPassword))) {
+      setPasswordLoading(false);
+      setPasswordError('Current password is incorrect.');
+      return;
+    }
     const supabase = createClient();
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setPasswordLoading(false);

@@ -77,7 +77,11 @@ export async function fetchTransactionsForExport(
 function csvField(v: string | number | null | undefined): string {
   if (v === null || v === undefined) return '';
   // Flatten line breaks: the Import page reads one record per line.
-  const s = String(v).replace(/\r\n|\r|\n/g, ' ');
+  let s = String(v).replace(/\r\n|\r|\n/g, ' ');
+  // Text starting with = + - @ or a tab would run as a formula in Excel /
+  // Sheets (e.g. a note like =HYPERLINK(...)); a leading ' makes it plain text.
+  // The Import page strips that ' again.
+  if (typeof v === 'string' && /^[=+\-@\t]/.test(s)) s = `'${s}`;
   return /[",]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
