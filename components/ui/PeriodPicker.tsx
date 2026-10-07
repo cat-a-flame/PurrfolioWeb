@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { FiCalendar } from 'react-icons/fi';
+import FilterChip from './FilterChip';
 import styles from './PeriodPicker.module.css';
 
 const DROPDOWN_WIDTH = 300;
@@ -33,6 +35,8 @@ interface Props {
   onChange: (v: PeriodValue) => void;
   onClear?: () => void;
   hideNav?: boolean;
+  /** 'chip' renders a filter-bar chip with a calendar icon instead of the arrows. */
+  variant?: 'default' | 'chip';
 }
 
 function isoDate(d: Date): string {
@@ -70,7 +74,7 @@ function weeksForMonth(year: number, month: number) {
   return rows;
 }
 
-export default function PeriodPicker({ value, onChange, onClear, hideNav }: Props) {
+export default function PeriodPicker({ value, onChange, onClear, hideNav, variant = 'default' }: Props) {
   const now = new Date();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<PeriodTab>(value.tab);
@@ -96,14 +100,14 @@ export default function PeriodPicker({ value, onChange, onClear, hideNav }: Prop
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
-  // Portaled so overflow-hidden ancestors (e.g. the transactions filter sidebar) can't clip it.
+  // Portaled so overflow-hidden ancestors can't clip it.
   useLayoutEffect(() => {
     if (!open) return;
     const update = () => {
       const el = triggerRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      let left = rect.left + rect.width / 2 - DROPDOWN_WIDTH / 2;
+      let left = variant === 'chip' ? rect.left : rect.left + rect.width / 2 - DROPDOWN_WIDTH / 2;
       left = Math.max(DROPDOWN_MARGIN, Math.min(left, window.innerWidth - DROPDOWN_WIDTH - DROPDOWN_MARGIN));
       setPos({ top: rect.bottom + DROPDOWN_MARGIN, left });
     };
@@ -114,7 +118,7 @@ export default function PeriodPicker({ value, onChange, onClear, hideNav }: Prop
       window.removeEventListener('scroll', update, true);
       window.removeEventListener('resize', update);
     };
-  }, [open]);
+  }, [open, variant]);
 
   function emit(from: string, to: string, label: string, t: PeriodTab) {
     onChange({ from, to, label, tab: t });
@@ -176,25 +180,35 @@ export default function PeriodPicker({ value, onChange, onClear, hideNav }: Prop
 
   return (
     <div className={styles.container} ref={triggerRef}>
-      <div className={styles.trigger}>
-        {!hideNav && (
-          <button className={styles.navBtn} onClick={() => navigate(-1)} aria-label="Previous" disabled={!value.from}>
-            <Chevron direction="left" />
-          </button>
-        )}
-        <button className={styles.labelBtn} onClick={() => setOpen(o => !o)}>
-          {value.label}
-        </button>
-        {onClear && value.from ? (
-          <button className={styles.clearBtn} onClick={onClear} aria-label="Clear date filter">×</button>
-        ) : (
-          !hideNav && (
-            <button className={styles.navBtn} onClick={() => navigate(1)} aria-label="Next" disabled={!value.from}>
-              <Chevron direction="right" />
+      {variant === 'chip' ? (
+        <FilterChip
+          label={value.label}
+          icon={<FiCalendar />}
+          open={open}
+          aria-haspopup="dialog"
+          onClick={() => setOpen(o => !o)}
+        />
+      ) : (
+        <div className={styles.trigger}>
+          {!hideNav && (
+            <button className={styles.navBtn} onClick={() => navigate(-1)} aria-label="Previous" disabled={!value.from}>
+              <Chevron direction="left" />
             </button>
-          )
-        )}
-      </div>
+          )}
+          <button className={styles.labelBtn} onClick={() => setOpen(o => !o)}>
+            {value.label}
+          </button>
+          {onClear && value.from ? (
+            <button className={styles.clearBtn} onClick={onClear} aria-label="Clear date filter">×</button>
+          ) : (
+            !hideNav && (
+              <button className={styles.navBtn} onClick={() => navigate(1)} aria-label="Next" disabled={!value.from}>
+                <Chevron direction="right" />
+              </button>
+            )
+          )}
+        </div>
+      )}
 
       {open && pos && createPortal(
         <div className={styles.dropdown} ref={dropdownRef} style={{ top: pos.top, left: pos.left }}>

@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { FiChevronDown, FiChevronLeft, FiChevronRight, FiSearch } from 'react-icons/fi';
+import { FiChevronDown, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import type { Category, TransactionType } from '@/lib/types';
+import SearchInput from './SearchInput';
 import styles from './CategoryPicker.module.css';
 
 interface CategoryNode {
@@ -283,12 +284,10 @@ export default function CategoryPicker({
           onKeyDown={onMenuKeyDown}
         >
           <div className={styles.searchRow}>
-            <FiSearch className={styles.searchIcon} />
-            <input
+            <SearchInput
               ref={searchInputRef}
               type="text"
-              className={styles.searchInput}
-              placeholder="Search categories…"
+              placeholder="Find a category"
               value={search}
               onChange={e => { setSearch(e.target.value); setDrillId(null); setActiveIndex(0); }}
               onKeyDown={onSearchKeyDown}
