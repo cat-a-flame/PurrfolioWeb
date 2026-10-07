@@ -206,19 +206,6 @@ export default function DashboardPage() {
       return { wallet, balance: wallet.starting_balance + sums.income - sums.expense };
     });
 
-  const topCategories = useMemo(() => {
-    const totals = new Map<string, { category: Category | null; total: number }>();
-    for (const t of periodTransactions) {
-      if (t.type !== 'expense' || t.transfer_group_id) continue;
-      const key = t.category_id ?? 'uncategorised';
-      const amt = txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
-      const entry = totals.get(key) ?? { category: t.category ?? null, total: 0 };
-      entry.total += amt;
-      totals.set(key, entry);
-    }
-    return Array.from(totals.values()).sort((a, b) => b.total - a.total).slice(0, 5);
-  }, [periodTransactions, ratesByDate]);
-
   // Planned payments due in the period, excluding ones marked paid or skipped.
   const plannedDue = useMemo(() => {
     const actioned = new Set(
@@ -587,41 +574,6 @@ export default function DashboardPage() {
                     <span className={[styles.plannedAmount, payment.type === 'income' ? styles.amtIncome : styles.amtExpense].join(' ')}>
                       {payment.type === 'income' ? '+' : '−'}{formatCurrency(payment.amount, payment.wallet?.currency ?? 'HUF')}
                     </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className={styles.sideCard} style={sideCardHeight ? { height: sideCardHeight } : undefined}>
-            <div className={styles.sideCardHeader}>
-              <h2 className={styles.sideCardTitle}>Top categories</h2>
-              <Link href="/statistics" className={styles.sideCardLink}>All</Link>
-            </div>
-            {loading || periodLoading ? (
-              <div className={styles.sideCardList}>
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className={styles.catRow}>
-                    <Skeleton width={38} height={38} radius="var(--radius-sm)" />
-                    <div className={styles.catInfo}>
-                      <Skeleton width="60%" height={13} radius={4} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : topCategories.length === 0 ? (
-              <div className={styles.sideCardEmptyWrap}>
-                <EmptyState compact icon="🐱" hint="No expenses in this period." />
-              </div>
-            ) : (
-              <div className={styles.sideCardList}>
-                {topCategories.map(({ category, total }) => (
-                  <div key={category?.id ?? 'uncategorised'} className={styles.catRow}>
-                    <EmojiBox emoji={category?.icon ?? '?'} color={category?.color ?? '#94a3b8'} size="sm" />
-                    <div className={styles.catInfo}>
-                      <span className={styles.catName}>{category?.name ?? 'Uncategorised'}</span>
-                    </div>
-                    <span className={styles.catAmount}>−{formatHUF(total)}</span>
                   </div>
                 ))}
               </div>
