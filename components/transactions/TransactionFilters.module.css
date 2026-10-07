@@ -22,11 +22,12 @@
 .searchRow {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-4);
 }
 
 .search {
-  flex: 1;
+  flex: 0 1 50%;
 }
 
 /* Same as CategoryPicker's drill-in chevron and back row. */
@@ -72,6 +73,10 @@
 }
 
 @media (max-width: 768px) {
+  .search {
+    flex: 1;
+  }
+
   .divider {
     display: none;
   }
