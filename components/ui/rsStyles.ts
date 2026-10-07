@@ -5,17 +5,18 @@ export function makeRsStyles<
   IsMulti extends boolean = false,
 >(size: 'sm' | 'md' = 'md'): StylesConfig<Option, IsMulti, GroupBase<Option>> {
   const fs = size === 'sm' ? '0.875rem' : '0.9375rem';
-  const minH = size === 'sm' ? '38px' : '42px';
+  const minH = '38px';
   return {
     control: (base, state) => ({
       ...base,
       minHeight: minH,
       background: 'var(--color-surface)',
       borderColor: state.isFocused ? 'var(--color-border-focus)' : 'var(--color-border)',
-      borderRadius: 'var(--radius-md)',
+      borderRadius: 'var(--radius-sm)',
       boxShadow: state.isFocused ? '0 0 0 3px var(--color-accent-light)' : 'none',
       fontFamily: 'var(--font-nunito)',
       fontSize: fs,
+      fontWeight: 800,
       cursor: 'pointer',
       '&:hover': { borderColor: 'var(--color-border-focus)' },
     }),

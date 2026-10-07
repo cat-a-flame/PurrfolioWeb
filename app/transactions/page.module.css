@@ -154,7 +154,8 @@
   padding: var(--space-3);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
+  font-weight: 800;
   font-family: var(--font-nunito);
   font-size: 0.9375rem;
   color: var(--color-text);
