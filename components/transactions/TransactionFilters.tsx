@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import Button from '@/components/ui/Button';
 import FilterDropdown, { FilterDot, FilterEmpty, FilterGroupHeading, FilterOption } from '@/components/ui/FilterDropdown';
+import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import SearchInput from '@/components/ui/SearchInput';
 import type { AccountType, Category, Currency, Label, Transaction, Wallet } from '@/lib/types';
 import styles from './TransactionFilters.module.css';
@@ -108,23 +109,31 @@ const CURRENCY_ORDER: Currency[] = ['HUF', 'EUR', 'USD'];
 interface TransactionFiltersProps {
   filters: TxFilters;
   onChange: (next: TxFilters) => void;
+  period: PeriodValue;
+  onPeriodChange: (next: PeriodValue) => void;
   categories: Category[];
   wallets: Wallet[];
   labels: Label[];
 }
 
-export default function TransactionFilters({ filters, onChange, categories, wallets, labels }: TransactionFiltersProps) {
+export default function TransactionFilters({ filters, onChange, period, onPeriodChange, categories, wallets, labels }: TransactionFiltersProps) {
   const set = <K extends keyof TxFilters>(key: K, value: TxFilters[K]) => onChange({ ...filters, [key]: value });
 
   return (
     <div className={styles.bar}>
-      <SearchInput
-        variant="field"
-        placeholder="Search in notes or payee…"
-        aria-label="Search notes and payee"
-        value={filters.search}
-        onChange={e => set('search', e.target.value)}
-      />
+      <div className={styles.lead}>
+        <PeriodPicker value={period} onChange={onPeriodChange} variant="select" />
+        <SearchInput
+          variant="field"
+          className={styles.search}
+          placeholder="Search payee or notes"
+          aria-label="Search payee or notes"
+          value={filters.search}
+          onChange={e => set('search', e.target.value)}
+        />
+      </div>
+
+      <span className={styles.divider} aria-hidden />
 
       <div className={styles.selects}>
         <CategoryFilter

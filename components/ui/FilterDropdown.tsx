@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode, type Ref } from 'react';
 import { createPortal } from 'react-dom';
 import { FiChevronDown } from 'react-icons/fi';
 import Checkbox from './Checkbox';
@@ -98,24 +98,20 @@ export default function FilterDropdown({ placeholder, selectedLabels, minMenuWid
 
   return (
     <div className={styles.wrapper}>
-      <button
+      <FilterControl
         ref={controlRef}
-        type="button"
-        className={[styles.control, open ? styles.controlOpen : ''].filter(Boolean).join(' ')}
+        open={open}
+        placeholder={!valueText}
         onClick={() => (open ? close() : setOpen(true))}
         onKeyDown={e => {
           if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); setOpen(true); }
         }}
         aria-haspopup="true"
-        aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         aria-label={valueText ? `${placeholder}: ${selectedLabels.join(', ')}` : placeholder}
       >
-        <span className={valueText ? styles.controlValue : styles.controlPlaceholder}>
-          {valueText ?? placeholder}
-        </span>
-        <FiChevronDown className={styles.chevron} />
-      </button>
+        {valueText ?? placeholder}
+      </FilterControl>
 
       {open && pos && createPortal(
         <div
@@ -133,6 +129,31 @@ export default function FilterDropdown({ placeholder, selectedLabels, minMenuWid
         document.body
       )}
     </div>
+  );
+}
+
+interface FilterControlProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  open: boolean;
+  /** Shows the text in the placeholder colour. */
+  placeholder?: boolean;
+  icon?: ReactNode;
+  ref?: Ref<HTMLButtonElement>;
+}
+
+/** The closed select: same look as the form selects. Also used by PeriodPicker's 'select' variant. */
+export function FilterControl({ open, placeholder = false, icon, children, ref, ...props }: FilterControlProps) {
+  return (
+    <button
+      ref={ref}
+      type="button"
+      className={[styles.control, open ? styles.controlOpen : ''].filter(Boolean).join(' ')}
+      aria-expanded={open}
+      {...props}
+    >
+      {icon && <span className={styles.controlIcon}>{icon}</span>}
+      <span className={placeholder ? styles.controlPlaceholder : styles.controlValue}>{children}</span>
+      <FiChevronDown className={styles.chevron} />
+    </button>
   );
 }
 

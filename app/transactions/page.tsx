@@ -15,7 +15,7 @@ import TransactionFilters, {
 } from '@/components/transactions/TransactionFilters';
 import { useAddRecord } from '@/components/transactions/AddRecordProvider';
 import FormLabel from '@/components/ui/FormLabel';
-import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
+import type { PeriodValue } from '@/components/ui/PeriodPicker';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
 import { createClient } from '@/lib/supabase/client';
 import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
@@ -177,18 +177,6 @@ export default function TransactionsPage() {
   const summaryExpense = filteredTransactions
     .filter(t => t.type === 'expense' && !t.transfer_group_id)
     .reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
-  const summaryBalance = filteredTransactions.reduce((s, t) => {
-    const huf = txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
-    return t.type === 'income' ? s + huf : s - huf;
-  }, 0);
-  const summaryTotal = summaryIncome + summaryExpense;
-  const summaryIncomePct = summaryTotal > 0 ? (summaryIncome / summaryTotal) * 100 : 0;
-  const summaryExpensePct = summaryTotal > 0 ? (summaryExpense / summaryTotal) * 100 : 0;
-
-  // With a type filter on, show only the totals for the picked types.
-  const showIncome = filters.types.length === 0 || filters.types.includes('income');
-  const showExpense = filters.types.length === 0 || filters.types.includes('expense');
-  const showBalance = showIncome && showExpense;
 
   useEffect(() => {
     setDisplayCount(15);
@@ -501,56 +489,30 @@ export default function TransactionsPage() {
           <Button variant="primary" size="lg" onClick={openAddDialog} className={styles.headerAddBtn}>+ Add transaction</Button>
         </div>
 
-        <div className={styles.periodRow}>
-          <PeriodPicker value={filterPeriod} onChange={setFilterPeriod} />
-        </div>
-
         <TransactionFilters
           filters={filters}
           onChange={setFilters}
+          period={filterPeriod}
+          onPeriodChange={setFilterPeriod}
           categories={categories}
           wallets={wallets}
           labels={labels}
         />
 
         <div className={styles.contentArea}>
-          {!loading && !isPeriodLoading && filteredTransactions.length > 0 && (showIncome || showExpense) && (
+          {!loading && !isPeriodLoading && (
             <div className={styles.summaryCard}>
-              {showBalance && (
-                <div className={styles.summaryBalance}>
-                  <span className={styles.summaryBalanceLabel}>Balance</span>
-                  <span className={styles.summaryBalanceAmount}>
-                    {summaryBalance < 0 ? '−' : ''}{formatHUF(Math.abs(summaryBalance))}
-                  </span>
-                </div>
-              )}
-              <div className={styles.summaryBars}>
-                {showIncome && (
-                  <div className={styles.summaryBarRow}>
-                    <div className={styles.summaryBarMeta}>
-                      <span className={styles.summaryBarLabel}>Income</span>
-                      <span className={[styles.summaryBarAmount, styles.summaryIncomeAmount].join(' ')}>{formatHUF(summaryIncome)}</span>
-                    </div>
-                    {showBalance && (
-                      <div className={styles.summaryBarTrack}>
-                        <div className={[styles.summaryBarFill, styles.summaryBarFillIncome].join(' ')} style={{ width: `${summaryIncomePct}%` }} />
-                      </div>
-                    )}
-                  </div>
-                )}
-                {showExpense && (
-                  <div className={styles.summaryBarRow}>
-                    <div className={styles.summaryBarMeta}>
-                      <span className={styles.summaryBarLabel}>Expense</span>
-                      <span className={[styles.summaryBarAmount, styles.summaryExpenseAmount].join(' ')}>−{formatHUF(summaryExpense)}</span>
-                    </div>
-                    {showBalance && (
-                      <div className={styles.summaryBarTrack}>
-                        <div className={[styles.summaryBarFill, styles.summaryBarFillExpense].join(' ')} style={{ width: `${summaryExpensePct}%` }} />
-                      </div>
-                    )}
-                  </div>
-                )}
+              <div className={styles.summaryStat}>
+                <span className={styles.summaryLabel}>Transactions</span>
+                <span className={styles.summaryValue}>{filteredTransactions.length}</span>
+              </div>
+              <div className={styles.summaryStat}>
+                <span className={styles.summaryLabel}>Spent</span>
+                <span className={[styles.summaryValue, styles.summaryExpense].join(' ')}>−{formatHUF(summaryExpense)}</span>
+              </div>
+              <div className={styles.summaryStat}>
+                <span className={styles.summaryLabel}>Received</span>
+                <span className={[styles.summaryValue, styles.summaryIncome].join(' ')}>+{formatHUF(summaryIncome)}</span>
               </div>
             </div>
           )}
