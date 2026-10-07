@@ -229,7 +229,7 @@ export default function AccountPage() {
 
           <TwoFactorSection onMessage={showToast} />
 
-          <section className={styles.section}>
+          <section className={`${styles.section} ${styles.sessionSection}`}>
             <h2 className={styles.sectionTitle}>Session</h2>
             <div className={styles.formActions}>
               <Button variant="danger" size="sm" onClick={handleSignOut} loading={signingOut}>
