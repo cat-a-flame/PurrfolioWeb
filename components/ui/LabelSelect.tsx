@@ -27,6 +27,7 @@ function ColorDot({ color }: { color: string }) {
         background: color,
         flexShrink: 0,
         marginRight: 6,
+        verticalAlign: 'middle',
       }}
     />
   );
@@ -56,10 +57,10 @@ export default function LabelSelect({ labels, selectedIds, onChange }: LabelSele
       onChange={(opts: MultiValue<LabelOption>) => onChange(opts.map(o => o.value))}
       placeholder="Choose labels…"
       formatOptionLabel={(opt) => (
-        <span style={{ display: 'flex', alignItems: 'center' }}>
+        <>
           <ColorDot color={opt.color} />
           {opt.label}
-        </span>
+        </>
       )}
       components={{ MultiValueLabel }}
       styles={styles as any}

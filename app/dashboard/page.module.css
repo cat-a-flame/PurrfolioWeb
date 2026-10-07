@@ -1,5 +1,5 @@
 .container {
-  max-width: 1280px;
+  max-width: 1024px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -385,10 +385,6 @@
   background: var(--color-surface-2);
 }
 
-.plannedRow:hover .plannedTile {
-  transform: rotate(-6deg) scale(1.06);
-}
-
 .plannedTile {
   width: 44px;
   height: 44px;
@@ -396,7 +392,6 @@
   flex-shrink: 0;
   background: var(--color-accent-light);
   border: 1px solid var(--color-accent-border);
-  transition: transform 360ms var(--ease-spring);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -437,7 +432,7 @@
 .plannedFreq {
   color: var(--color-text-muted);
   font-size: 0.78125rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .plannedAmount {
@@ -462,34 +457,6 @@
   font-weight: 900;
   letter-spacing: -0.01em;
   margin-bottom: var(--space-2);
-}
-
-.catRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.catInfo {
-  flex: 1;
-  min-width: 0;
-}
-
-.catName {
-  font-weight: 800;
-  font-size: 0.9375rem;
-  color: var(--color-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.catAmount {
-  font-weight: 900;
-  font-size: 0.9375rem;
-  color: var(--color-expense);
-  white-space: nowrap;
-  flex-shrink: 0;
 }
 
 .recentCard {

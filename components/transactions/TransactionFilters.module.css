@@ -1,0 +1,103 @@
+/* Period and filter selects on top, search (with Clear all) below. */
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.filterRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.divider {
+  align-self: stretch;
+  width: 1px;
+  margin: var(--space-1) 0;
+  background: var(--color-border);
+}
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.search {
+  flex: 0 1 50%;
+}
+
+/* Same as CategoryPicker's drill-in chevron and back row. */
+.drillBtn {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-faint);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.drillBtn:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.backItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 8px 12px;
+  margin-top: -4px;
+  background: var(--color-surface-2);
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-nunito);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-text);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.backItem:hover,
+.backItem:focus-visible {
+  background: var(--color-surface-3);
+  outline: none;
+}
+
+@media (max-width: 768px) {
+  .search {
+    flex: 1;
+  }
+
+  .divider {
+    display: none;
+  }
+
+  /* Swipe through the selects instead of wrapping them. */
+  .filterRow {
+    flex-wrap: nowrap;
+    margin: 0 calc(var(--space-4) * -1);
+    padding: 0 var(--space-4) var(--space-1);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .filterRow::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filterRow > * {
+    flex-shrink: 0;
+  }
+}

@@ -10,7 +10,7 @@
 }
 
 .inner {
-  max-width: calc(1280px + 2 * 38px);
+  max-width: calc(1024px + 2 * 38px);
   margin: 0 auto;
   padding: 12px 38px;
   display: flex;

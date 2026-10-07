@@ -118,6 +118,21 @@
   background: var(--color-danger-light);
 }
 
+/* Tertiary: text only, like the inline links on the login pages. Comes after the sizes so it drops their padding and height. */
+.link {
+  height: auto;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  color: var(--color-accent);
+  font-weight: 800;
+}
+
+.link:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
 .loading {
   cursor: wait;
 }

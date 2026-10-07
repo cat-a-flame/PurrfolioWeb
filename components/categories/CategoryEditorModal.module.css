@@ -115,7 +115,7 @@
 }
 
 .subEmojiWrap {
-  width: 42px;
+  width: 38px;
   flex-shrink: 0;
 }
 
@@ -159,8 +159,8 @@
   color: var(--color-accent);
   font-weight: 700;
   font-size: 0.875rem;
-  border-radius: var(--radius-md);
-  height: 42px;
+  border-radius: var(--radius-sm);
+  height: 38px;
   font-family: var(--font-nunito);
   transition: background var(--transition-fast);
 }

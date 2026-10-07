@@ -1,13 +1,14 @@
+/* Control matches PeriodPicker's trigger (height, radius, weight); the menu matches CategoryPicker and rsStyles.ts. */
 .wrapper {
   position: relative;
-  width: 100%;
+  min-width: 0;
 }
 
 .control {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   width: 100%;
+  max-width: 240px;
   height: 38px;
   padding: 0 var(--space-3);
   background: var(--color-surface);
@@ -31,14 +32,21 @@
 }
 
 .controlValue {
+  flex: 1;
+  text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* A picked value shows in the accent colour; the filter's name shows in the normal text colour. */
+.controlValue {
+  color: var(--color-accent);
+}
+
 .controlPlaceholder {
   composes: controlValue;
-  color: var(--color-text-faint);
+  color: var(--color-text);
 }
 
 .chevron {
@@ -47,6 +55,7 @@
   margin-left: var(--space-2);
 }
 
+/* Portaled to body; positioned by inline style. */
 .menu {
   position: fixed;
   background: var(--color-surface);
@@ -59,35 +68,6 @@
   flex-direction: column;
 }
 
-.searchRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
-}
-
-.searchIcon {
-  color: var(--color-text-faint);
-  flex-shrink: 0;
-}
-
-.searchInput {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  outline: none;
-  background: transparent;
-  font-family: var(--font-nunito);
-  font-size: 0.9375rem;
-  color: var(--color-text);
-}
-
-.searchInput::placeholder {
-  color: var(--color-text-faint);
-}
-
 .list {
   flex: 1;
   overflow-y: auto;
@@ -95,12 +75,21 @@
   min-height: 0;
 }
 
-.item {
+.row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  gap: var(--space-2);
+}
+
+.rowChecked {
+  background: var(--color-accent-light);
+}
+
+.option {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   padding: 8px 12px;
   background: transparent;
   border: none;
@@ -113,47 +102,72 @@
   transition: background var(--transition-fast);
 }
 
-.item:hover,
-.item.itemActive {
+.option:hover,
+.option:focus-visible {
   background: var(--color-surface-2);
+  outline: none;
 }
 
-.itemLabel {
+.rowChecked .option {
+  color: var(--color-accent);
+}
+
+.rowChecked .option:hover,
+.rowChecked .option:focus-visible {
+  background: transparent;
+}
+
+.optionNested {
+  padding-left: calc(12px + 16px + var(--space-3));
+}
+
+/* A block, not flex, so a long label can end in an ellipsis. */
+.optionLabel {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.itemChevron {
+.optionMeta {
   flex-shrink: 0;
+  font-size: 0.8125rem;
   color: var(--color-text-faint);
 }
 
-.backItem {
+.groupHeading {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   width: 100%;
-  padding: 8px 12px;
-  background: var(--color-surface-2);
+  padding: 8px 12px 4px;
+  background: transparent;
   border: none;
-  border-bottom: 1px solid var(--color-border);
   font-family: var(--font-nunito);
-  font-size: 0.9375rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  color: var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-faint);
   text-align: left;
-  cursor: pointer;
-  flex-shrink: 0;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  cursor: pointer;
 }
 
-.backItem:hover,
-.backItem.itemActive {
-  background: var(--color-surface-3);
+.groupHeading:hover,
+.groupHeading:focus-visible {
+  color: var(--color-text);
+  outline: none;
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: middle;
 }
 
 .empty {

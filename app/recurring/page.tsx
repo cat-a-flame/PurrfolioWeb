@@ -774,7 +774,7 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
   labels: Label[];
 }) {
   const rsStyles = makeRsStyles<{ value: string; label: string }>();
-  const walletOptions = wallets.filter(w => !w.is_archived || w.id === form.walletId).map(w => ({ value: w.id, label: `${w.icon} ${w.name} (${w.currency})` }));
+  const walletOptions = wallets.filter(w => !w.is_archived || w.id === form.walletId).map(w => ({ value: w.id, label: `${w.icon} ${w.name}` }));
   const selectedWallet = walletOptions.find(o => o.value === form.walletId) ?? null;
   const freqOptions = FREQUENCIES.map(f => ({ value: f.value, label: f.label }));
   const selectedFreq = freqOptions.find(o => o.value === form.frequency) ?? null;
