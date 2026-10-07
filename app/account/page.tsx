@@ -175,7 +175,7 @@ export default function AccountPage() {
                 />
               </div>
               <div className={styles.formActions}>
-                <Button type="submit" variant="primary" size="sm" loading={usernameLoading}>
+                <Button type="submit" variant="secondary" size="sm" loading={usernameLoading}>
                   Save username
                 </Button>
               </div>
@@ -220,7 +220,7 @@ export default function AccountPage() {
                 />
               </div>
               <div className={styles.formActions}>
-                <Button type="submit" variant="primary" size="sm" loading={passwordLoading}>
+                <Button type="submit" variant="secondary" size="sm" loading={passwordLoading}>
                   Update password
                 </Button>
               </div>
