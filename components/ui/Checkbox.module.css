@@ -1,26 +1,22 @@
+/* Same box as the label picker's options. */
 .box {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 3px;
   flex-shrink: 0;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid var(--color-accent-border);
-  border-radius: 6px;
-  background: var(--color-surface);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
   color: #fff;
-  transition: background var(--transition-fast), border-color var(--transition-fast);
+  background: var(--color-surface);
 }
 
-.box[data-state='checked'],
-.box[data-state='mixed'] {
+.on {
   background: var(--color-accent);
   border-color: var(--color-accent);
-}
-
-.dash {
-  width: 10px;
-  height: 2.5px;
-  border-radius: 2px;
-  background: #fff;
+  color: #fff;
 }

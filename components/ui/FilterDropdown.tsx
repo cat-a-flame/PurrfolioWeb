@@ -2,50 +2,50 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { FiChevronDown } from 'react-icons/fi';
 import Checkbox from './Checkbox';
-import FilterChip from './FilterChip';
 import styles from './FilterDropdown.module.css';
 
 const MARGIN = 8;
 
 interface FilterDropdownProps {
-  label: string;
-  /** How many values are picked; shown on the chip. */
-  count?: number;
-  /** Panel width in px. */
-  width?: number;
-  /** Rendered above the scrolling list, e.g. a search field. */
+  /** Names the filter; shown in the control while nothing is picked. */
+  placeholder: string;
+  /** Labels of the picked values, in display order. */
+  selectedLabels: string[];
+  /** Minimum menu width in px; the menu is never narrower than the control. */
+  minMenuWidth?: number;
+  /** Rendered above the scrolling list, e.g. a search row. */
   header?: ReactNode;
-  footer?: (close: () => void) => ReactNode;
   children: ReactNode;
-  /** Called after the panel closes, e.g. to clear its search. */
+  /** Called when the menu closes, e.g. to clear its search. */
   onClose?: () => void;
 }
 
-/** A filter chip that opens a panel of options below it. */
-export default function FilterDropdown({ label, count = 0, width = 280, header, footer, children, onClose }: FilterDropdownProps) {
+/** A multi-select that looks like the form selects: a control that opens a menu of checkable options. */
+export default function FilterDropdown({ placeholder, selectedLabels, minMenuWidth = 240, header, children, onClose }: FilterDropdownProps) {
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ top: number; left: number; maxHeight: number } | null>(null);
-  const chipRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const panelId = useId();
+  const [pos, setPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
+  const controlRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuId = useId();
 
   function close(refocus = false) {
     setOpen(false);
     onClose?.();
-    if (refocus) chipRef.current?.focus();
+    if (refocus) controlRef.current?.focus();
   }
 
   // Portaled so the page's stacking and overflow can't clip it.
   useLayoutEffect(() => {
     if (!open) return;
     const update = () => {
-      const rect = chipRef.current?.getBoundingClientRect();
+      const rect = controlRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const w = Math.min(width, window.innerWidth - MARGIN * 2);
-      const left = Math.max(MARGIN, Math.min(rect.left, window.innerWidth - w - MARGIN));
-      const top = rect.bottom + MARGIN;
-      setPos({ top, left, maxHeight: Math.max(220, window.innerHeight - top - MARGIN * 2) });
+      const width = Math.min(Math.max(rect.width, minMenuWidth), window.innerWidth - MARGIN * 2);
+      const left = Math.max(MARGIN, Math.min(rect.left, window.innerWidth - width - MARGIN));
+      const top = rect.bottom + 4;
+      setPos({ top, left, width, maxHeight: Math.max(160, Math.min(360, window.innerHeight - top - 16)) });
     };
     update();
     window.addEventListener('scroll', update, true);
@@ -54,13 +54,13 @@ export default function FilterDropdown({ label, count = 0, width = 280, header, 
       window.removeEventListener('scroll', update, true);
       window.removeEventListener('resize', update);
     };
-  }, [open, width]);
+  }, [open, minMenuWidth]);
 
   useEffect(() => {
     if (!open) return;
     function onPointerDown(e: MouseEvent) {
       const target = e.target as Node;
-      if (chipRef.current?.contains(target) || panelRef.current?.contains(target)) return;
+      if (controlRef.current?.contains(target) || menuRef.current?.contains(target)) return;
       close();
     }
     document.addEventListener('mousedown', onPointerDown);
@@ -71,20 +71,18 @@ export default function FilterDropdown({ label, count = 0, width = 280, header, 
   // Focus the search field if there is one, otherwise the first option.
   useEffect(() => {
     if (!open || !pos) return;
-    const panel = panelRef.current;
-    const first = panel?.querySelector<HTMLElement>('input, [data-filter-option]');
-    first?.focus();
+    menuRef.current?.querySelector<HTMLElement>('input, [data-filter-option]')?.focus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, !!pos]);
 
-  function onPanelKeyDown(e: React.KeyboardEvent) {
+  function onMenuKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') {
       e.preventDefault();
       close(true);
       return;
     }
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-    const items = Array.from(panelRef.current?.querySelectorAll<HTMLElement>('[data-filter-option]') ?? []);
+    const items = Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[data-filter-option]') ?? []);
     if (items.length === 0) return;
     e.preventDefault();
     const current = items.indexOf(document.activeElement as HTMLElement);
@@ -94,37 +92,47 @@ export default function FilterDropdown({ label, count = 0, width = 280, header, 
     items[next].focus();
   }
 
+  const valueText = selectedLabels.length === 0
+    ? null
+    : selectedLabels.length === 1 ? selectedLabels[0] : `${selectedLabels[0]} +${selectedLabels.length - 1}`;
+
   return (
-    <>
-      <FilterChip
-        ref={chipRef}
-        label={label}
-        count={count}
-        open={open}
-        aria-haspopup="true"
-        aria-controls={open ? panelId : undefined}
+    <div className={styles.wrapper}>
+      <button
+        ref={controlRef}
+        type="button"
+        className={[styles.control, open ? styles.controlOpen : ''].filter(Boolean).join(' ')}
         onClick={() => (open ? close() : setOpen(true))}
         onKeyDown={e => {
-          if (!open && e.key === 'ArrowDown') { e.preventDefault(); setOpen(true); }
+          if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); setOpen(true); }
         }}
-      />
+        aria-haspopup="true"
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
+        aria-label={valueText ? `${placeholder}: ${selectedLabels.join(', ')}` : placeholder}
+      >
+        <span className={valueText ? styles.controlValue : styles.controlPlaceholder}>
+          {valueText ?? placeholder}
+        </span>
+        <FiChevronDown className={styles.chevron} />
+      </button>
+
       {open && pos && createPortal(
         <div
-          id={panelId}
-          ref={panelRef}
-          className={styles.panel}
-          style={{ top: pos.top, left: pos.left, width: Math.min(width, window.innerWidth - MARGIN * 2), maxHeight: pos.maxHeight }}
+          id={menuId}
+          ref={menuRef}
+          className={styles.menu}
+          style={{ top: pos.top, left: pos.left, width: pos.width, maxHeight: pos.maxHeight }}
           role="group"
-          aria-label={`${label} filter`}
-          onKeyDown={onPanelKeyDown}
+          aria-label={`${placeholder} filter`}
+          onKeyDown={onMenuKeyDown}
         >
-          {header && <div className={styles.header}>{header}</div>}
+          {header}
           <div className={styles.list}>{children}</div>
-          {footer && <div className={styles.footer}>{footer(() => close(true))}</div>}
         </div>,
         document.body
       )}
-    </>
+    </div>
   );
 }
 
@@ -133,26 +141,23 @@ interface FilterOptionProps {
   indeterminate?: boolean;
   onToggle: () => void;
   children: ReactNode;
-  /** Shown on the right, e.g. a currency or a count. */
+  /** Shown on the right, e.g. a currency. */
   meta?: ReactNode;
-  /** Shown left of the checkbox, e.g. an expand toggle. */
-  leading?: ReactNode;
-  /** Nesting depth; each level indents the row. */
-  depth?: number;
-  /** Styles the row as a group heading (small caps). */
-  heading?: boolean;
+  /** Shown at the right edge, outside the toggle, e.g. a drill-in button. */
+  trailing?: ReactNode;
+  /** Indents the row under a group heading. */
+  nested?: boolean;
 }
 
 /** One checkable row inside a FilterDropdown. */
-export function FilterOption({ checked, indeterminate = false, onToggle, children, meta, leading, depth = 0, heading = false }: FilterOptionProps) {
+export function FilterOption({ checked, indeterminate = false, onToggle, children, meta, trailing, nested = false }: FilterOptionProps) {
   return (
-    <div className={styles.row} style={depth ? { paddingLeft: `calc(var(--space-2) + ${depth * 28}px)` } : undefined}>
-      {leading}
+    <div className={[styles.row, checked ? styles.rowChecked : ''].filter(Boolean).join(' ')}>
       <button
         type="button"
         role="checkbox"
         aria-checked={checked ? true : indeterminate ? 'mixed' : false}
-        className={[styles.option, heading ? styles.optionHeading : ''].filter(Boolean).join(' ')}
+        className={[styles.option, nested ? styles.optionNested : ''].filter(Boolean).join(' ')}
         onClick={onToggle}
         data-filter-option
       >
@@ -160,12 +165,35 @@ export function FilterOption({ checked, indeterminate = false, onToggle, childre
         <span className={styles.optionLabel}>{children}</span>
         {meta != null && <span className={styles.optionMeta}>{meta}</span>}
       </button>
+      {trailing}
     </div>
   );
 }
 
+/** A group heading that checks every option under it, styled like the form selects' group headings. */
+export function FilterGroupHeading({ checked, indeterminate, onToggle, children }: {
+  checked: boolean;
+  indeterminate: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked ? true : indeterminate ? 'mixed' : false}
+      className={styles.groupHeading}
+      onClick={onToggle}
+      data-filter-option
+    >
+      <Checkbox checked={checked} indeterminate={indeterminate} />
+      {children}
+    </button>
+  );
+}
+
 export function FilterEmpty({ children }: { children: ReactNode }) {
-  return <p className={styles.empty}>{children}</p>;
+  return <div className={styles.empty}>{children}</div>;
 }
 
 export function FilterDot({ color }: { color: string }) {

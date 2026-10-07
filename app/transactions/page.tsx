@@ -15,7 +15,7 @@ import TransactionFilters, {
 } from '@/components/transactions/TransactionFilters';
 import { useAddRecord } from '@/components/transactions/AddRecordProvider';
 import FormLabel from '@/components/ui/FormLabel';
-import type { PeriodValue } from '@/components/ui/PeriodPicker';
+import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
 import { createClient } from '@/lib/supabase/client';
 import { fetchTransactions } from '@/lib/supabase/fetchTransactions';
@@ -25,10 +25,8 @@ import type { Transaction, Category, Label, Wallet } from '@/lib/types';
 import styles from './page.module.css';
 
 function formatDayHeader(dateStr: string): string {
-  const d = new Date(dateStr + 'T12:00:00');
-  return d.toLocaleDateString('en-GB', {
-    weekday: 'short', day: 'numeric', month: 'short',
-    year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric',
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
+    month: 'long', day: 'numeric', year: 'numeric',
   });
 }
 
@@ -170,15 +168,27 @@ export default function TransactionsPage() {
   })();
 
   const filteredTransactions = transactions.filter(t => matchesFilters(t, filters));
+
   const hasActiveFilters = filtersActive(filters);
 
-  const toHUF = (t: Transaction) => txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
-  const summarySpent = filteredTransactions
-    .filter(t => t.type === 'expense' && !t.transfer_group_id)
-    .reduce((s, t) => s + toHUF(t), 0);
-  const summaryReceived = filteredTransactions
+  const summaryIncome = filteredTransactions
     .filter(t => t.type === 'income' && !t.transfer_group_id)
-    .reduce((s, t) => s + toHUF(t), 0);
+    .reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
+  const summaryExpense = filteredTransactions
+    .filter(t => t.type === 'expense' && !t.transfer_group_id)
+    .reduce((s, t) => s + txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {}), 0);
+  const summaryBalance = filteredTransactions.reduce((s, t) => {
+    const huf = txToHUF(t.amount, t.wallet?.currency, t.exchange_rate_to_huf, ratesByDate[t.date] ?? {});
+    return t.type === 'income' ? s + huf : s - huf;
+  }, 0);
+  const summaryTotal = summaryIncome + summaryExpense;
+  const summaryIncomePct = summaryTotal > 0 ? (summaryIncome / summaryTotal) * 100 : 0;
+  const summaryExpensePct = summaryTotal > 0 ? (summaryExpense / summaryTotal) * 100 : 0;
+
+  // With a type filter on, show only the totals for the picked types.
+  const showIncome = filters.types.length === 0 || filters.types.includes('income');
+  const showExpense = filters.types.length === 0 || filters.types.includes('expense');
+  const showBalance = showIncome && showExpense;
 
   useEffect(() => {
     setDisplayCount(15);
@@ -491,64 +501,93 @@ export default function TransactionsPage() {
           <Button variant="primary" size="lg" onClick={openAddDialog} className={styles.headerAddBtn}>+ Add transaction</Button>
         </div>
 
+        <div className={styles.periodRow}>
+          <PeriodPicker value={filterPeriod} onChange={setFilterPeriod} />
+        </div>
+
         <TransactionFilters
           filters={filters}
           onChange={setFilters}
-          period={filterPeriod}
-          onPeriodChange={setFilterPeriod}
           categories={categories}
           wallets={wallets}
           labels={labels}
         />
 
-        {selectedIds.size > 0 && (
-          <div className={styles.selectionBar}>
-            <label className={styles.selectionLabel}>
-              <input
-                ref={selectAllRef}
-                type="checkbox"
-                className={styles.selectionCheckbox}
-                checked={allSelected}
-                onChange={toggleSelectAll}
-                aria-label="Select all loaded transactions"
-              />
-              <span>{selectedIds.size} selected</span>
-            </label>
-            <div className={styles.bulkActions}>
-              {selectedIds.size === 1 ? (() => {
-                const tx = visibleTransactions.find(t => selectedIds.has(t.id));
-                return tx ? (
-                  <Button size="sm" variant="secondary" onClick={() => { openEdit(tx); setSelectedIds(new Set()); }}>Edit</Button>
-                ) : null;
-              })() : (
-                <>
-                  <Button size="sm" variant="secondary" onClick={openBulkEdit}>Edit</Button>
-                  <Button size="sm" variant="danger" onClick={() => setBulkAction('delete')}>Delete</Button>
-                </>
+        <div className={styles.contentArea}>
+          {!loading && !isPeriodLoading && filteredTransactions.length > 0 && (showIncome || showExpense) && (
+            <div className={styles.summaryCard}>
+              {showBalance && (
+                <div className={styles.summaryBalance}>
+                  <span className={styles.summaryBalanceLabel}>Balance</span>
+                  <span className={styles.summaryBalanceAmount}>
+                    {summaryBalance < 0 ? '−' : ''}{formatHUF(Math.abs(summaryBalance))}
+                  </span>
+                </div>
               )}
-              <Button size="sm" variant="secondary" onClick={() => setSelectedIds(allSelected ? new Set() : new Set(allVisibleIds))}>
-                {allSelected ? 'Deselect all' : 'Select all'}
-              </Button>
+              <div className={styles.summaryBars}>
+                {showIncome && (
+                  <div className={styles.summaryBarRow}>
+                    <div className={styles.summaryBarMeta}>
+                      <span className={styles.summaryBarLabel}>Income</span>
+                      <span className={[styles.summaryBarAmount, styles.summaryIncomeAmount].join(' ')}>{formatHUF(summaryIncome)}</span>
+                    </div>
+                    {showBalance && (
+                      <div className={styles.summaryBarTrack}>
+                        <div className={[styles.summaryBarFill, styles.summaryBarFillIncome].join(' ')} style={{ width: `${summaryIncomePct}%` }} />
+                      </div>
+                    )}
+                  </div>
+                )}
+                {showExpense && (
+                  <div className={styles.summaryBarRow}>
+                    <div className={styles.summaryBarMeta}>
+                      <span className={styles.summaryBarLabel}>Expense</span>
+                      <span className={[styles.summaryBarAmount, styles.summaryExpenseAmount].join(' ')}>−{formatHUF(summaryExpense)}</span>
+                    </div>
+                    {showBalance && (
+                      <div className={styles.summaryBarTrack}>
+                        <div className={[styles.summaryBarFill, styles.summaryBarFillExpense].join(' ')} style={{ width: `${summaryExpensePct}%` }} />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-            <button className={styles.selectionClear} onClick={() => setSelectedIds(new Set())} aria-label="Clear selection">✕</button>
-          </div>
-        )}
+          )}
 
-        <section className={styles.listCard}>
-          <div className={styles.summary} aria-busy={loading || isPeriodLoading}>
-            <div className={styles.summaryStat}>
-              <span className={styles.summaryLabel}>Transactions</span>
-              <span className={styles.summaryValue}>{loading || isPeriodLoading ? '–' : filteredTransactions.length}</span>
+          {selectedIds.size > 0 && (
+            <div className={styles.selectionBar}>
+              <label className={styles.selectionLabel}>
+                <input
+                  ref={selectAllRef}
+                  type="checkbox"
+                  className={styles.selectionCheckbox}
+                  checked={allSelected}
+                  onChange={toggleSelectAll}
+                  aria-label="Select all loaded transactions"
+                />
+                <span>{selectedIds.size} selected</span>
+              </label>
+              <div className={styles.bulkActions}>
+                {selectedIds.size === 1 ? (() => {
+                  const tx = visibleTransactions.find(t => selectedIds.has(t.id));
+                  return tx ? (
+                    <Button size="sm" variant="secondary" onClick={() => { openEdit(tx); setSelectedIds(new Set()); }}>Edit</Button>
+                  ) : null;
+                })() : (
+                  <>
+                    <Button size="sm" variant="secondary" onClick={openBulkEdit}>Edit</Button>
+                    <Button size="sm" variant="danger" onClick={() => setBulkAction('delete')}>Delete</Button>
+                  </>
+                )}
+                <Button size="sm" variant="secondary" onClick={() => setSelectedIds(allSelected ? new Set() : new Set(allVisibleIds))}>
+                  {allSelected ? 'Deselect all' : 'Select all'}
+                </Button>
+              </div>
+              <button className={styles.selectionClear} onClick={() => setSelectedIds(new Set())} aria-label="Clear selection">✕</button>
             </div>
-            <div className={styles.summaryStat}>
-              <span className={styles.summaryLabel}>Spent</span>
-              <span className={styles.summaryValue}>{loading || isPeriodLoading ? '–' : `−${formatHUF(summarySpent)}`}</span>
-            </div>
-            <div className={styles.summaryStat}>
-              <span className={styles.summaryLabel}>Received</span>
-              <span className={styles.summaryValue}>{loading || isPeriodLoading ? '–' : `+${formatHUF(summaryReceived)}`}</span>
-            </div>
-          </div>
+          )}
+
           {loading || isPeriodLoading ? (
             <div className={styles.skeletonList}>
               {Array.from({ length: 5 }).map((_, i) => (
@@ -669,7 +708,7 @@ export default function TransactionsPage() {
             </div>
           )}
           {hasMore && <div ref={sentinelRef} className={styles.sentinel} />}
-        </section>
+        </div>
       </div>
 
       {editingTransaction && (

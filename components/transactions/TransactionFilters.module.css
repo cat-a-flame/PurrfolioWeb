@@ -1,98 +1,78 @@
+/* Same panel as the old filter sidebar, laid out as a bar. */
 .bar {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  box-shadow: var(--shadow-sm);
 }
 
-.topRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.search {
-  flex: 1;
-}
-
-.chipRow {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+.selects {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
   gap: var(--space-3);
 }
 
 .clearAll {
-  margin-left: auto;
-  height: 44px;
+  border-radius: var(--radius-md);
 }
 
-.footerHint {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--color-text-faint);
-}
-
-.expandBtn {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-  display: inline-flex;
+/* Same as CategoryPicker's drill-in chevron and back row. */
+.drillBtn {
+  align-self: stretch;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 0;
+  padding: 0 12px;
   background: transparent;
   border: none;
-  border-radius: 6px;
   color: var(--color-text-faint);
-  transition: background var(--transition-fast), transform var(--transition-fast), color var(--transition-fast);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-.expandBtn:hover:not(:disabled) {
+.drillBtn:hover {
   background: var(--color-surface-2);
   color: var(--color-text);
 }
 
-.expandBtn:disabled {
-  cursor: default;
+.backItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 8px 12px;
+  margin-top: -4px;
+  background: var(--color-surface-2);
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-nunito);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
 }
 
-.expandBtn svg {
-  transform: rotate(-90deg);
-  transition: transform var(--transition-fast);
+.backItem:hover,
+.backItem:focus-visible {
+  background: var(--color-surface-3);
+  outline: none;
 }
 
-.expandBtnOpen svg {
-  transform: none;
-}
-
-.expandSpacer {
-  width: 24px;
-  flex-shrink: 0;
-}
-
-.group + .group {
-  margin-top: var(--space-2);
-}
-
-.ellipsis {
-  overflow: hidden;
-  text-overflow: ellipsis;
+@media (max-width: 900px) {
+  .selects {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 768px) {
-  .chipRow {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    margin: 0 calc(var(--space-4) * -1);
-    padding: 0 var(--space-4) var(--space-1);
-    scrollbar-width: none;
+  .bar {
+    padding: var(--space-4);
   }
 
-  .chipRow::-webkit-scrollbar {
-    display: none;
-  }
-
-  .chipRow > * {
-    flex-shrink: 0;
+  .selects {
+    grid-template-columns: 1fr 1fr;
   }
 }

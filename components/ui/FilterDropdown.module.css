@@ -1,45 +1,79 @@
-/* Portaled to body; positioned by inline style. */
-.panel {
-  position: fixed;
-  z-index: 300;
+/* Control and menu match CategoryPicker and the react-select styles in rsStyles.ts. */
+.wrapper {
+  position: relative;
+  min-width: 0;
+}
+
+.control {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 42px;
+  padding: 0 var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-nunito);
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.control:hover {
+  border-color: var(--color-border-focus);
+}
+
+.controlOpen {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-accent-light);
+}
+
+.controlValue {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.controlPlaceholder {
+  composes: controlValue;
+  color: var(--color-text-faint);
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  margin-left: var(--space-2);
+}
+
+/* Portaled to body; positioned by inline style. */
+.menu {
+  position: fixed;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg), var(--shadow-md);
+  box-shadow: var(--shadow-md);
+  z-index: 400;
   overflow: hidden;
-  animation: popIn 160ms var(--ease-out);
-}
-
-.header {
-  flex-shrink: 0;
-  padding: var(--space-3) var(--space-3) var(--space-1);
+  display: flex;
+  flex-direction: column;
 }
 
 .list {
   flex: 1;
-  min-height: 0;
   overflow-y: auto;
-  padding: var(--space-2);
-}
-
-.footer {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin: 0 var(--space-3);
-  padding: var(--space-3) 0;
-  border-top: 1px solid var(--color-border);
+  padding: 4px 0;
+  min-height: 0;
 }
 
 .row {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  padding-left: var(--space-2);
+}
+
+.rowChecked {
+  background: var(--color-accent-light);
 }
 
 .option {
@@ -48,14 +82,11 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: 44px;
-  padding: var(--space-2);
+  padding: 8px 12px;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
-  font-family: var(--font-body);
+  font-family: var(--font-nunito);
   font-size: 0.9375rem;
-  font-weight: 800;
   color: var(--color-text);
   text-align: left;
   cursor: pointer;
@@ -68,13 +99,18 @@
   outline: none;
 }
 
-.optionHeading {
-  min-height: 36px;
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
+.rowChecked .option {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.rowChecked .option:hover,
+.rowChecked .option:focus-visible {
+  background: transparent;
+}
+
+.optionNested {
+  padding-left: calc(12px + 16px + var(--space-3));
 }
 
 .optionLabel {
@@ -82,7 +118,7 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -91,14 +127,37 @@
 .optionMeta {
   flex-shrink: 0;
   font-size: 0.8125rem;
-  font-weight: 700;
   color: var(--color-text-faint);
 }
 
+.groupHeading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 8px 12px 4px;
+  background: transparent;
+  border: none;
+  font-family: var(--font-nunito);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-faint);
+  text-align: left;
+  cursor: pointer;
+}
+
+.groupHeading:hover,
+.groupHeading:focus-visible {
+  color: var(--color-text);
+  outline: none;
+}
+
 .dot {
-  width: 9px;
-  height: 9px;
-  border-radius: var(--radius-full);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 

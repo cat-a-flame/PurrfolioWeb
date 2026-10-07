@@ -34,6 +34,14 @@
   color: transparent;
 }
 
+.contentArea {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
 .selectionBar {
   position: sticky;
   top: calc(var(--top-bar-h) + var(--space-4));
@@ -219,7 +227,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: var(--space-5);
 }
 
 .skeletonRow {
@@ -236,49 +243,10 @@
 }
 
 
-.listCard {
-  background: var(--color-glass-strong);
-  border: 1px solid var(--color-glass-border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
-
-.summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-8) var(--space-12);
-  padding: var(--space-6) var(--space-8) var(--space-5);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.summaryStat {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.summaryLabel {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-
-.summaryValue {
-  font-family: var(--font-body);
-  font-size: 1.625rem;
-  font-weight: 900;
-  line-height: 1.15;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text);
-}
-
 .groupedList {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-3) var(--space-5) var(--space-5);
+  gap: var(--space-5);
 }
 
 .dayGroup {
@@ -295,11 +263,9 @@
 }
 
 .dayDate {
-  font-size: 0.8125rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-text-faint);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
 }
 
 .dayNet {
@@ -312,19 +278,23 @@
 .dayNetNeg { color: var(--color-expense); }
 
 .dayTxList {
-  display: flex;
-  flex-direction: column;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
 }
 
 .txRow {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
   transition: background var(--transition-fast);
   position: relative;
   cursor: pointer;
+}
+
+.txRow + .txRow {
+  border-top: 1px solid var(--color-border-light);
 }
 
 .txRow:hover {
@@ -450,27 +420,106 @@
 }
 
 @media (max-width: 768px) {
+  .main {
+    padding: var(--space-4);
+  }
+
   .pageTitle {
     font-size: 1.375rem;
   }
 
-  .summary {
-    display: grid;
-    grid-template-columns: auto 1fr 1fr;
+  .contentArea {
     gap: var(--space-4);
-    padding: var(--space-4);
-  }
-
-  .summaryLabel {
-    font-size: 0.8125rem;
-  }
-
-  .summaryValue {
-    font-size: 1.0625rem;
-    white-space: nowrap;
-  }
-
-  .groupedList {
-    padding: var(--space-2) var(--space-2) var(--space-3);
   }
 }
+
+.periodRow {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-2);
+}
+
+.summaryCard {
+  border-radius: var(--radius-lg);
+  padding: var(--space-6) var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  position: relative;
+  overflow: hidden;
+  background: var(--gradient-cashflow);
+  color: #fff;
+  box-shadow: 0 26px 40px -28px rgba(90, 45, 140, 0.72);
+  max-width: 420px;
+}
+
+.summaryBalance {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.summaryBalanceLabel {
+  font-size: 0.84375rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.summaryBalanceAmount {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-nunito);
+  font-size: 2.25rem;
+  font-weight: 900;
+  line-height: 1.1;
+  color: #fff;
+}
+
+.summaryBars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.summaryBarRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.summaryBarMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.875rem;
+}
+
+.summaryBarLabel {
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.summaryBarAmount {
+  font-weight: 800;
+  font-family: var(--font-nunito);
+  color: #fff;
+}
+
+.summaryIncomeAmount { color: rgba(255, 255, 255, 0.9); }
+.summaryExpenseAmount { color: rgba(255, 255, 255, 0.9); }
+
+.summaryBarTrack {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.summaryBarFill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.4s ease;
+}
+
+.summaryBarFillIncome { background: #2fb894; }
+.summaryBarFillExpense { background: #f0603e; }

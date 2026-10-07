@@ -1,10 +1,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import Button from '@/components/ui/Button';
-import { Caret } from '@/components/ui/FilterChip';
-import FilterDropdown, { FilterDot, FilterEmpty, FilterOption } from '@/components/ui/FilterDropdown';
-import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
+import FilterDropdown, { FilterDot, FilterEmpty, FilterGroupHeading, FilterOption } from '@/components/ui/FilterDropdown';
 import SearchInput from '@/components/ui/SearchInput';
 import type { AccountType, Category, Currency, Label, Transaction, Wallet } from '@/lib/types';
 import styles from './TransactionFilters.module.css';
@@ -86,6 +85,7 @@ function groupState<T>(list: T[], values: T[]) {
   return { checked: values.length > 0 && n === values.length, indeterminate: n > 0 && n < values.length };
 }
 
+
 const TYPE_OPTIONS: { value: TxKind; label: string }[] = [
   { value: 'expense', label: 'Expense' },
   { value: 'income', label: 'Income' },
@@ -104,48 +104,29 @@ const ACCOUNT_GROUPS: { label: string; types: AccountType[] }[] = [
 ];
 
 const CURRENCY_ORDER: Currency[] = ['HUF', 'EUR', 'USD'];
-const CURRENCY_NAMES: Record<Currency, string> = {
-  HUF: 'Hungarian forint',
-  EUR: 'Euro',
-  USD: 'US dollar',
-};
 
 interface TransactionFiltersProps {
   filters: TxFilters;
   onChange: (next: TxFilters) => void;
-  period: PeriodValue;
-  onPeriodChange: (next: PeriodValue) => void;
   categories: Category[];
   wallets: Wallet[];
   labels: Label[];
 }
 
-export default function TransactionFilters({
-  filters,
-  onChange,
-  period,
-  onPeriodChange,
-  categories,
-  wallets,
-  labels,
-}: TransactionFiltersProps) {
+export default function TransactionFilters({ filters, onChange, categories, wallets, labels }: TransactionFiltersProps) {
   const set = <K extends keyof TxFilters>(key: K, value: TxFilters[K]) => onChange({ ...filters, [key]: value });
 
   return (
     <div className={styles.bar}>
-      <div className={styles.topRow}>
-        <PeriodPicker value={period} onChange={onPeriodChange} variant="chip" />
-        <SearchInput
-          variant="outlined"
-          className={styles.search}
-          placeholder="Search payee or notes"
-          aria-label="Search payee or notes"
-          value={filters.search}
-          onChange={e => set('search', e.target.value)}
-        />
-      </div>
+      <SearchInput
+        variant="field"
+        placeholder="Search in notes or payee…"
+        aria-label="Search notes and payee"
+        value={filters.search}
+        onChange={e => set('search', e.target.value)}
+      />
 
-      <div className={styles.chipRow}>
+      <div className={styles.selects}>
         <CategoryFilter
           categories={categories}
           selected={filters.categoryIds}
@@ -156,7 +137,11 @@ export default function TransactionFilters({
           selected={filters.walletIds}
           onChange={ids => set('walletIds', ids)}
         />
-        <FilterDropdown label="Type" count={filters.types.length} width={220}>
+        <FilterDropdown
+          placeholder="Type"
+          selectedLabels={TYPE_OPTIONS.filter(o => filters.types.includes(o.value)).map(o => o.label)}
+          minMenuWidth={180}
+        >
           {TYPE_OPTIONS.map(o => (
             <FilterOption
               key={o.value}
@@ -178,8 +163,7 @@ export default function TransactionFilters({
           onChange={cs => set('currencies', cs)}
         />
         <Button
-          variant="ghost"
-          size="sm"
+          variant="secondary"
           className={styles.clearAll}
           onClick={() => onChange(EMPTY_FILTERS)}
           disabled={!hasActiveFilters(filters)}
@@ -196,13 +180,14 @@ interface CategoryNode {
   children: Category[];
 }
 
+/** Drills into a parent the way the transaction form's CategoryPicker does, but with checkboxes. */
 function CategoryFilter({ categories, selected, onChange }: {
   categories: Category[];
   selected: string[];
   onChange: (ids: string[]) => void;
 }) {
   const [search, setSearch] = useState('');
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [drillId, setDrillId] = useState<string | null>(null);
 
   const nodes: CategoryNode[] = useMemo(() => {
     const parents = categories.filter(c => !c.parent_id);
@@ -214,103 +199,81 @@ function CategoryFilter({ categories, selected, onChange }: {
     return result;
   }, [categories]);
 
+  const drillNode = drillId ? nodes.find(n => n.category.id === drillId) ?? null : null;
   const q = search.trim().toLowerCase();
-  // While searching: a matching parent keeps all its children; otherwise only matching children show.
-  const visible: CategoryNode[] = q
-    ? nodes.flatMap(n => {
-        if (n.category.name.toLowerCase().includes(q)) return [n];
-        const kids = n.children.filter(c => c.name.toLowerCase().includes(q));
-        return kids.length > 0 ? [{ category: n.category, children: kids }] : [];
-      })
-    : nodes;
-  const showUncategorized = !q || 'uncategorized'.includes(q);
+  const searchResults = q ? categories.filter(c => c.name.toLowerCase().includes(q)) : null;
+  const showUncategorized = !drillNode && (!q || 'uncategorized'.includes(q));
 
-  // A fully checked parent also holds its own id; count it as one pick, not one more.
+  // A fully checked parent also holds its own id; it shouldn't show up as one more pick.
   const parentIds = new Set(nodes.filter(n => n.children.length > 0).map(n => n.category.id));
-  const count = selected.filter(id => !parentIds.has(id)).length;
+  const selectedLabels = [
+    ...categories.filter(c => selected.includes(c.id) && !parentIds.has(c.id)).map(c => `${c.icon} ${c.name}`),
+    ...(selected.includes(UNCATEGORIZED) ? ['Uncategorized'] : []),
+  ];
 
-  function toggleExpanded(id: string) {
-    setExpanded(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
+  // A parent's checkbox covers the parent and all its children.
+  function idsFor(c: Category): string[] {
+    const node = nodes.find(n => n.category.id === c.id);
+    return node && node.children.length > 0 ? [c.id, ...node.children.map(k => k.id)] : [c.id];
   }
+
+  function renderOption(c: Category, canDrill = true, label = `${c.icon} ${c.name}`) {
+    const ids = idsFor(c);
+    const hasKids = ids.length > 1;
+    return (
+      <FilterOption
+        key={c.id}
+        {...groupState(selected, ids)}
+        onToggle={() => onChange(hasKids ? toggleAll(selected, ids) : toggle(selected, c.id))}
+        trailing={hasKids && canDrill && !q ? (
+          <button
+            type="button"
+            className={styles.drillBtn}
+            onClick={() => setDrillId(c.id)}
+            aria-label={`Show ${c.name} subcategories`}
+          >
+            <FiChevronRight />
+          </button>
+        ) : undefined}
+      >
+        {label}
+      </FilterOption>
+    );
+  }
+
+  const rows = searchResults ?? (drillNode ? drillNode.children : nodes.map(n => n.category));
 
   return (
     <FilterDropdown
-      label="Category"
-      count={count}
-      width={340}
-      onClose={() => setSearch('')}
+      placeholder="Category"
+      selectedLabels={selectedLabels}
+      minMenuWidth={260}
+      onClose={() => { setSearch(''); setDrillId(null); }}
       header={
         <SearchInput
-          placeholder="Find a category"
-          aria-label="Find a category"
+          placeholder="Search categories…"
+          aria-label="Search categories"
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={e => { setSearch(e.target.value); setDrillId(null); }}
         />
       }
-      footer={close => (
+    >
+      {drillNode && !q && (
         <>
-          <span className={styles.footerHint}>
-            {count > 0 ? `${count} selected` : 'Pick a category or subcategory'}
-          </span>
-          <Button variant="primary" size="sm" onClick={close}>Done</Button>
+          <button type="button" className={styles.backItem} onClick={() => setDrillId(null)} data-filter-option>
+            <FiChevronLeft /> {drillNode.category.icon} {drillNode.category.name}
+          </button>
+          {renderOption(drillNode.category, false, `All of ${drillNode.category.name}`)}
         </>
       )}
-    >
-      {visible.length === 0 && !showUncategorized && <FilterEmpty>No categories found</FilterEmpty>}
-      {visible.map(({ category: parent, children }) => {
-        const ids = [parent.id, ...children.map(c => c.id)];
-        const state = groupState(selected, ids);
-        const hasKids = children.length > 0;
-        const isOpen = hasKids && (!!q || expanded.has(parent.id));
-        return (
-          <div key={parent.id}>
-            <FilterOption
-              {...state}
-              onToggle={() => onChange(toggleAll(selected, ids))}
-              meta={hasKids ? children.length : undefined}
-              leading={hasKids ? (
-                <button
-                  type="button"
-                  className={[styles.expandBtn, isOpen ? styles.expandBtnOpen : ''].filter(Boolean).join(' ')}
-                  onClick={() => toggleExpanded(parent.id)}
-                  aria-label={isOpen ? `Collapse ${parent.name}` : `Expand ${parent.name}`}
-                  aria-expanded={isOpen}
-                  disabled={!!q}
-                >
-                  <Caret />
-                </button>
-              ) : <span className={styles.expandSpacer} />}
-            >
-              <span>{parent.icon}</span>
-              <span className={styles.ellipsis}>{parent.name}</span>
-            </FilterOption>
-            {isOpen && children.map(child => (
-              <FilterOption
-                key={child.id}
-                depth={1}
-                checked={selected.includes(child.id)}
-                onToggle={() => onChange(toggle(selected, child.id))}
-                leading={<span className={styles.expandSpacer} />}
-              >
-                <span>{child.icon}</span>
-                <span className={styles.ellipsis}>{child.name}</span>
-              </FilterOption>
-            ))}
-          </div>
-        );
-      })}
+      {rows.length === 0 && !showUncategorized && <FilterEmpty>No categories found</FilterEmpty>}
+      {rows.map(c => renderOption(c))}
       {showUncategorized && (
         <FilterOption
           checked={selected.includes(UNCATEGORIZED)}
           onToggle={() => onChange(toggle(selected, UNCATEGORIZED))}
-          leading={<span className={styles.expandSpacer} />}
         >
-          <span>❔</span>
-          <span className={styles.ellipsis}>Uncategorized</span>
+          — Uncategorized
         </FilterOption>
       )}
     </FilterDropdown>
@@ -328,25 +291,28 @@ function AccountFilter({ wallets, selected, onChange }: {
     .filter(g => g.wallets.length > 0);
 
   return (
-    <FilterDropdown label="Account" count={selected.length} width={300}>
+    <FilterDropdown
+      placeholder="Account"
+      selectedLabels={wallets.filter(w => selected.includes(w.id)).map(w => `${w.icon} ${w.name}`)}
+      minMenuWidth={260}
+    >
       {groups.length === 0 && <FilterEmpty>No accounts yet</FilterEmpty>}
       {groups.map(g => {
         const ids = g.wallets.map(w => w.id);
         return (
-          <div key={g.label} className={styles.group}>
-            <FilterOption heading {...groupState(selected, ids)} onToggle={() => onChange(toggleAll(selected, ids))}>
+          <div key={g.label}>
+            <FilterGroupHeading {...groupState(selected, ids)} onToggle={() => onChange(toggleAll(selected, ids))}>
               {g.label}
-            </FilterOption>
+            </FilterGroupHeading>
             {g.wallets.map(w => (
               <FilterOption
                 key={w.id}
-                depth={1}
+                nested
                 checked={selected.includes(w.id)}
                 onToggle={() => onChange(toggle(selected, w.id))}
                 meta={w.currency}
               >
-                <FilterDot color={w.color} />
-                <span className={styles.ellipsis}>{w.name}</span>
+                {w.icon} {w.name}
               </FilterOption>
             ))}
           </div>
@@ -367,14 +333,14 @@ function LabelFilter({ labels, selected, onChange }: {
 
   return (
     <FilterDropdown
-      label="Label"
-      count={selected.length}
-      width={260}
+      placeholder="Label"
+      selectedLabels={labels.filter(l => selected.includes(l.id)).map(l => l.name)}
+      minMenuWidth={220}
       onClose={() => setSearch('')}
       header={
         <SearchInput
-          placeholder="Find a label"
-          aria-label="Find a label"
+          placeholder="Search labels…"
+          aria-label="Search labels"
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
@@ -384,7 +350,7 @@ function LabelFilter({ labels, selected, onChange }: {
       {visible.map(l => (
         <FilterOption key={l.id} checked={selected.includes(l.id)} onToggle={() => onChange(toggle(selected, l.id))}>
           <FilterDot color={l.color} />
-          <span className={styles.ellipsis}>{l.name}</span>
+          {l.name}
         </FilterOption>
       ))}
     </FilterDropdown>
@@ -400,10 +366,10 @@ function CurrencyFilter({ wallets, selected, onChange }: {
   const currencies = CURRENCY_ORDER.filter(c => used.has(c));
 
   return (
-    <FilterDropdown label="Currency" count={selected.length} width={260}>
+    <FilterDropdown placeholder="Currency" selectedLabels={currencies.filter(c => selected.includes(c))} minMenuWidth={160}>
       {currencies.length === 0 && <FilterEmpty>No accounts yet</FilterEmpty>}
       {currencies.map(c => (
-        <FilterOption key={c} checked={selected.includes(c)} onToggle={() => onChange(toggle(selected, c))} meta={CURRENCY_NAMES[c]}>
+        <FilterOption key={c} checked={selected.includes(c)} onToggle={() => onChange(toggle(selected, c))}>
           {c}
         </FilterOption>
       ))}
