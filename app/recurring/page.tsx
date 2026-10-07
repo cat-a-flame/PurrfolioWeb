@@ -475,32 +475,30 @@ export default function RecurringPage() {
               <h1 className={styles.pageTitle}>Planned payments</h1>
             </div>
             <Button variant="primary" size="lg" onClick={() => { setAddForm({ ...EMPTY_FORM, walletId: wallets.find(w => w.is_default && !w.is_archived)?.id ?? wallets.find(w => !w.is_archived)?.id ?? '' }); setShowAddDialog(true); setAddError(''); }}>
-              + Add
+              + New planned payment
             </Button>
           </div>
 
-          <div className={styles.filterTabs}>
-            <button
-              className={[styles.filterTab, view === 'due' ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
-              onClick={() => setView('due')}
-            >
-              Due
-              {!loading && !periodLoading && <span className={styles.filterTabCount}>{dueItems.length}</span>}
-            </button>
-            <button
-              className={[styles.filterTab, view === 'all' ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
-              onClick={() => setView('all')}
-            >
-              All
-              {!loading && <span className={styles.filterTabCount}>{payments.length}</span>}
-            </button>
-          </div>
+          <div className={styles.toolbar}>
+            <div className={styles.filterTabs}>
+              <button
+                className={[styles.filterTab, view === 'due' ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
+                onClick={() => setView('due')}
+              >
+                Due
+                {!loading && !periodLoading && <span className={styles.filterTabCount}>· {dueItems.length}</span>}
+              </button>
+              <button
+                className={[styles.filterTab, view === 'all' ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
+                onClick={() => setView('all')}
+              >
+                All planned
+                {!loading && <span className={styles.filterTabCount}>· {payments.length}</span>}
+              </button>
+            </div>
 
-          {view === 'due' && (
-          <div className={styles.periodRow}>
-            <PeriodPicker value={period} onChange={setPeriod} />
+            {view === 'due' && <PeriodPicker value={period} onChange={setPeriod} />}
           </div>
-          )}
 
           {view === 'due' && (
           <section className={styles.section}>

@@ -26,11 +26,19 @@
   color: transparent;
 }
 
-.filterTabs {
+.toolbar {
   display: flex;
-  background: var(--color-surface);
-  border-radius: var(--radius-md);
-  padding: 3px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.filterTabs {
+  display: inline-flex;
+  background: var(--color-surface-3);
+  border-radius: var(--radius-lg);
+  padding: 4px;
   gap: 2px;
 }
 
@@ -38,19 +46,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  flex: 1;
+  gap: 0.3em;
   height: 38px;
   padding: 0 var(--space-4);
-  border-radius: calc(var(--radius-md) - 2px);
+  border-radius: var(--radius-md);
   border: none;
   background: transparent;
   font-family: var(--font-nunito);
   font-size: 0.9375rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition: background var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
   white-space: nowrap;
 }
 
@@ -59,33 +66,13 @@
 }
 
 .filterTabActive {
-  background: var(--color-accent-light);
-  color: var(--color-accent);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
 }
 
 .filterTabCount {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: var(--radius-full);
-  font-size: 0.75rem;
-  font-weight: 700;
-  background: var(--color-surface-2);
-  color: var(--color-text-muted);
-}
-
-.filterTabActive .filterTabCount {
-  background: var(--color-accent-glow);
-  color: var(--color-accent);
-}
-
-.periodRow {
-  display: flex;
-  justify-content: center;
-  margin-top: var(--space-2);
+  font-variant-numeric: tabular-nums;
 }
 
 .section {
