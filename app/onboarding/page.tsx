@@ -111,10 +111,10 @@ export default function OnboardingPage() {
           <p className={styles.tagline}>Let’s set up your first account</p>
         </div>
 
-        <form onSubmit={handleSubmit} className={styles.form}>
+        <form onSubmit={handleSubmit} className={`${styles.form} ${onboardingStyles.form}`}>
           <p className={onboardingStyles.intro}>
             The currency of your first account is your base currency: totals, statistics and net worth are
-            shown in it, and records in other currencies are converted to it.
+            shown in it, and records in other currencies are converted to it. It can’t be changed later.
           </p>
 
           <div className={styles.field}>
@@ -137,7 +137,6 @@ export default function OnboardingPage() {
                 </button>
               ))}
             </div>
-            <p className={onboardingStyles.hint}>This can’t be changed later.</p>
           </div>
 
           <div className={styles.field}>
@@ -162,6 +161,8 @@ export default function OnboardingPage() {
               styles={makeRsStyles<TypeOption>()}
               theme={rsTheme}
               menuPosition="fixed"
+              // The card's backdrop-filter would otherwise be the containing block of the fixed menu.
+              menuPortalTarget={typeof document === 'undefined' ? undefined : document.body}
             />
           </div>
 
