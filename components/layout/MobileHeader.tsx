@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { usePathname } from 'next/navigation';
 import { useCurrentUser } from '@/contexts/UserContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FiCreditCard, FiDownload, FiFolder, FiLogOut, FiTag, FiUpload, FiUser } from 'react-icons/fi';
+import { FiCreditCard, FiDownload, FiFolder, FiTag, FiUpload, FiUser } from 'react-icons/fi';
 import { hidesNav } from '@/lib/publicPaths';
 import { OPEN_BUG_REPORT_EVENT } from '@/components/feedback/ReportBugButton';
 import styles from './MobileHeader.module.css';
@@ -41,7 +40,6 @@ const settingsItems = [
 
 export default function MobileHeader() {
   const pathname = usePathname();
-  const router = useRouter();
   const currentUser = useCurrentUser();
   const email = currentUser?.email ?? '';
   const username = currentUser?.username ?? '';
@@ -64,13 +62,6 @@ export default function MobileHeader() {
       document.body.style.overflow = '';
     };
   }, [open]);
-
-  async function handleSignOut() {
-    setOpen(false);
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/login');
-  }
 
   // Logged-out pages have no app navigation.
   if (hidesNav(pathname)) return null;
@@ -146,14 +137,6 @@ export default function MobileHeader() {
               >
                 <span className={styles.navIcon} aria-hidden>🐞</span>
                 <span className={styles.navText}>Report a bug</span>
-              </button>
-              <button
-                type="button"
-                className={styles.navLink + ' ' + styles.navButton + ' ' + styles.navDanger}
-                onClick={handleSignOut}
-              >
-                <span className={styles.navIcon}><FiLogOut size={21} aria-hidden /></span>
-                <span className={styles.navText}>Sign out</span>
               </button>
             </div>
 

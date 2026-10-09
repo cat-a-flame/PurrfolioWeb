@@ -149,11 +149,6 @@
   white-space: nowrap;
 }
 
-.navDanger {
-  margin-top: 0;
-  color: var(--color-danger, #dc2626);
-}
-
 .navList {
   display: flex;
   flex-direction: column;
