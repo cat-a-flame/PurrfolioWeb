@@ -9,25 +9,22 @@
     position: fixed;
     left: 12px;
     right: 12px;
-    bottom: calc(10px + env(safe-area-inset-bottom));
+    bottom: calc(2px + env(safe-area-inset-bottom));
     z-index: 200;
     height: 66px;
-    padding: 0 var(--space-2);
+    padding: 0 8px;
   }
 
-  /* Glass pill with a semicircular notch cut out for the add button */
-  .nav::before {
-    content: '';
+  /* Opaque pill drawn in SVG so the notch can be cut out (mirrors the app) */
+  .pill {
     position: absolute;
     inset: 0;
     z-index: -1;
-    border-radius: 18px;
-    background: var(--color-glass-strong);
-    border: 1px solid var(--color-glass-border);
-    -webkit-backdrop-filter: blur(22px) saturate(170%);
-    backdrop-filter: blur(22px) saturate(170%);
-    -webkit-mask: radial-gradient(circle 36px at 50% 0, transparent 35px, #000 36px);
-    mask: radial-gradient(circle 36px at 50% 0, transparent 35px, #000 36px);
+    pointer-events: none;
+    fill: var(--color-tab-bar, var(--color-surface));
+    stroke: var(--color-border);
+    stroke-width: 1;
+    filter: drop-shadow(0 12px 14px rgba(60, 30, 110, 0.22));
   }
 
   .tab {
@@ -37,7 +34,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 3px;
     height: 100%;
     color: var(--color-text-muted);
     text-decoration: none;
@@ -95,7 +92,7 @@
   .ears {
     position: absolute;
     left: 50%;
-    top: -41px;
+    top: -25px;
     margin-left: -28px;
     fill: var(--color-accent);
     pointer-events: none;
@@ -118,6 +115,7 @@
     font-weight: 300;
     line-height: 1;
     box-shadow: 0 0 10px var(--color-accent-glow);
+    z-index: 1;
     transition: transform 360ms var(--ease-spring), box-shadow var(--transition-base);
   }
 

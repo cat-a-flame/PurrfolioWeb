@@ -1,6 +1,7 @@
 :root {
   --color-bg: #f5f2ff;
   --color-surface: #ffffff;
+  --color-tab-bar: #ffffff;
   --color-surface-2: #f5f1fe;
   --color-surface-3: #ebe4fb;
   --color-glass: rgba(255, 255, 255, 0.66);
@@ -100,6 +101,7 @@
 html[data-theme="dark"] {
   --color-bg: #0a0614;
   --color-surface: #140e24;
+  --color-tab-bar: #1a1330;
   --color-surface-2: #1d1633;
   --color-surface-3: #2a2147;
   --color-glass: rgba(22, 15, 40, 0.62);

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useAddRecord } from '@/components/transactions/AddRecordProvider';
 import { useRecurringAlert } from '@/contexts/RecurringAlertContext';
 import { hidesNav } from '@/lib/publicPaths';
@@ -60,7 +61,45 @@ const tabs = [
   },
 ];
 
+const BAR_H = 66;
+const PILL_R = 18;
+const NOTCH_R = 36;
+const NOTCH_CORNER = 12;
+
+// Pill outline with a semicircular notch at the top centre (same path as the app's CustomTabBar).
+function buildPillPath(w: number, h: number): string {
+  const cx = w / 2;
+  const r = PILL_R;
+  return [
+    `M 0.5 ${r}`,
+    `A ${r} ${r} 0 0 1 ${r} 0.5`,
+    `L ${cx - NOTCH_R - NOTCH_CORNER} 0.5`,
+    `Q ${cx - NOTCH_R} 0.5 ${cx - NOTCH_R} ${NOTCH_CORNER}`,
+    `A ${NOTCH_R} ${NOTCH_R} 0 1 0 ${cx + NOTCH_R} ${NOTCH_CORNER}`,
+    `Q ${cx + NOTCH_R} 0.5 ${cx + NOTCH_R + NOTCH_CORNER} 0.5`,
+    `L ${w - r} 0.5`,
+    `A ${r} ${r} 0 0 1 ${w - 0.5} ${r}`,
+    `L ${w - 0.5} ${h - r}`,
+    `A ${r} ${r} 0 0 1 ${w - r} ${h - 0.5}`,
+    `L ${r} ${h - 0.5}`,
+    `A ${r} ${r} 0 0 1 0.5 ${h - r}`,
+    'Z',
+  ].join(' ');
+}
+
 export default function BottomNav() {
+  const navRef = useRef<HTMLElement>(null);
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const update = () => setWidth(el.getBoundingClientRect().width);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
+
   const pathname = usePathname();
   const { openAddDialog } = useAddRecord();
   const hasUrgentPlanned = useRecurringAlert();
@@ -69,7 +108,13 @@ export default function BottomNav() {
   if (hidesNav(pathname)) return null;
 
   return (
-    <nav className={styles.nav} aria-label="Mobile navigation">
+    <nav ref={navRef} className={styles.nav} aria-label="Mobile navigation">
+      {width > 0 && (
+        <svg className={styles.pill} width={width} height={BAR_H} aria-hidden>
+          <path d={buildPillPath(width, BAR_H)} />
+        </svg>
+      )}
+
       {tabs.slice(0, 2).map(tab => (
         <Link
           key={tab.href}
