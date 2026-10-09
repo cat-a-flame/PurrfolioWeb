@@ -537,7 +537,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <div className={styles.sideCard} style={sideCardHeight ? { height: sideCardHeight } : undefined}>
+          <div className={`${styles.sideCard} ${styles.plannedCard}`} style={sideCardHeight ? { height: sideCardHeight } : undefined}>
             <div className={styles.sideCardHeader}>
               <h2 className={styles.sideCardTitle}>Planned payments</h2>
               <Link href="/recurring" className={styles.sideCardLink}>All</Link>
