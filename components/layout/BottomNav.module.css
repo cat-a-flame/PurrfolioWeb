@@ -9,7 +9,7 @@
     position: fixed;
     left: 12px;
     right: 12px;
-    bottom: calc(8px + env(safe-area-inset-bottom));
+    bottom: 8px;
     z-index: 200;
     height: 66px;
     padding: 0 8px;
@@ -19,7 +19,7 @@
 
   /* Slide fully off-screen (extra room for the ears, button and shadow) */
   .navHidden {
-    transform: translateY(calc(100% + 60px + env(safe-area-inset-bottom)));
+    transform: translateY(calc(100% + 60px));
   }
 
   /* Opaque pill drawn in SVG so the notch can be cut out (mirrors the app) */
