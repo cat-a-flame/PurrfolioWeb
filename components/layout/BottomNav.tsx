@@ -124,24 +124,6 @@ export default function BottomNav() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // The browser's own toolbar expanding/collapsing resizes the viewport, which makes this
-  // fixed element jump by the same amount. Animate that offset away so it glides instead.
-  useEffect(() => {
-    let lastH = window.innerHeight;
-    const onResize = () => {
-      const delta = lastH - window.innerHeight; // >0: viewport shrank, nav jumped up
-      lastH = window.innerHeight;
-      const el = navRef.current;
-      if (!el || !delta || Math.abs(delta) > 120 || !el.animate) return;
-      el.animate(
-        [{ translate: `0 ${delta}px` }, { translate: '0 0' }],
-        { duration: 280, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
-      );
-    };
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
-
   // Always reveal the nav when navigating to another page.
   useEffect(() => setHidden(false), [pathname]);
   useLayoutEffect(() => {
