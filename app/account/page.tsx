@@ -154,7 +154,7 @@ export default function AccountPage() {
   return (
     <AppShell>
       <div className={styles.container}>
-        <h1 className={styles.pageTitle}>Account</h1>
+        <h1 className={styles.pageTitle}>Profile settings</h1>
 
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>Profile</h2>
