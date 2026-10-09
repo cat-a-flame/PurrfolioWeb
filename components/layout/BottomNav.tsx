@@ -127,6 +127,16 @@ export default function BottomNav() {
   // TEMPORARY: tap debugger, enabled with ?debugnav=1
   useEffect(() => {
     if (!new URLSearchParams(window.location.search).has('debugnav')) return;
+    // ?b=NN overrides the nav's bottom offset (px) for experiments
+    const b = new URLSearchParams(window.location.search).get('b');
+    if (b && navRef.current) navRef.current.style.bottom = `${parseInt(b, 10)}px`;
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;left:0;bottom:0;width:0;height:0;padding-bottom:env(safe-area-inset-bottom);visibility:hidden';
+    document.body.appendChild(probe);
+    const info = document.createElement('pre');
+    info.style.cssText = 'position:fixed;top:222px;left:8px;right:8px;z-index:9999;background:#000c;color:#0ff;font:11px monospace;padding:6px;pointer-events:none;margin:0';
+    info.textContent = `env-bottom=${probe.getBoundingClientRect().height} innerH=${window.innerHeight} outerH=${window.outerHeight} screenH=${screen.height} availH=${screen.availHeight} dpr=${window.devicePixelRatio} b=${b ?? '-'}`;
+    document.body.appendChild(info);
     const box = document.createElement('pre');
     box.style.cssText = 'position:fixed;top:70px;left:8px;right:8px;z-index:9999;background:#000c;color:#0f0;font:11px monospace;padding:6px;pointer-events:none;margin:0;white-space:pre-wrap';
     document.body.appendChild(box);
@@ -175,6 +185,8 @@ export default function BottomNav() {
       document.removeEventListener('touchstart', raw, true);
       document.removeEventListener('touchend', raw, true);
       counter.remove();
+      probe.remove();
+      info.remove();
       box.remove();
     };
   }, []);
