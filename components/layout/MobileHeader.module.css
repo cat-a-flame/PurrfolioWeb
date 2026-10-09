@@ -132,6 +132,7 @@
   padding: var(--space-3);
   gap: 2px;
   overflow-y: auto;
+  flex: 1;
 }
 
 .navLink {
@@ -184,6 +185,7 @@
 }
 
 .navButton {
+  margin-top: auto; /* sits at the bottom of the list, next to the divider */
   width: 100%;
   border: none;
   cursor: pointer;
