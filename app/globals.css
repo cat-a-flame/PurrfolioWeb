@@ -93,7 +93,7 @@
   --mobile-header-h: 60px;
   /* Fixed top bar height: TopNav on desktop, MobileHeader on phones. */
   --top-bar-h: 65px;
-  --bottom-nav-space: calc(88px + env(safe-area-inset-bottom));
+  --bottom-nav-space: calc(100px + env(safe-area-inset-bottom));
 
   color-scheme: light;
 }
