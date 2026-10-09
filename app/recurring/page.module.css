@@ -463,3 +463,11 @@
   .record { gap: var(--space-2); }
   .modal { padding: var(--space-5); }
 }
+
+/* Shorter button label on mobile so it fits next to the page title */
+.labelShort { display: none; }
+
+@media (max-width: 768px) {
+  .labelFull { display: none; }
+  .labelShort { display: inline; }
+}

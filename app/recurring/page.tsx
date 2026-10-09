@@ -478,7 +478,8 @@ export default function RecurringPage() {
               <h1 className={styles.pageTitle}>Planned payments</h1>
             </div>
             <Button variant="primary" size="lg" onClick={() => { setAddForm({ ...EMPTY_FORM, walletId: wallets.find(w => w.is_default && !w.is_archived)?.id ?? wallets.find(w => !w.is_archived)?.id ?? '' }); setShowAddDialog(true); setAddError(''); }}>
-              + New planned payment
+              <span className={styles.labelFull}>+ New planned payment</span>
+              <span className={styles.labelShort}>+ New</span>
             </Button>
           </div>
 
