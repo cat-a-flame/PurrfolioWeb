@@ -688,6 +688,10 @@
 .predictionConfidenceFillIncome  { background: var(--color-income); }
 .predictionConfidenceFillExpense { background: var(--color-expense); }
 
+.predictionConfidenceInline {
+  display: none;
+}
+
 .predictionAmountCol {
   width: 100%;
   display: flex;
@@ -716,4 +720,16 @@
 @media (max-width: 640px) {
   .predictionColConfidence  { display: none; }
   .predictionCellConfidence { display: none; }
+
+  .predictionConfidenceInline {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: 4px;
+  }
+
+  .predictionConfidenceInline .predictionConfidenceTrack {
+    width: 56px;
+    flex-shrink: 0;
+  }
 }
