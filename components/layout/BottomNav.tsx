@@ -130,6 +130,11 @@ export default function BottomNav() {
     const box = document.createElement('pre');
     box.style.cssText = 'position:fixed;top:70px;left:8px;right:8px;z-index:9999;background:#000c;color:#0f0;font:11px monospace;padding:6px;pointer-events:none;margin:0;white-space:pre-wrap';
     document.body.appendChild(box);
+    const cls = (el: unknown) => {
+      const c = (el as { className?: unknown } | null)?.className;
+      const str = typeof c === 'string' ? c : String((c as { baseVal?: string } | undefined)?.baseVal ?? '');
+      return str.slice(-24);
+    };
     const log = (type: string, e: Event) => {
       const t = (e as PointerEvent);
       const nav = navRef.current?.getBoundingClientRect();
@@ -139,8 +144,8 @@ export default function BottomNav() {
         `${type} y=${Math.round(t.clientY)} x=${Math.round(t.clientX)}\n` +
         `nav top=${Math.round(nav?.top ?? 0)} bottom=${Math.round(nav?.bottom ?? 0)}\n` +
         `innerH=${window.innerHeight} vv.h=${Math.round(vv?.height ?? 0)} vv.top=${Math.round(vv?.offsetTop ?? 0)} docH=${document.documentElement.clientHeight}\n` +
-        `target=${(e.target as HTMLElement)?.tagName}.${String((e.target as HTMLElement)?.className?.baseVal ?? (e.target as HTMLElement)?.className).slice(-24)}\n` +
-        `hit=${hit?.tagName}.${String((hit as HTMLElement)?.className?.baseVal ?? (hit as HTMLElement)?.className).slice(-24)}`;
+        `target=${(e.target as HTMLElement)?.tagName}.${cls(e.target)}\n` +
+        `hit=${hit?.tagName}.${cls(hit)}`;
     };
     const down = (e: Event) => log('pointerdown', e);
     const click = (e: Event) => { box.textContent += `\nCLICK fired on ${(e.target as HTMLElement)?.tagName}`; };
