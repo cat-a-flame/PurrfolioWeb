@@ -9,7 +9,9 @@
     position: fixed;
     left: 12px;
     right: 12px;
-    bottom: 8px;
+    /* Android reserves the bottom ~25px for its home gesture and doesn't deliver taps there,
+       so keep the interactive part of the pill above it (nothing sits in the last 8px). */
+    bottom: 16px;
     z-index: 200;
     height: 66px;
     padding: 0 8px;
