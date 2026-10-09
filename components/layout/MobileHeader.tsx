@@ -112,7 +112,7 @@ export default function MobileHeader() {
                 className={[styles.navLink, pathname === '/account' ? styles.navLinkActive : ''].filter(Boolean).join(' ')}
               >
                 <span className={styles.navIcon}><FiUser size={21} aria-hidden /></span>
-                <span className={styles.navText}>Account settings</span>
+                <span className={styles.navText}>Profile settings</span>
               </Link>
               {settingsItems.map((item) => {
                 const active = pathname === item.href || pathname.startsWith(item.href + '/');
