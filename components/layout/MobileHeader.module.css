@@ -126,6 +126,29 @@
   color: var(--color-text);
 }
 
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  min-width: 0;
+}
+
+.userName {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--color-text);
+}
+
+.userEmail {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .navList {
   display: flex;
   flex-direction: column;

@@ -173,7 +173,7 @@ export default function TopNav() {
                   role="menuitem"
                   className={[styles.menuItem, isActive(pathname, '/account') ? styles.menuItemActive : ''].filter(Boolean).join(' ')}
                 >
-                  Account settings
+                  Profile settings
                 </Link>
                 <button
                   type="button"
