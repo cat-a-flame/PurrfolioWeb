@@ -148,12 +148,33 @@ export default function BottomNav() {
         `hit=${hit?.tagName}.${cls(hit)}`;
     };
     const down = (e: Event) => log('pointerdown', e);
+    const raw = (e: Event) => {
+      const te = e as TouchEvent;
+      const t = te.touches[0] ?? te.changedTouches[0];
+      if (!t) return;
+      const dot = document.createElement('div');
+      dot.style.cssText = `position:fixed;left:${t.clientX - 6}px;top:${t.clientY - 6}px;width:12px;height:12px;border-radius:50%;background:${e.type === 'touchstart' ? 'red' : 'yellow'};z-index:9999;pointer-events:none`;
+      document.body.appendChild(dot);
+      setTimeout(() => dot.remove(), 1500);
+      lines.push(`${e.type} cY=${Math.round(t.clientY)} sY=${Math.round(t.screenY)} pY=${Math.round(t.pageY)}`);
+      if (lines.length > 4) lines.shift();
+      counter.textContent = lines.join('\n');
+    };
+    const lines: string[] = [];
+    const counter = document.createElement('pre');
+    counter.style.cssText = 'position:fixed;top:150px;left:8px;right:8px;z-index:9999;background:#000c;color:#ff0;font:11px monospace;padding:6px;pointer-events:none;margin:0';
+    document.body.appendChild(counter);
+    document.addEventListener('touchstart', raw, true);
+    document.addEventListener('touchend', raw, true);
     const click = (e: Event) => { box.textContent += `\nCLICK fired on ${(e.target as HTMLElement)?.tagName}`; };
     document.addEventListener('pointerdown', down, true);
     document.addEventListener('click', click, true);
     return () => {
       document.removeEventListener('pointerdown', down, true);
       document.removeEventListener('click', click, true);
+      document.removeEventListener('touchstart', raw, true);
+      document.removeEventListener('touchend', raw, true);
+      counter.remove();
       box.remove();
     };
   }, []);
