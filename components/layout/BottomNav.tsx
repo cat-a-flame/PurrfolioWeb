@@ -96,9 +96,17 @@ export default function BottomNav() {
   // Hide on scroll down, show on scroll up.
   useEffect(() => {
     let lastY = window.scrollY;
+    let lastH = window.innerHeight;
     let ticking = false;
     const update = () => {
       ticking = false;
+      // The browser's address bar collapsing/expanding resizes the viewport and fires
+      // scroll events of its own; ignore those so they can't toggle the nav.
+      if (window.innerHeight !== lastH) {
+        lastH = window.innerHeight;
+        lastY = Math.max(0, window.scrollY);
+        return;
+      }
       const y = Math.max(0, window.scrollY); // ignore iOS rubber-band overscroll
       const delta = y - lastY;
       if (Math.abs(delta) < 8) return; // ignore jitter
