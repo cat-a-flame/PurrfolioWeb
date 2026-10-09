@@ -60,13 +60,10 @@
   75% { transform: rotate(-6deg); }
 }
 
+/* On mobile the report action lives in the hamburger menu instead. */
 @media (max-width: 768px) {
   .fab {
-    right: var(--space-4);
-    bottom: calc(var(--bottom-nav-space) + var(--space-2));
-    height: 48px;
-    min-width: 48px;
-    padding: 0 12px;
+    display: none;
   }
 }
 

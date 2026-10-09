@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
 import { FiCreditCard, FiDownload, FiFolder, FiTag, FiUpload } from 'react-icons/fi';
 import { hidesNav } from '@/lib/publicPaths';
+import { OPEN_BUG_REPORT_EVENT } from '@/components/feedback/ReportBugButton';
 import styles from './MobileHeader.module.css';
 
 const settingsItems = [
@@ -112,6 +113,17 @@ export default function MobileHeader() {
             </div>
 
             <div className={styles.drawerFooter}>
+              <button
+                type="button"
+                className={styles.reportBtn}
+                onClick={() => {
+                  setOpen(false);
+                  window.dispatchEvent(new Event(OPEN_BUG_REPORT_EVENT));
+                }}
+              >
+                <span className={styles.navIcon} aria-hidden>🐞</span>
+                <span className={styles.themeLabel}>Report a bug</span>
+              </button>
               <button
                 type="button"
                 className={styles.themeToggle}

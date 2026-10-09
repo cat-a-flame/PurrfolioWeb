@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Dialog from '@/components/ui/Dialog';
@@ -10,6 +10,9 @@ import Toast from '@/components/ui/Toast';
 import { createClient } from '@/lib/supabase/client';
 import { hidesNav } from '@/lib/publicPaths';
 import styles from './ReportBugButton.module.css';
+
+/** Window event other components (e.g. the mobile menu) dispatch to open the report dialog. */
+export const OPEN_BUG_REPORT_EVENT = 'purrfolio:open-bug-report';
 
 /** Sends a bug report to Discord via report_bug(). */
 export default function ReportBugButton() {
@@ -25,15 +28,20 @@ export default function ReportBugButton() {
   const close = useCallback(() => setOpen(false), []);
   const dismissToast = useCallback(() => setToast(''), []);
 
-  if (hidesNav(pathname) || pathname === '/mfa') return null;
-
-  function openDialog() {
+  const openDialog = useCallback(() => {
     setMessage('');
     setCanContact(false);
     setError('');
     setOpen(true);
     createClient().auth.getUser().then(({ data }) => setEmail(data.user?.email ?? ''));
-  }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener(OPEN_BUG_REPORT_EVENT, openDialog);
+    return () => window.removeEventListener(OPEN_BUG_REPORT_EVENT, openDialog);
+  }, [openDialog]);
+
+  if (hidesNav(pathname) || pathname === '/mfa') return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
