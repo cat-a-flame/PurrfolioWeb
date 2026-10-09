@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useAddRecord } from '@/components/transactions/AddRecordProvider';
 import { useRecurringAlert } from '@/contexts/RecurringAlertContext';
 import { hidesNav } from '@/lib/publicPaths';
@@ -88,8 +88,36 @@ function buildPillPath(w: number, h: number): string {
 }
 
 export default function BottomNav() {
+  const pathname = usePathname();
   const navRef = useRef<HTMLElement>(null);
   const [width, setWidth] = useState(0);
+  const [hidden, setHidden] = useState(false);
+
+  // Hide on scroll down, show on scroll up.
+  useEffect(() => {
+    let lastY = window.scrollY;
+    let ticking = false;
+    const update = () => {
+      ticking = false;
+      const y = Math.max(0, window.scrollY); // ignore iOS rubber-band overscroll
+      const delta = y - lastY;
+      if (Math.abs(delta) < 8) return; // ignore jitter
+      lastY = y;
+      const nearTop = y < 24;
+      setHidden(delta > 0 && !nearTop);
+    };
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Always reveal the nav when navigating to another page.
+  useEffect(() => setHidden(false), [pathname]);
   useLayoutEffect(() => {
     const el = navRef.current;
     if (!el) return;
@@ -100,7 +128,6 @@ export default function BottomNav() {
     return () => ro.disconnect();
   });
 
-  const pathname = usePathname();
   const { openAddDialog } = useAddRecord();
   const hasUrgentPlanned = useRecurringAlert();
 
@@ -108,7 +135,7 @@ export default function BottomNav() {
   if (hidesNav(pathname)) return null;
 
   return (
-    <nav ref={navRef} className={styles.nav} aria-label="Mobile navigation">
+    <nav ref={navRef} className={[styles.nav, hidden ? styles.navHidden : ''].filter(Boolean).join(' ')} aria-label="Mobile navigation">
       {width > 0 && (
         <svg className={styles.pill} width={width} height={BAR_H} aria-hidden>
           <path d={buildPillPath(width, BAR_H)} />

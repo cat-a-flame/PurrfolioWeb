@@ -13,6 +13,13 @@
     z-index: 200;
     height: 66px;
     padding: 0 8px;
+    will-change: transform;
+    transition: transform 320ms var(--ease-out);
+  }
+
+  /* Slide fully off-screen (extra room for the ears, button and shadow) */
+  .navHidden {
+    transform: translateY(calc(100% + 60px + env(safe-area-inset-bottom)));
   }
 
   /* Opaque pill drawn in SVG so the notch can be cut out (mirrors the app) */
