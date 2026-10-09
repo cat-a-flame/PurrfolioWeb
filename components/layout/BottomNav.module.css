@@ -13,12 +13,21 @@
     z-index: 200;
     height: 66px;
     padding: 0 var(--space-2);
-    border-radius: 24px;
+  }
+
+  /* Glass pill with a semicircular notch cut out for the add button */
+  .nav::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: 18px;
     background: var(--color-glass-strong);
     border: 1px solid var(--color-glass-border);
-    box-shadow: var(--shadow-nav);
     -webkit-backdrop-filter: blur(22px) saturate(170%);
     backdrop-filter: blur(22px) saturate(170%);
+    -webkit-mask: radial-gradient(circle 36px at 50% 0, transparent 35px, #000 36px);
+    mask: radial-gradient(circle 36px at 50% 0, transparent 35px, #000 36px);
   }
 
   .tab {
@@ -73,10 +82,8 @@
   }
 
   .addBtn {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: relative;
+    flex: 0 0 88px;
     height: 100%;
     background: none;
     border: none;
@@ -84,12 +91,25 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* Cat ears peek out from behind the round button */
+  .ears {
+    position: absolute;
+    left: 50%;
+    top: -41px;
+    margin-left: -28px;
+    fill: var(--color-accent);
+    pointer-events: none;
+  }
+
   .addIcon {
-    width: 52px;
-    height: 52px;
-    margin-top: -26px;
-    border-radius: 18px;
-    background: var(--gradient-accent);
+    position: absolute;
+    left: 50%;
+    top: -15px;
+    margin-left: -28px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--color-accent);
     color: #fff;
     display: flex;
     align-items: center;
@@ -97,18 +117,16 @@
     font-size: 1.75rem;
     font-weight: 300;
     line-height: 1;
-    border: 3px solid var(--color-surface);
-    box-shadow: 0 12px 24px -8px var(--color-accent-glow);
-    transform: rotate(0deg);
+    box-shadow: 0 0 10px var(--color-accent-glow);
     transition: transform 360ms var(--ease-spring), box-shadow var(--transition-base);
   }
 
   .addBtn:hover .addIcon {
-    transform: rotate(90deg);
+    transform: scale(1.05);
   }
 
   .addBtn:active .addIcon {
-    transform: rotate(90deg) scale(0.92);
+    transform: scale(0.92);
   }
 
   .iconWrap {
