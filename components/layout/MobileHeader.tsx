@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { useCurrentUser } from '@/contexts/UserContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FiCreditCard, FiDownload, FiFolder, FiTag, FiUpload } from 'react-icons/fi';
+import { FiCreditCard, FiDownload, FiFolder, FiLogOut, FiTag, FiUpload, FiUser } from 'react-icons/fi';
 import { hidesNav } from '@/lib/publicPaths';
 import { OPEN_BUG_REPORT_EVENT } from '@/components/feedback/ReportBugButton';
 import styles from './MobileHeader.module.css';
@@ -39,6 +41,10 @@ const settingsItems = [
 
 export default function MobileHeader() {
   const pathname = usePathname();
+  const router = useRouter();
+  const currentUser = useCurrentUser();
+  const email = currentUser?.email ?? '';
+  const username = currentUser?.username ?? '';
   const { theme, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
 
@@ -58,6 +64,13 @@ export default function MobileHeader() {
       document.body.style.overflow = '';
     };
   }, [open]);
+
+  async function handleSignOut() {
+    setOpen(false);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/login');
+  }
 
   // Logged-out pages have no app navigation.
   if (hidesNav(pathname)) return null;
@@ -96,7 +109,20 @@ export default function MobileHeader() {
               <span className={styles.drawerTitle}>Settings</span>
               <button type="button" className={styles.closeBtn} onClick={() => setOpen(false)} aria-label="Close">✕</button>
             </div>
+            {(username || email) && (
+              <div className={styles.userInfo}>
+                {username && <span className={styles.userName}>{username}</span>}
+                {email && <span className={styles.userEmail}>{email}</span>}
+              </div>
+            )}
             <div className={styles.navList}>
+              <Link
+                href="/account"
+                className={[styles.navLink, pathname === '/account' ? styles.navLinkActive : ''].filter(Boolean).join(' ')}
+              >
+                <span className={styles.navIcon}><FiUser size={21} aria-hidden /></span>
+                <span className={styles.navText}>Account settings</span>
+              </Link>
               {settingsItems.map((item) => {
                 const active = pathname === item.href || pathname.startsWith(item.href + '/');
                 return (
@@ -120,6 +146,14 @@ export default function MobileHeader() {
               >
                 <span className={styles.navIcon} aria-hidden>🐞</span>
                 <span className={styles.navText}>Report a bug</span>
+              </button>
+              <button
+                type="button"
+                className={styles.navLink + ' ' + styles.navButton + ' ' + styles.navDanger}
+                onClick={handleSignOut}
+              >
+                <span className={styles.navIcon}><FiLogOut size={21} aria-hidden /></span>
+                <span className={styles.navText}>Sign out</span>
               </button>
             </div>
 
