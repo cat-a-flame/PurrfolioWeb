@@ -110,20 +110,20 @@ export default function MobileHeader() {
                   </Link>
                 );
               })}
-            </div>
-
-            <div className={styles.drawerFooter}>
               <button
                 type="button"
-                className={styles.reportBtn}
+                className={styles.navLink + ' ' + styles.navButton}
                 onClick={() => {
                   setOpen(false);
                   window.dispatchEvent(new Event(OPEN_BUG_REPORT_EVENT));
                 }}
               >
                 <span className={styles.navIcon} aria-hidden>🐞</span>
-                <span className={styles.themeLabel}>Report a bug</span>
+                <span className={styles.navText}>Report a bug</span>
               </button>
+            </div>
+
+            <div className={styles.drawerFooter}>
               <button
                 type="button"
                 className={styles.themeToggle}

@@ -183,21 +183,13 @@
   gap: var(--space-3);
 }
 
-.reportBtn {
+.navButton {
   width: 100%;
   border: none;
   cursor: pointer;
   background: transparent;
-  transition: background var(--transition-fast);
-  border-radius: var(--radius-lg);
-  padding: var(--space-3);
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.reportBtn:hover {
-  background: var(--color-surface-2);
+  font-family: inherit;
+  text-align: left;
 }
 
 .themeToggle:hover {
