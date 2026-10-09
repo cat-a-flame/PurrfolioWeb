@@ -646,7 +646,7 @@ export default function TransactionsPage() {
                                   <div className={styles.txMetaRow}>
                                     {metaParts.map((part, i) => (
                                       <Fragment key={i}>
-                                        {i > 0 && <span className={styles.txMetaDot}>·</span>}
+                                        {i > 0 && <span className={[styles.txMetaDot, (part as { key?: string }).key === 'notes' ? styles.txMetaDotNotes : ''].filter(Boolean).join(' ')}>·</span>}
                                         {part}
                                       </Fragment>
                                     ))}
@@ -664,6 +664,8 @@ export default function TransactionsPage() {
                               {t.type === 'income' ? '+' : '−'}{formatCurrency(t.amount, t.wallet?.currency ?? baseCurrency)}
                             </span>
                           </div>
+
+                          {t.notes && <p className={styles.txNotesRow}>{t.notes}</p>}
                         </div>
                       );
                     })}
