@@ -124,6 +124,35 @@ export default function BottomNav() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // TEMPORARY: tap debugger, enabled with ?debugnav=1
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).has('debugnav')) return;
+    const box = document.createElement('pre');
+    box.style.cssText = 'position:fixed;top:70px;left:8px;right:8px;z-index:9999;background:#000c;color:#0f0;font:11px monospace;padding:6px;pointer-events:none;margin:0;white-space:pre-wrap';
+    document.body.appendChild(box);
+    const log = (type: string, e: Event) => {
+      const t = (e as PointerEvent);
+      const nav = navRef.current?.getBoundingClientRect();
+      const hit = document.elementFromPoint(t.clientX, t.clientY);
+      const vv = window.visualViewport;
+      box.textContent =
+        `${type} y=${Math.round(t.clientY)} x=${Math.round(t.clientX)}\n` +
+        `nav top=${Math.round(nav?.top ?? 0)} bottom=${Math.round(nav?.bottom ?? 0)}\n` +
+        `innerH=${window.innerHeight} vv.h=${Math.round(vv?.height ?? 0)} vv.top=${Math.round(vv?.offsetTop ?? 0)} docH=${document.documentElement.clientHeight}\n` +
+        `target=${(e.target as HTMLElement)?.tagName}.${String((e.target as HTMLElement)?.className?.baseVal ?? (e.target as HTMLElement)?.className).slice(-24)}\n` +
+        `hit=${hit?.tagName}.${String((hit as HTMLElement)?.className?.baseVal ?? (hit as HTMLElement)?.className).slice(-24)}`;
+    };
+    const down = (e: Event) => log('pointerdown', e);
+    const click = (e: Event) => { box.textContent += `\nCLICK fired on ${(e.target as HTMLElement)?.tagName}`; };
+    document.addEventListener('pointerdown', down, true);
+    document.addEventListener('click', click, true);
+    return () => {
+      document.removeEventListener('pointerdown', down, true);
+      document.removeEventListener('click', click, true);
+      box.remove();
+    };
+  }, []);
+
   // Always reveal the nav when navigating to another page.
   useEffect(() => setHidden(false), [pathname]);
   useLayoutEffect(() => {
