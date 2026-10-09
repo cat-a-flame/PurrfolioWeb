@@ -206,6 +206,16 @@ function PredictionPanel({ variant, title, subtitle, items, loading }: {
                   <div className={styles.predictionMain}>
                     <span className={styles.predictionTitle}>{item.title}</span>
                     <span className={styles.predictionSubtitle}>{item.subtitle}</span>
+                    {/* Mobile only: the confidence column is hidden there */}
+                    <div className={styles.predictionConfidenceInline}>
+                      <div className={styles.predictionConfidenceTrack}>
+                        <div
+                          className={[styles.predictionConfidenceFill, isIncome ? styles.predictionConfidenceFillIncome : styles.predictionConfidenceFillExpense].join(' ')}
+                          style={{ width: `${item.confidencePct}%` }}
+                        />
+                      </div>
+                      <span className={styles.predictionConfidenceLabel}>{item.confidencePct}% sure</span>
+                    </div>
                   </div>
                 </td>
                 <td className={styles.predictionCellConfidence}>

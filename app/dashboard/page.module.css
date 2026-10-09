@@ -698,4 +698,9 @@
   .sideCard {
     flex-basis: 100%;
   }
+
+  /* Planned payments live in the Planned tab on mobile */
+  .plannedCard {
+    display: none;
+  }
 }

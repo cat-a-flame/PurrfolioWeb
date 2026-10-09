@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import EmojiBox from '@/components/ui/EmojiBox';
 import Skeleton from '@/components/ui/Skeleton';
 import { useBaseCurrency, useFormatBase } from '@/contexts/BaseCurrencyContext';
@@ -38,6 +39,8 @@ function groupFor(wallet: Wallet): GroupKey {
 export default function AccountsOverview({ summaries, rates, loading, hideNumbers, mask }: AccountsOverviewProps) {
   const baseCurrency = useBaseCurrency();
   const formatBase = useFormatBase();
+  // Only applies on mobile, where the card collapses to just its header.
+  const [expanded, setExpanded] = useState(false);
 
   if (loading) {
     return (
@@ -78,12 +81,22 @@ export default function AccountsOverview({ summaries, rates, loading, hideNumber
     hideNumbers ? mask : `${approximate ? '≈ ' : ''}${text}`;
 
   return (
-    <section className={styles.card} aria-label="Accounts">
-      <div className={styles.header}>
+    <section className={[styles.card, expanded ? styles.expanded : ''].filter(Boolean).join(' ')} aria-label="Accounts">
+      <button
+        type="button"
+        className={styles.header}
+        onClick={() => setExpanded(v => !v)}
+        aria-expanded={expanded}
+        aria-controls="accounts-details"
+      >
         <span className={styles.headerLabel}>Net worth</span>
         <span className={styles.headerValue}>{money(formatBase(netWorth), netApproximate)}</span>
-      </div>
+        <svg className={styles.chevron} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
 
+      <div id="accounts-details" className={styles.details}>
       {barTotal > 0 && (
         <div className={styles.bar} role="img" aria-label="Share of net worth by account group">
           {groups.filter(g => g.total > 0).map(g => (
@@ -118,6 +131,7 @@ export default function AccountsOverview({ summaries, rates, loading, hideNumber
             </ul>
           </div>
         ))}
+      </div>
       </div>
     </section>
   );

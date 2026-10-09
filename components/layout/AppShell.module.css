@@ -31,6 +31,6 @@
   .main {
     padding: var(--space-4);
     padding-top: calc(var(--mobile-header-h) + env(safe-area-inset-top) + var(--space-4));
-    padding-bottom: calc(var(--bottom-nav-space) + var(--space-4));
+    padding-bottom: var(--bottom-nav-space);
   }
 }

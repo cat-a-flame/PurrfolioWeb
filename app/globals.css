@@ -1,6 +1,7 @@
 :root {
   --color-bg: #f5f2ff;
   --color-surface: #ffffff;
+  --color-tab-bar: #ffffff;
   --color-surface-2: #f5f1fe;
   --color-surface-3: #ebe4fb;
   --color-glass: rgba(255, 255, 255, 0.66);
@@ -92,7 +93,7 @@
   --mobile-header-h: 60px;
   /* Fixed top bar height: TopNav on desktop, MobileHeader on phones. */
   --top-bar-h: 65px;
-  --bottom-nav-space: calc(88px + env(safe-area-inset-bottom));
+  --bottom-nav-space: 28px;
 
   color-scheme: light;
 }
@@ -100,6 +101,7 @@
 html[data-theme="dark"] {
   --color-bg: #0a0614;
   --color-surface: #140e24;
+  --color-tab-bar: #1a1330;
   --color-surface-2: #1d1633;
   --color-surface-3: #2a2147;
   --color-glass: rgba(22, 15, 40, 0.62);
@@ -264,9 +266,6 @@ svg {
     --top-bar-h: var(--mobile-header-h);
   }
 
-  body {
-    padding-bottom: var(--bottom-nav-space);
-  }
 }
 
 @media (hover: none) {

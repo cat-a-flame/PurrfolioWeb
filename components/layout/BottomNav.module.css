@@ -9,16 +9,32 @@
     position: fixed;
     left: 12px;
     right: 12px;
-    bottom: calc(10px + env(safe-area-inset-bottom));
+    /* Android reserves the bottom ~25px for its home gesture and doesn't deliver taps there,
+       so keep the interactive part of the pill above it (nothing sits in the last 8px). */
+    bottom: 16px;
     z-index: 200;
     height: 66px;
-    padding: 0 var(--space-2);
-    border-radius: 24px;
-    background: var(--color-glass-strong);
-    border: 1px solid var(--color-glass-border);
-    box-shadow: var(--shadow-nav);
-    -webkit-backdrop-filter: blur(22px) saturate(170%);
-    backdrop-filter: blur(22px) saturate(170%);
+    padding: 0 8px;
+    /* Animate `bottom` (not transform): a transformed fixed element gets its own compositor
+       layer, which on mobile Chrome can drift out of sync with where taps are hit-tested. */
+    transition: bottom 320ms var(--ease-out);
+  }
+
+  /* Slide fully off-screen (extra room for the ears, button and shadow) */
+  .navHidden {
+    bottom: -140px;
+  }
+
+  /* Opaque pill drawn in SVG so the notch can be cut out (mirrors the app) */
+  .pill {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    fill: var(--color-tab-bar, var(--color-surface));
+    stroke: var(--color-border);
+    stroke-width: 1;
+    filter: drop-shadow(0 12px 14px rgba(60, 30, 110, 0.22));
   }
 
   .tab {
@@ -28,7 +44,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 3px;
     height: 100%;
     color: var(--color-text-muted);
     text-decoration: none;
@@ -73,10 +89,8 @@
   }
 
   .addBtn {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: relative;
+    flex: 0 0 88px;
     height: 100%;
     background: none;
     border: none;
@@ -84,12 +98,25 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* Cat ears peek out from behind the round button */
+  .ears {
+    position: absolute;
+    left: 50%;
+    top: -25px;
+    margin-left: -28px;
+    fill: var(--color-accent);
+    pointer-events: none;
+  }
+
   .addIcon {
-    width: 52px;
-    height: 52px;
-    margin-top: -26px;
-    border-radius: 18px;
-    background: var(--gradient-accent);
+    position: absolute;
+    left: 50%;
+    top: -15px;
+    margin-left: -28px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--color-accent);
     color: #fff;
     display: flex;
     align-items: center;
@@ -97,18 +124,17 @@
     font-size: 1.75rem;
     font-weight: 300;
     line-height: 1;
-    border: 3px solid var(--color-surface);
-    box-shadow: 0 12px 24px -8px var(--color-accent-glow);
-    transform: rotate(0deg);
+    box-shadow: 0 0 10px var(--color-accent-glow);
+    z-index: 1;
     transition: transform 360ms var(--ease-spring), box-shadow var(--transition-base);
   }
 
   .addBtn:hover .addIcon {
-    transform: rotate(90deg);
+    transform: scale(1.05);
   }
 
   .addBtn:active .addIcon {
-    transform: rotate(90deg) scale(0.92);
+    transform: scale(0.92);
   }
 
   .iconWrap {
