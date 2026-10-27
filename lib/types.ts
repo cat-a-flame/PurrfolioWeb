@@ -69,6 +69,7 @@ export type RecurringPayment = {
   start_date: string;
   end_date: string | null;
   is_active: boolean;
+  auto_add: boolean;
   notes: string | null;
   payer: string | null;
   created_at: string;
