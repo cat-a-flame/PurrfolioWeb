@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { generateDueDates, isoDate, monthBounds } from '@/lib/recurringUtils';
+import { autoAddDuePayments } from '@/lib/autoAddPayments';
 import type { RecurringPayment, RecurringOccurrence } from '@/lib/types';
 
 const RecurringAlertContext = createContext(false);
@@ -14,6 +15,8 @@ export function RecurringAlertProvider({ children }: { children: React.ReactNode
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+
+    await autoAddDuePayments();
 
     const today = new Date();
     const todayIso = isoDate(today);

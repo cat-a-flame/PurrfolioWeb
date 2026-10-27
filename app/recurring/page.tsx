@@ -12,6 +12,7 @@ import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
 import LabelSelect from '@/components/ui/LabelSelect';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
+import Switch from '@/components/ui/Switch';
 import Skeleton from '@/components/ui/Skeleton';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
 import Toast from '@/components/ui/Toast';
@@ -47,13 +48,14 @@ interface FormFields {
   endDate: string;
   notes: string;
   payer: string;
+  autoAdd: boolean;
   labelIds: string[];
 }
 
 const EMPTY_FORM: FormFields = {
   name: '', type: 'expense', amount: '', walletId: '', categoryId: '',
   frequency: 'monthly', startDate: isoDate(new Date()), endDate: '', notes: '', payer: '',
-  labelIds: [],
+  autoAdd: false, labelIds: [],
 };
 
 function defaultPeriod(): PeriodValue {
@@ -319,6 +321,7 @@ export default function RecurringPage() {
       end_date: addForm.endDate || null,
       notes: addForm.notes.trim() || null,
       payer: addForm.payer.trim() || null,
+      auto_add: addForm.autoAdd,
     }).select().single();
 
     if (error || !inserted) {
@@ -343,7 +346,7 @@ export default function RecurringPage() {
       name: p.name, type: p.type, amount: String(p.amount),
       walletId: p.wallet_id ?? '', categoryId: p.category_id ?? '',
       frequency: p.frequency, startDate: p.start_date, endDate: p.end_date ?? '',
-      notes: p.notes ?? '', payer: p.payer ?? '',
+      notes: p.notes ?? '', payer: p.payer ?? '', autoAdd: p.auto_add,
       labelIds: p.labels?.map(l => l.id) ?? [],
     });
     setEditingPayment(p);
@@ -368,6 +371,7 @@ export default function RecurringPage() {
       end_date: editForm.endDate || null,
       notes: editForm.notes.trim() || null,
       payer: editForm.payer.trim() || null,
+      auto_add: editForm.autoAdd,
     }).eq('id', editingPayment.id);
 
     if (error) {
@@ -871,6 +875,15 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
               <FormLabel>Notes <span className={styles.optional}>(optional)</span></FormLabel>
               <Input value={form.notes} onChange={e => set({ ...form, notes: e.target.value })} />
             </div>
+          </div>
+
+          <div className={styles.field}>
+            <Switch
+              id="recurring-auto-add"
+              checked={form.autoAdd}
+              onChange={v => set({ ...form, autoAdd: v })}
+              label="Add automatically on the due date"
+            />
           </div>
 
           {labels.length > 0 && (
