@@ -14,7 +14,7 @@
 
 .pageTitle {
   font-family: var(--font-display);
-  font-size: 1.75rem;
+  font-size: 2rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.1;
@@ -68,7 +68,7 @@
 .stepActive .stepBubble {
   border-color: var(--color-accent);
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
 }
 
 .stepActive .stepLabel {
@@ -386,7 +386,7 @@
   padding: var(--space-3) var(--space-5);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
-  background: color-mix(in srgb, #22c55e 8%, var(--color-surface));
+  background: color-mix(in srgb, var(--color-income) 8%, var(--color-surface));
   min-width: 120px;
 }
 
@@ -467,7 +467,7 @@
   border-radius: var(--radius-sm);
   font-size: 0.75rem;
   font-weight: 600;
-  background: color-mix(in srgb, #22c55e 15%, transparent);
+  background: color-mix(in srgb, var(--color-income) 15%, transparent);
   color: #15803d;
 }
 
@@ -483,7 +483,7 @@
 
 .amtIncome {
   font-weight: 600;
-  color: #16a34a;
+  color: var(--color-income);
   white-space: nowrap;
 }
 
@@ -525,7 +525,7 @@
 .autoMatched {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #16a34a;
+  color: var(--color-income);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -550,7 +550,7 @@
 }
 
 .statusOk {
-  color: #16a34a;
+  color: var(--color-income);
   font-weight: 700;
   font-size: 0.8125rem;
 }
@@ -651,7 +651,7 @@
 .resultSuccess {
   font-size: 1rem;
   font-weight: 600;
-  color: #16a34a;
+  color: var(--color-income);
 }
 
 .resultSkipped {
