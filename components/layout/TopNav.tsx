@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useCurrentUser } from '@/contexts/UserContext';
 import { useRecurringAlert } from '@/contexts/RecurringAlertContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FiCreditCard, FiDownload, FiFolder, FiTag, FiUpload } from 'react-icons/fi';
+import { FiCreditCard, FiDownload, FiFolder, FiSettings, FiTag, FiUpload } from 'react-icons/fi';
 import styles from './TopNav.module.css';
 
 const navItems = [
@@ -27,14 +27,6 @@ const settingsItems = [
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + '/');
-}
-
-function Chevron() {
-  return (
-    <svg className={styles.chevron} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
 }
 
 /** Closes on outside click, Escape and navigation. */
@@ -120,10 +112,10 @@ export default function TopNav() {
               className={[styles.navLink, styles.menuTrigger, settingsActive ? styles.navLinkActive : ''].filter(Boolean).join(' ')}
               aria-haspopup="menu"
               aria-expanded={settings.open}
+              aria-label="Settings"
               onClick={() => settings.setOpen(o => !o)}
             >
-              Settings
-              <Chevron />
+              <FiSettings size={20} aria-hidden />
             </button>
             {settings.open && (
               <div className={styles.menu} role="menu">

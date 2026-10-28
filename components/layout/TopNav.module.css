@@ -129,12 +129,17 @@
   position: relative;
 }
 
-.chevron {
-  transition: transform var(--transition-base);
+.menuTrigger {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  justify-content: center;
+  border-radius: var(--radius-full);
 }
 
-.menuTrigger[aria-expanded='true'] .chevron {
-  transform: rotate(180deg);
+.menuTrigger[aria-expanded='true'] {
+  background: var(--color-surface-2);
+  color: var(--color-text);
 }
 
 .userBtn {
