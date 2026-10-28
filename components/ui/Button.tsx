@@ -1,7 +1,7 @@
 import styles from './Button.module.css';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'link';
-type ButtonSize = 'sm' | 'md' | 'lg';
+type ButtonSize = 'sm' | 'md';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -30,7 +30,7 @@ export default function Button({
     .join(' ');
 
   return (
-    <button className={cls} disabled={disabled || loading} {...props}>
+    <button className={cls} disabled={disabled || loading} aria-busy={loading || undefined} {...props}>
       {loading ? <span className={styles.spinner} aria-hidden="true" /> : null}
       <span className={loading ? styles.hiddenText : undefined}>{children}</span>
     </button>

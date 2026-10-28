@@ -116,13 +116,13 @@
 
 .tabActive {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
   font-weight: 600;
 }
 
 .tabActive:hover {
   background: var(--color-accent-hover);
-  color: #fff;
+  color: var(--color-on-accent);
 }
 
 .panel {
@@ -190,7 +190,7 @@
 
 .cellSelected {
   background: var(--color-accent) !important;
-  color: #fff !important;
+  color: var(--color-on-accent) !important;
   font-weight: 700;
 }
 
@@ -248,7 +248,7 @@
 }
 
 .weekRow.cellSelected .weekDay {
-  color: #fff;
+  color: var(--color-on-accent);
 }
 
 .weekDayOut {
@@ -265,7 +265,7 @@
 }
 
 .weekRow.cellSelected .weekDayToday {
-  color: #fff;
+  color: var(--color-on-accent);
 }
 
 .customFields {
@@ -303,22 +303,9 @@
 
 .customDate:focus {
   border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 3px var(--color-accent-light);
+  box-shadow: 0 0 0 1px var(--color-border-focus), 0 0 0 5px var(--color-accent-halo);
 }
 
 .applyBtn {
-  height: 38px;
   width: 100%;
-  background: var(--color-accent);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-md);
-  font-family: var(--font-nunito);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity var(--transition-fast);
 }
-
-.applyBtn:hover:not(:disabled) { opacity: 0.88; }
-.applyBtn:disabled { opacity: 0.4; cursor: not-allowed; }

@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useId, useRef } from 'react';
+import { useDialogFocus } from './useDialogFocus';
 import styles from './Dialog.module.css';
 
 interface DialogProps {
@@ -13,6 +14,10 @@ interface DialogProps {
 }
 
 export default function Dialog({ title, subtitle, icon, onClose, children, maxWidth }: DialogProps) {
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(panelRef, { bodySelector: `.${styles.body}` });
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') { e.preventDefault(); onClose(); }
@@ -24,17 +29,18 @@ export default function Dialog({ title, subtitle, icon, onClose, children, maxWi
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div
+        ref={panelRef}
         className={styles.panel}
         style={maxWidth ? { maxWidth } : undefined}
         onClick={e => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="dialog-title"
+        aria-labelledby={titleId}
       >
         <div className={[styles.header, icon ? styles.headerWithIcon : ''].filter(Boolean).join(' ')}>
           {icon ? <div className={styles.headerIcon}>{icon}</div> : null}
           <div className={styles.headerText}>
-            <h2 id="dialog-title" className={styles.title}>{title}</h2>
+            <h2 id={titleId} className={styles.title}>{title}</h2>
             {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
           </div>
           <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">✕</button>

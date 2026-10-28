@@ -23,10 +23,14 @@
   box-sizing: border-box;
 }
 
+.trigger:hover {
+  border-color: var(--color-accent);
+}
+
 .trigger:focus,
 .triggerOpen {
   border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 3px var(--color-accent-light);
+  box-shadow: 0 0 0 1px var(--color-border-focus), 0 0 0 5px var(--color-accent-halo);
   outline: none;
 }
 
@@ -128,7 +132,7 @@
 .optionChecked .checkbox {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
 }
 
 .dot {

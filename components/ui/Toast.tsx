@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styles from './Toast.module.css';
 
 export type ToastVariant = 'success' | 'error';
@@ -19,21 +19,24 @@ export default function Toast({
   onDismiss,
 }: ToastProps) {
   const [leaving, setLeaving] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const remaining = useRef(duration);
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
 
+  // Hovering or focusing the toast pauses the countdown; leaving resumes with the time that was left.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLeaving(true);
-    }, duration - 300);
-
-    const cleanup = setTimeout(() => {
-      onDismiss();
-    }, duration);
+    if (paused) return;
+    const startedAt = Date.now();
+    const timer = setTimeout(() => setLeaving(true), Math.max(remaining.current - 300, 0));
+    const cleanup = setTimeout(() => onDismissRef.current(), remaining.current);
 
     return () => {
       clearTimeout(timer);
       clearTimeout(cleanup);
+      remaining.current = Math.max(remaining.current - (Date.now() - startedAt), 0);
     };
-  }, [duration, onDismiss]);
+  }, [paused]);
 
   return (
     <div
@@ -44,7 +47,11 @@ export default function Toast({
       ]
         .filter(Boolean)
         .join(' ')}
-      role="alert"
+      role={variant === 'error' ? 'alert' : 'status'}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
     >
       <span className={styles.message}>{message}</span>
       <button

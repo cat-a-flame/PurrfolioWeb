@@ -186,7 +186,7 @@ export default function TwoFactorSection({ onMessage }: TwoFactorSectionProps) {
             <div className={styles.actions}>
               <Button
                 type="button"
-                variant="secondary"
+                variant="ghost"
                 size="md"
                 onClick={enrollment ? cancelSetup : () => setDisabling(false)}
                 disabled={busy}

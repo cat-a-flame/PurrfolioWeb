@@ -22,26 +22,34 @@
     linear-gradient(135deg, #2c1370 0%, #5a22c8 50%, #9b2bc9 100%);
 
   --color-text: rgb(95, 76, 121);
-  --color-text-muted: rgb(154, 140, 171);
-  --color-text-faint: #9a8fb2;
+  --color-text-muted: #726185;
+  --color-text-faint: #766796;
 
   --color-border: #e8e1f6;
   --color-border-light: #f0ebfa;
   --color-border-focus: #7433e6;
   --color-accent-glow: rgba(116, 51, 230, 0.4);
   --color-accent-glow2: 116, 51, 230;
+  --color-accent-halo: rgba(116, 51, 230, 0.16);
+  --color-control-border: #9b7cd8;
+  --color-on-accent: #ffffff;
   --color-accent-border: rgba(116, 51, 230, 0.22);
   --color-overlay: rgba(28, 16, 52, 0.38);
   --color-scrollbar-thumb: #d8cdee;
 
-  --color-danger: #e0344a;
+  --color-danger: #d42037;
   --color-danger-hover: #c52238;
   --color-danger-light: #fdecef;
 
   --color-income: #0f7a57;
   --color-income-light: #d3f5e6;
-  --color-expense: #e0344a;
-  --color-expense-light: #fdecef;
+  --color-expense: var(--color-danger);
+  --color-expense-light: var(--color-danger-light);
+
+  --toast-success-start: #0f7a57;
+  --toast-success-end: #0f8760;
+  --toast-error-start: #d02a45;
+  --toast-error-end: #e71e3d;
 
   --aurora-1: rgba(139, 92, 246, 0.36);
   --aurora-2: rgba(236, 72, 153, 0.24);
@@ -119,13 +127,16 @@ html[data-theme="dark"] {
 
   --color-text: #f4efff;
   --color-text-muted: #b3a7d0;
-  --color-text-faint: #7d71a0;
+  --color-text-faint: #9288af;
 
   --color-border: #2c2346;
   --color-border-light: #231b3b;
   --color-border-focus: #a78bfa;
   --color-accent-glow: rgba(167, 139, 250, 0.45);
   --color-accent-glow2: 167, 139, 250;
+  --color-accent-halo: rgba(167, 139, 250, 0.16);
+  --color-control-border: #6e59ac;
+  --color-on-accent: #140e24;
   --color-accent-border: rgba(167, 139, 250, 0.28);
   --color-overlay: rgba(4, 0, 12, 0.66);
   --color-scrollbar-thumb: #33295a;
@@ -136,8 +147,8 @@ html[data-theme="dark"] {
 
   --color-income: #4ef0a8;
   --color-income-light: #0b2c20;
-  --color-expense: #ff6b7d;
-  --color-expense-light: #3a1220;
+  --color-expense: var(--color-danger);
+  --color-expense-light: var(--color-danger-light);
 
   --aurora-1: rgba(124, 77, 255, 0.42);
   --aurora-2: rgba(219, 39, 119, 0.28);

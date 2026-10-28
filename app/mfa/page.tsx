@@ -92,21 +92,16 @@ export default function MfaPage() {
 
           {error && <p className={styles.error}>{error}</p>}
 
-          <Button type="submit" variant="primary" size="lg" loading={loading} className={styles.submitBtn}>
+          <Button type="submit" variant="primary" size="md" loading={loading} className={styles.submitBtn}>
             Verify
           </Button>
         </form>
 
         <p className={styles.switchLink}>
           Not you?{' '}
-          <button
-            type="button"
-            onClick={handleSignOut}
-            disabled={signingOut}
-            className={`${styles.link} ${styles.linkButton}`}
-          >
+          <Button type="button" variant="link" size="sm" onClick={handleSignOut} disabled={signingOut}>
             Sign out
-          </button>
+          </Button>
         </p>
       </div>
     </div>

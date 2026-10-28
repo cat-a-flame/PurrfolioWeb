@@ -489,7 +489,7 @@ export default function TransactionsPage() {
       <div className={styles.container}>
         <div className={styles.pageHeader}>
           <h1 className={styles.pageTitle}>Transactions</h1>
-          <Button variant="primary" size="lg" onClick={openAddDialog} className={styles.headerAddBtn}>+ Add transaction</Button>
+          <Button variant="primary" size="md" onClick={openAddDialog} className={styles.headerAddBtn}>+ Add transaction</Button>
         </div>
 
         <TransactionFilters
@@ -738,7 +738,7 @@ export default function TransactionsPage() {
             </div>
           </div>
           <div className={styles.bulkDialogActions}>
-            <Button variant="secondary" onClick={() => setBulkAction(null)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setBulkAction(null)}>Cancel</Button>
             <Button variant="primary" loading={isBulkSaving} onClick={executeBulkAction}>
               Apply to {selectedIds.size}
             </Button>
@@ -755,7 +755,7 @@ export default function TransactionsPage() {
             This will permanently delete {selectedIds.size} transaction{selectedIds.size !== 1 ? 's' : ''}. Transfer pairs will be deleted in full.
           </p>
           <div className={styles.bulkDialogActions}>
-            <Button variant="secondary" onClick={() => setBulkAction(null)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setBulkAction(null)}>Cancel</Button>
             <Button variant="danger" loading={isBulkSaving} onClick={executeBulkAction}>Delete</Button>
           </div>
         </Dialog>

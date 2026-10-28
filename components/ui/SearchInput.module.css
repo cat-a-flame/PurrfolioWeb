@@ -24,12 +24,12 @@
 }
 
 .field:hover:not(:focus-within) {
-  border-color: var(--color-accent-border);
+  border-color: var(--color-accent);
 }
 
 .field:focus-within {
   border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 4px rgba(var(--color-accent-glow2), 0.16), 0 8px 20px -12px var(--color-accent-glow);
+  box-shadow: 0 0 0 1px var(--color-border-focus), 0 0 0 5px var(--color-accent-halo);
 }
 
 .icon {

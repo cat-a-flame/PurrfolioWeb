@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
+import Button from './Button';
 import styles from './PeriodPicker.module.css';
 
 const DROPDOWN_WIDTH = 300;
@@ -318,9 +319,9 @@ export default function PeriodPicker({ value, onChange, onClear, hideNav }: Prop
                   <input type="date" className={styles.customDate} value={cto} onChange={e => setCto(e.target.value)} />
                 </div>
               </div>
-              <button className={styles.applyBtn} onClick={applyCustom} disabled={!cfrom || !cto}>
+              <Button size="sm" className={styles.applyBtn} onClick={applyCustom} disabled={!cfrom || !cto}>
                 Apply
-              </button>
+              </Button>
             </div>
           )}
         </div>,

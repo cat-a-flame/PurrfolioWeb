@@ -23,12 +23,12 @@
 }
 
 .control:hover {
-  border-color: var(--color-border-focus);
+  border-color: var(--color-accent);
 }
 
 .controlOpen {
   border-color: var(--color-border-focus);
-  box-shadow: 0 0 0 3px var(--color-accent-light);
+  box-shadow: 0 0 0 1px var(--color-border-focus), 0 0 0 5px var(--color-accent-halo);
 }
 
 .controlValue {

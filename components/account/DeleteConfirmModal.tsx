@@ -73,7 +73,7 @@ export default function DeleteConfirmModal({
         </div>
 
         <div className={styles.actions}>
-          <Button type="button" variant="secondary" size="md" onClick={onClose} disabled={loading}>
+          <Button type="button" variant="ghost" size="md" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
           <Button type="submit" variant="danger" size="md" disabled={!canConfirm} loading={loading}>

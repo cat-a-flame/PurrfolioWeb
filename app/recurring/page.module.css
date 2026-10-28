@@ -234,7 +234,7 @@
 }
 
 .dueDateBadgeOverdue {
-  color: var(--color-error, #ef4444);
+  color: var(--color-danger);
 }
 
 .dueDialogAmount {
@@ -245,8 +245,8 @@
   margin-bottom: var(--space-2);
 }
 
-.amtExpense { color: var(--color-expense, #ef4444); }
-.amtIncome  { color: var(--color-income, #22c55e); }
+.amtExpense { color: var(--color-expense); }
+.amtIncome  { color: var(--color-income); }
 
 .nextDue {
   font-size: 0.75rem;
@@ -316,10 +316,10 @@
   background: var(--color-border);
   color: var(--color-text);
 }
-.kebabItemDanger { color: var(--color-error, #ef4444); }
+.kebabItemDanger { color: var(--color-danger); }
 .kebabItemDanger:hover {
-  background: color-mix(in srgb, var(--color-error, #ef4444) 12%, transparent);
-  color: var(--color-error, #ef4444);
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  color: var(--color-danger);
 }
 
 .overlay {
@@ -447,7 +447,7 @@
 }
 
 .formError {
-  color: var(--color-error, #ef4444);
+  color: var(--color-danger);
   font-size: 0.875rem;
 }
 

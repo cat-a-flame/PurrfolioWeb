@@ -1095,7 +1095,7 @@ export default function ImportPage() {
           </div>
 
           <div className={styles.actions}>
-            <Button variant="secondary" size="md" onClick={() => setStep(1)}>← Back</Button>
+            <Button variant="ghost" size="md" onClick={() => setStep(1)}>← Back</Button>
             <Button variant="primary" size="md" onClick={goToPreview}>Preview →</Button>
           </div>
         </section>
@@ -1226,7 +1226,7 @@ export default function ImportPage() {
               {displayedRows.length === 0 && <p className={styles.truncNote}>No rows to show for this filter.</p>}
 
               <div className={styles.actions}>
-                <Button variant="secondary" size="md" onClick={() => setStep(2)} disabled={importing}>← Back</Button>
+                <Button variant="ghost" size="md" onClick={() => setStep(2)} disabled={importing}>← Back</Button>
                 <Button variant="primary" size="md" loading={importing} disabled={validCount === 0 || importing} onClick={handleImport}>
                   Import {validCount} transaction{validCount !== 1 ? 's' : ''}
                 </Button>

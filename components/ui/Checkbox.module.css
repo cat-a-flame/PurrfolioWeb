@@ -2,7 +2,7 @@
 .box {
   width: 16px;
   height: 16px;
-  border: 1.5px solid var(--color-border);
+  border: 1.5px solid var(--color-control-border);
   border-radius: 3px;
   flex-shrink: 0;
   display: flex;
@@ -11,12 +11,12 @@
   font-size: 0.6875rem;
   font-weight: 700;
   line-height: 1;
-  color: #fff;
+  color: var(--color-on-accent);
   background: var(--color-surface);
 }
 
 .on {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
 }

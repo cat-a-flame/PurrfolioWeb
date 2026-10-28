@@ -568,7 +568,7 @@ export default function TransactionForm({
                                 Delete
                             </Button>
                         )}
-                        <Button type="submit" variant="primary" size="lg" loading={saving}>
+                        <Button type="submit" variant="primary" size="md" loading={saving}>
                             {mode === 'transfer' ? 'Transfer' : transaction ? 'Save changes' : 'Add record'}
                         </Button>
                     </div>
