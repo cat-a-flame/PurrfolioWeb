@@ -26,7 +26,7 @@ export default function Switch({ checked, onChange, disabled, label, id }: Switc
         <span className={styles.thumb} />
       </button>
       {label && (
-        <label htmlFor={id} className={labelClass} onClick={() => !disabled && onChange(!checked)}>
+        <label htmlFor={id} className={labelClass}>
           {label}
         </label>
       )}

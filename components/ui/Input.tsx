@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import styles from './Input.module.css';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -5,6 +6,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export default function Input({ error, className, ...props }: InputProps) {
+  const errorId = useId();
   return (
     <div className={styles.wrapper}>
       <input
@@ -12,8 +14,10 @@ export default function Input({ error, className, ...props }: InputProps) {
           .filter(Boolean)
           .join(' ')}
         {...props}
+        aria-invalid={error ? true : props['aria-invalid']}
+        aria-describedby={error ? [props['aria-describedby'], errorId].filter(Boolean).join(' ') : props['aria-describedby']}
       />
-      {error ? <p className={styles.error}>{error}</p> : null}
+      {error ? <p id={errorId} className={styles.error}>{error}</p> : null}
     </div>
   );
 }
