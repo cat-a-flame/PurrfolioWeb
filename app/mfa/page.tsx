@@ -99,14 +99,9 @@ export default function MfaPage() {
 
         <p className={styles.switchLink}>
           Not you?{' '}
-          <button
-            type="button"
-            onClick={handleSignOut}
-            disabled={signingOut}
-            className={`${styles.link} ${styles.linkButton}`}
-          >
+          <Button type="button" variant="link" size="sm" onClick={handleSignOut} disabled={signingOut}>
             Sign out
-          </button>
+          </Button>
         </p>
       </div>
     </div>

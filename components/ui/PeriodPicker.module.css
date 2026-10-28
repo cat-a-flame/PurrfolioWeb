@@ -307,18 +307,5 @@
 }
 
 .applyBtn {
-  height: 38px;
   width: 100%;
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  border: none;
-  border-radius: var(--radius-md);
-  font-family: var(--font-nunito);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity var(--transition-fast);
 }
-
-.applyBtn:hover:not(:disabled) { opacity: 0.88; }
-.applyBtn:disabled { opacity: 0.4; cursor: not-allowed; }
