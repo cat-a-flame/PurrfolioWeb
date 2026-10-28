@@ -11,7 +11,7 @@ export function makeRsStyles<
       ...base,
       minHeight: minH,
       background: 'var(--color-surface)',
-      borderColor: state.isFocused ? 'var(--color-border-focus)' : 'var(--color-control-border)',
+      borderColor: state.isFocused ? 'var(--color-border-focus)' : 'var(--color-border)',
       borderRadius: 'var(--radius-sm)',
       boxShadow: state.isFocused ? '0 0 0 1px var(--color-border-focus), 0 0 0 5px var(--color-accent-halo)' : 'none',
       fontFamily: 'var(--font-nunito)',
