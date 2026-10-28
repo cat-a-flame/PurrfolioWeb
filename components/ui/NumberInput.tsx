@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import styles from './Input.module.css';
 
 function addSpaces(raw: string): string {
@@ -41,8 +41,9 @@ interface Props extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'
   onChange: (raw: string) => void;
 }
 
-export default function NumberInput({ value, onChange, className, ...rest }: Props) {
+export default function NumberInput({ value, onChange, className, placeholder, onFocus, onBlur, ...rest }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [focused, setFocused] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const el = e.target;
@@ -70,6 +71,9 @@ export default function NumberInput({ value, onChange, className, ...rest }: Pro
       <input
         ref={inputRef}
         {...rest}
+        placeholder={focused ? undefined : placeholder}
+        onFocus={(e) => { setFocused(true); onFocus?.(e); }}
+        onBlur={(e) => { setFocused(false); onBlur?.(e); }}
         type="text"
         inputMode="decimal"
         className={[styles.input, className ?? ''].filter(Boolean).join(' ')}
