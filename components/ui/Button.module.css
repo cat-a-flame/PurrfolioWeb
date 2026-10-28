@@ -28,21 +28,15 @@
 
 .sm {
   font-size: 0.8125rem;
-  padding: var(--space-1) var(--space-3);
-  height: 32px;
+  padding: 0 var(--space-4);
+  height: 38px;
+  border-radius: var(--radius-full);
 }
 
 .md {
   font-size: 0.9375rem;
-  padding: var(--space-2) var(--space-5);
-  height: 42px;
-  border-radius: var(--radius-full);
-}
-
-.lg {
-  font-size: 1rem;
-  padding: var(--space-4) var(--space-6);
-  height: 52px;
+  padding: 0 var(--space-5);
+  height: 44px;
   border-radius: var(--radius-full);
 }
 
@@ -109,13 +103,14 @@
 }
 
 .danger {
-  background: transparent;
+  background: var(--color-danger-light);
   color: var(--color-danger);
   border: 1px solid transparent;
 }
 
 .danger:hover:not(:disabled) {
   background: var(--color-danger-light);
+  border-color: var(--color-danger);
 }
 
 /* Tertiary: text only, like the inline links on the login pages. Comes after the sizes so it drops their padding and height. */
@@ -127,10 +122,8 @@
   border-radius: 0;
   color: var(--color-accent);
   font-weight: 800;
-}
-
-.link:hover:not(:disabled) {
   text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .loading {

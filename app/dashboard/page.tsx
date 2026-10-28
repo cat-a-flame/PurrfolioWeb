@@ -462,7 +462,7 @@ export default function DashboardPage() {
               {hideNumbers ? <FiEyeOff size={18} /> : <FiEye size={18} />}
             </button>
           </div>
-          <Button variant="primary" size="lg" onClick={openAddDialog} className={styles.headerAddBtn}>+ Add transaction</Button>
+          <Button variant="primary" size="md" onClick={openAddDialog} className={styles.headerAddBtn}>+ Add transaction</Button>
         </div>
 
         <AccountsOverview

@@ -113,7 +113,7 @@ export default function LabelsSettingsPage() {
           <div className={styles.eyebrow}>Tag your transactions</div>
           <h1 className={styles.title}>Labels</h1>
         </div>
-        <Button variant="primary" size="lg" onClick={openCreate}>+ New label</Button>
+        <Button variant="primary" size="md" onClick={openCreate}>+ New label</Button>
       </div>
 
       {loading ? (

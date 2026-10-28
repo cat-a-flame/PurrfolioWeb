@@ -130,7 +130,7 @@ export default function SignupPage() {
 
           {error && <p className={styles.error}>{error}</p>}
 
-          <Button type="submit" variant="primary" size="lg" loading={loading} className={styles.submitBtn}>
+          <Button type="submit" variant="primary" size="md" loading={loading} className={styles.submitBtn}>
             Create account
           </Button>
         </form>

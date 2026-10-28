@@ -77,7 +77,7 @@ export default function LabelEditorModal({
             </Button>
           )}
           <div className={styles.spacer} />
-          <Button type="button" variant="secondary" size="md" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="ghost" size="md" onClick={onClose}>Cancel</Button>
           <Button type="submit" variant="primary" size="md" loading={saving}>
             {isEdit ? 'Save changes' : 'Create label'}
           </Button>

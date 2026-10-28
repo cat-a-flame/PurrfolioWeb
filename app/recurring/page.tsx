@@ -481,7 +481,7 @@ export default function RecurringPage() {
             <div>
               <h1 className={styles.pageTitle}>Planned payments</h1>
             </div>
-            <Button variant="primary" size="lg" onClick={() => { setAddForm({ ...EMPTY_FORM, walletId: wallets.find(w => w.is_default && !w.is_archived)?.id ?? wallets.find(w => !w.is_archived)?.id ?? '' }); setShowAddDialog(true); setAddError(''); }}>
+            <Button variant="primary" size="md" onClick={() => { setAddForm({ ...EMPTY_FORM, walletId: wallets.find(w => w.is_default && !w.is_archived)?.id ?? wallets.find(w => !w.is_archived)?.id ?? '' }); setShowAddDialog(true); setAddError(''); }}>
               <span className={styles.labelFull}>+ New planned payment</span>
               <span className={styles.labelShort}>+ New</span>
             </Button>
@@ -896,7 +896,7 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
           {error && <p className={styles.formError}>{error}</p>}
 
           <div className={styles.actions}>
-            <Button variant="secondary" size="md" onClick={onClose}>Cancel</Button>
+            <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
             <Button variant="primary" size="md" onClick={onSave} disabled={saving}>
               {saving ? 'Saving…' : 'Save'}
             </Button>

@@ -23,7 +23,7 @@ export default function ConfirmDialog({
   confirmLabel = 'Delete',
   cancelLabel = 'Cancel',
   confirmVariant = 'danger',
-  cancelVariant = 'secondary',
+  cancelVariant = 'ghost',
   onConfirm,
   onCancel,
   onDismiss,

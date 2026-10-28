@@ -178,7 +178,7 @@ export default function AccountsSettingsPage() {
           <div className={styles.eyebrow}>Track your balances</div>
           <h1 className={styles.title}>Accounts</h1>
         </div>
-        <Button variant="primary" size="lg" onClick={openCreate}>+ New account</Button>
+        <Button variant="primary" size="md" onClick={openCreate}>+ New account</Button>
       </div>
 
       {loading ? (

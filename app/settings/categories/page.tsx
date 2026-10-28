@@ -159,7 +159,7 @@ export default function CategoriesSettingsPage() {
           <div className={styles.eyebrow}>Organize your spending</div>
           <h1 className={styles.title}>Categories</h1>
         </div>
-        <Button variant="primary" size="lg" onClick={openCreate}>+ New category</Button>
+        <Button variant="primary" size="md" onClick={openCreate}>+ New category</Button>
       </div>
 
       {loading ? (
