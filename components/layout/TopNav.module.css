@@ -173,7 +173,6 @@
   font-weight: 700;
   font-size: 1rem;
   font-family: var(--font-display);
-  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-accent-border);
 }
 
 .userName {
