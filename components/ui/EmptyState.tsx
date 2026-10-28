@@ -14,7 +14,7 @@ interface EmptyStateProps {
 export default function EmptyState({ icon, title, hint, action, compact, className }: EmptyStateProps) {
   return (
     <div className={[styles.wrap, compact ? styles.wrapCompact : '', className].filter(Boolean).join(' ')}>
-      <span className={[styles.icon, compact ? styles.iconCompact : ''].filter(Boolean).join(' ')}>{icon}</span>
+      <span className={[styles.icon, compact ? styles.iconCompact : ''].filter(Boolean).join(' ')} aria-hidden>{icon}</span>
       {title && <p className={styles.title}>{title}</p>}
       {hint && <p className={[styles.hint, compact ? styles.hintCompact : ''].filter(Boolean).join(' ')}>{hint}</p>}
       {action}

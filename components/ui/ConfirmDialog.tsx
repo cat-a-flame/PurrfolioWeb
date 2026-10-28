@@ -1,6 +1,8 @@
 'use client';
 
+import { useId, useRef } from 'react';
 import Button from './Button';
+import { useDialogFocus } from './useDialogFocus';
 import styles from './ConfirmDialog.module.css';
 
 interface ConfirmDialogProps {
@@ -29,24 +31,30 @@ export default function ConfirmDialog({
   onDismiss,
   loading = false,
 }: ConfirmDialogProps) {
+  const titleId = useId();
+  const messageId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialogRef, { initialFocus: '[data-cancel]' });
+
   return (
     <div className={styles.overlay} onClick={onDismiss ?? onCancel}>
       <div
+        ref={dialogRef}
         className={styles.dialog}
         onClick={(e) => e.stopPropagation()}
         role="alertdialog"
         aria-modal="true"
-        aria-labelledby="confirm-title"
-        aria-describedby="confirm-message"
+        aria-labelledby={titleId}
+        aria-describedby={messageId}
       >
-        <h2 id="confirm-title" className={styles.title}>
+        <h2 id={titleId} className={styles.title}>
           {title}
         </h2>
-        <div id="confirm-message" className={styles.message}>
+        <div id={messageId} className={styles.message}>
           {message}
         </div>
         <div className={styles.actions}>
-          <Button variant={cancelVariant} size="md" onClick={onCancel} disabled={loading}>
+          <Button variant={cancelVariant} size="md" data-cancel onClick={onCancel} disabled={loading}>
             {cancelLabel}
           </Button>
           <Button variant={confirmVariant} size="md" onClick={onConfirm} loading={loading}>
