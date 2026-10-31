@@ -696,13 +696,13 @@ export default function RecurringPage() {
         </div>
 
       {showAddDialog && (
-        <PaymentModal form={addForm} set={setAddForm} title="Add recurring payment"
+        <PaymentModal form={addForm} set={setAddForm} title="Add planned payment"
           error={addError} saving={addSaving} onSave={handleAdd} onClose={() => setShowAddDialog(false)}
           wallets={wallets} categories={categories} labels={labels} />
       )}
 
       {editingPayment && (
-        <PaymentModal form={editForm} set={setEditForm} title="Edit recurring payment"
+        <PaymentModal form={editForm} set={setEditForm} title="Edit planned payment"
           error={editError} saving={editSaving} onSave={handleEdit} onClose={() => setEditingPayment(null)}
           wallets={wallets} categories={categories} labels={labels} />
       )}
@@ -735,7 +735,7 @@ export default function RecurringPage() {
 
       {deletingPayment && (
         <ConfirmDialog
-          title="Delete recurring payment"
+          title="Delete planned payment"
           message={`Delete "${deletingPayment.name}"? This won't affect existing transactions.`}
           confirmLabel="Delete"
           onConfirm={handleDelete}
@@ -781,6 +781,7 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
   categories: Category[];
   labels: Label[];
 }) {
+  const baseCurrency = useBaseCurrency();
   const rsStyles = makeRsStyles<{ value: string; label: string }>();
   const walletOptions = wallets.filter(w => !w.is_archived || w.id === form.walletId).map(w => ({ value: w.id, label: `${w.icon} ${w.name}` }));
   const selectedWallet = walletOptions.find(o => o.value === form.walletId) ?? null;
@@ -814,7 +815,7 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
           <div className={styles.twoCol}>
             <div className={styles.field}>
               <FormLabel required>Amount</FormLabel>
-              <NumberInput value={form.amount} onChange={v => set({ ...form, amount: v })} placeholder="0" />
+              <NumberInput value={form.amount} onChange={v => set({ ...form, amount: v })} placeholder="0" suffix={wallets.find(w => w.id === form.walletId)?.currency ?? baseCurrency} />
             </div>
             <div className={styles.field}>
               <FormLabel required>Frequency</FormLabel>
