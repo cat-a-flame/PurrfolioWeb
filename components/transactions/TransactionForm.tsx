@@ -258,7 +258,7 @@ export default function TransactionForm({
                         date,
                         notes,
                         payer: '',
-                        label_ids: [],
+                        label_ids: labelIds,
                         externalTransfer: { direction: externalDirection, account_name: externalAccount.trim() },
                     });
                 } catch {
@@ -284,7 +284,7 @@ export default function TransactionForm({
                     date,
                     notes,
                     payer: '',
-                    label_ids: [],
+                    label_ids: labelIds,
                     transfer: { to_wallet_id: toWalletId, to_amount: parsedTo },
                 });
             } catch {
@@ -439,6 +439,13 @@ export default function TransactionForm({
                                 <FormLabel htmlFor="transfer-date" required>Date</FormLabel>
                                 <Input id="transfer-date" type="date" value={date} onChange={e => setDate(e.target.value)} required />
                             </div>
+
+                            {labels.length > 0 && (
+                                <div className={styles.field}>
+                                    <FormLabel>Labels</FormLabel>
+                                    <LabelSelect labels={labels} selectedIds={labelIds} onChange={setLabelIds} />
+                                </div>
+                            )}
 
                             <div className={styles.field}>
                                 <FormLabel htmlFor="transfer-notes">Note</FormLabel>

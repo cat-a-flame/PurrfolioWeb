@@ -1,5 +1,6 @@
 'use client';
 
+import { attachLabels } from '@/lib/transactionLabels';
 import { createContext, useContext, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import TransactionForm, { TransactionFormData } from './TransactionForm';
@@ -60,7 +61,7 @@ export default function AddRecordProvider({ children }: { children: React.ReactN
     if (data.externalTransfer) {
       const transferGroupId = crypto.randomUUID();
       const exchangeRate = await getWalletRate(data.wallet_id, data.date);
-      const { error } = await supabase.from('transactions').insert({
+      const { data: insertedLegs, error } = await supabase.from('transactions').insert({
         user_id: user.id,
         type: data.type,
         amount: data.amount,
@@ -71,8 +72,9 @@ export default function AddRecordProvider({ children }: { children: React.ReactN
         payer: data.externalTransfer.account_name,
         transfer_group_id: transferGroupId,
         exchange_rate_to_huf: exchangeRate,
-      });
+      }).select('id');
       if (error) throw error;
+      await attachLabels(supabase, insertedLegs, data.label_ids);
 
       setOpen(false);
       setToast({ message: 'Transfer recorded.', variant: 'success' });
@@ -91,11 +93,12 @@ export default function AddRecordProvider({ children }: { children: React.ReactN
         getWalletRate(data.transfer.to_wallet_id, data.date),
       ]);
 
-      const { error } = await supabase.from('transactions').insert([
+      const { data: insertedLegs, error } = await supabase.from('transactions').insert([
         { ...common, type: 'expense', amount: data.amount,             wallet_id: data.wallet_id,          exchange_rate_to_huf: expenseRate },
         { ...common, type: 'income',  amount: data.transfer.to_amount, wallet_id: data.transfer.to_wallet_id, exchange_rate_to_huf: incomeRate },
-      ]);
+      ]).select('id');
       if (error) throw error;
+      await attachLabels(supabase, insertedLegs, data.label_ids);
 
       setOpen(false);
       setToast({ message: 'Transfer recorded.', variant: 'success' });
