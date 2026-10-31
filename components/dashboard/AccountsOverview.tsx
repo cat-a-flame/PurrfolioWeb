@@ -39,7 +39,7 @@ function groupFor(wallet: Wallet): GroupKey {
 export default function AccountsOverview({ summaries, rates, loading, hideNumbers, mask }: AccountsOverviewProps) {
   const baseCurrency = useBaseCurrency();
   const formatBase = useFormatBase();
-  // Only applies on mobile, where the card collapses to just its header.
+  // Collapsed by default: the card shows just its header until expanded.
   const [expanded, setExpanded] = useState(false);
 
   if (loading) {
