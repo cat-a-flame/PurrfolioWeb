@@ -602,7 +602,7 @@ export default function TransactionsPage() {
                               onClick={e => e.stopPropagation()}
                             />
                             <EmojiBox
-                              emoji={isTransfer ? (t.payer ? (t.type === 'expense' ? '↑' : '↓') : '↔') : (t.category?.icon ?? '?')}
+                              emoji={isTransfer ? '⇄' : (t.category?.icon ?? '?')}
                               color={t.category?.color ?? '#94a3b8'}
                               size="sm"
                               style={isTransfer ? { background: 'var(--color-accent-light)' } : undefined}
@@ -611,7 +611,7 @@ export default function TransactionsPage() {
                               <div className={styles.txTopRow}>
                                 <span className={styles.txCategory}>
                                   {isTransfer
-                                    ? (t.payer ? t.payer : 'Transfer')
+                                    ? 'Transfer'
                                     : (t.category?.name ?? 'Uncategorised')}
                                 </span>
                                 {t.labels && t.labels.length > 0 && (
@@ -634,7 +634,7 @@ export default function TransactionsPage() {
                                       {t.wallet.name}
                                     </span>
                                   ),
-                                  !isTransfer && t.payer && (
+                                  t.payer && (
                                     <span key="payer" className={styles.txPayee}>{t.payer}</span>
                                   ),
                                   t.notes && (
