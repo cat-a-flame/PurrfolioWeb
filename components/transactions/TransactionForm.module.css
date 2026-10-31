@@ -402,6 +402,80 @@
   color: var(--color-text-muted);
 }
 
+.sideRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.sideRow > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.sideBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 48px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.sideTile {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--color-surface-3);
+  font-size: 1.375rem;
+}
+
+.sideTileOutside {
+  color: var(--color-accent);
+}
+
+.sideText {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.sideName {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.sideMeta {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.changeBtn {
+  height: 38px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 9999px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  cursor: pointer;
+}
+
 .swapBtn {
   position: absolute;
   right: 22px;

@@ -13,11 +13,12 @@ import CategoryPicker from '@/components/ui/CategoryPicker';
 import { makeRsStyles, rsTheme } from '@/components/ui/rsStyles';
 import type { Transaction, Category, Label, TransactionType, Wallet } from '@/lib/types';
 import { todayInputDate } from '@/lib/utils';
+import TransferSidePicker, { OUTSIDE } from './TransferSidePicker';
+import { hexToRgba } from '@/lib/colorUtils';
 import styles from './TransactionForm.module.css';
 
 type FormMode = 'expense' | 'income' | 'transfer';
 
-const OUTSIDE = '__outside__';
 
 export interface TransactionFormData {
     type: TransactionType;
@@ -86,6 +87,7 @@ export default function TransactionForm({
         isEditingExternal ? (transaction?.payer ?? '') : ''
     );
 
+    const [pickerSide, setPickerSide] = useState<'from' | 'to' | null>(null);
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [error, setError] = useState('');
@@ -125,6 +127,7 @@ export default function TransactionForm({
     useEffect(() => {
         function onKeyDown(e: KeyboardEvent) {
             if (e.key === 'Escape') {
+                if (pickerSide) return;
                 e.preventDefault();
                 if (dirty) {
                     setShowCloseConfirm(true);
@@ -135,7 +138,7 @@ export default function TransactionForm({
         }
         document.addEventListener('keydown', onKeyDown);
         return () => document.removeEventListener('keydown', onKeyDown);
-    }, [dirty, onClose]);
+    }, [dirty, onClose, pickerSide]);
 
     const selectedWallet = wallets.find(w => w.id === walletId);
     const toWallet = wallets.find(w => w.id === toWalletId);
@@ -358,51 +361,46 @@ export default function TransactionForm({
                         <div className={styles.transferGrid}>
                             <div className={styles.sides}>
                                 {([
-                                    { key: 'from', label: 'From', external: fromExternal, walletId: fromSideWalletId, onChange: setFromSide, otherExternal: toExternal },
-                                    { key: 'to', label: 'To', external: toExternal, walletId: toSideWalletId, onChange: setToSide, otherExternal: fromExternal },
+                                    { key: 'from', label: 'From', external: fromExternal, walletId: fromSideWalletId },
+                                    { key: 'to', label: 'To', external: toExternal, walletId: toSideWalletId },
                                 ] as const).map(side => {
                                     const wallet = wallets.find(w => w.id === side.walletId);
-                                    const otherWalletId = side.key === 'from' ? toSideWalletId : fromSideWalletId;
-                                    const options = [
-                                        { value: OUTSIDE, label: 'Outside Purrfolio', isDisabled: side.otherExternal },
-                                        ...wallets
-                                            .filter(w => (!w.is_archived || w.id === side.walletId) && w.id !== otherWalletId)
-                                            .map(w => ({ value: w.id, label: `${w.icon} ${w.name} · ${w.currency}`, isDisabled: false })),
-                                    ];
-                                    const current = side.external
-                                        ? options[0]
-                                        : wallet ? options.find(o => o.value === wallet.id) ?? null : null;
                                     return (
                                         <div key={side.key} className={styles.sideCard}>
                                             <div className={styles.sideHeader}>
-                                                <label htmlFor={`${side.key}-side`} className={styles.sideLabel}>{side.label}</label>
+                                                <span className={styles.sideLabel}>{side.label}</span>
                                                 <span className={styles.sideKind}>{side.external ? 'Outside Purrfolio' : 'Your account'}</span>
                                             </div>
-                                            <ReactSelect<{ value: string; label: string; isDisabled: boolean }>
-                                                inputId={`${side.key}-side`}
-                                                options={options}
-                                                value={current}
-                                                onChange={(opt) => opt && side.onChange(opt.value)}
-                                                isOptionDisabled={o => o.isDisabled}
-                                                isSearchable
-                                                styles={makeRsStyles()}
-                                                theme={rsTheme}
-                                                menuPosition="fixed"
-                                                placeholder="Select account…"
-                                            />
-                                            {side.external && (
-                                                <Input
-                                                    type="text"
-                                                    aria-label={side.key === 'from' ? 'Who is sending the money' : 'Who receives the money'}
-                                                    value={externalAccount}
-                                                    onChange={e => setExternalAccount(e.target.value)}
-                                                    placeholder="e.g. Employer, Anna, PayPal"
-                                                />
+                                            {side.external ? (
+                                                <div className={styles.sideRow}>
+                                                    <span className={`${styles.sideTile} ${styles.sideTileOutside}`} aria-hidden="true">
+                                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+                                                    </span>
+                                                    <Input
+                                                        type="text"
+                                                        aria-label={side.key === 'from' ? 'Who is sending the money' : 'Who receives the money'}
+                                                        value={externalAccount}
+                                                        onChange={e => setExternalAccount(e.target.value)}
+                                                        placeholder="e.g. Employer, Anna, PayPal"
+                                                    />
+                                                    <button type="button" className={styles.changeBtn} onClick={() => setPickerSide(side.key)}>Change</button>
+                                                </div>
+                                            ) : (
+                                                <button type="button" className={styles.sideBtn} aria-haspopup="dialog" onClick={() => setPickerSide(side.key)}>
+                                                    <span className={styles.sideTile} style={wallet ? { background: hexToRgba(wallet.color, 0.2) } : undefined} aria-hidden="true">{wallet?.icon ?? '?'}</span>
+                                                    <span className={styles.sideText}>
+                                                        <span className={styles.sideName}>{wallet?.name ?? 'Select account'}</span>
+                                                        {wallet && <span className={styles.sideMeta}>{wallet.currency}</span>}
+                                                    </span>
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
+                                                </button>
                                             )}
                                         </div>
                                     );
                                 })}
-                                <button type="button" className={styles.swapBtn} onClick={swapSides} aria-label="Swap From and To">⇅</button>
+                                <button type="button" className={styles.swapBtn} onClick={swapSides} aria-label="Swap From and To">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="7 3 7 21" /><polyline points="3 17 7 21 11 17" /><polyline points="17 21 17 3" /><polyline points="13 7 17 3 21 7" /></svg>
+                                </button>
                             </div>
 
                             {fx ? (
@@ -561,6 +559,22 @@ export default function TransactionForm({
                     </div>
                 </form>
             </div>
+
+            {pickerSide && (
+                <div onClick={e => e.stopPropagation()}>
+                    <TransferSidePicker
+                        side={pickerSide}
+                        wallets={wallets}
+                        value={pickerSide === 'from' ? (fromExternal ? OUTSIDE : fromSideWalletId) : (toExternal ? OUTSIDE : toSideWalletId)}
+                        otherValue={pickerSide === 'from' ? (toExternal ? OUTSIDE : toSideWalletId) : (fromExternal ? OUTSIDE : fromSideWalletId)}
+                        onPick={value => {
+                            (pickerSide === 'from' ? setFromSide : setToSide)(value);
+                            setPickerSide(null);
+                        }}
+                        onClose={() => setPickerSide(null)}
+                    />
+                </div>
+            )}
 
             {showDeleteConfirm && (
                 <ConfirmDialog
