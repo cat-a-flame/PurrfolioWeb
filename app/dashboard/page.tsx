@@ -611,7 +611,7 @@ export default function DashboardPage() {
                 return (
                   <div key={t.id} className={styles.txRow} onClick={() => openEdit(t)}>
                     <EmojiBox
-                      emoji={isTransfer ? (t.payer ? (t.type === 'expense' ? '↑' : '↓') : '↔') : (t.category?.icon ?? '?')}
+                      emoji={isTransfer ? '⇄' : (t.category?.icon ?? '?')}
                       color={t.category?.color ?? '#94a3b8'}
                       size="md"
                       style={isTransfer ? { background: 'var(--color-accent-light)' } : undefined}
@@ -619,7 +619,7 @@ export default function DashboardPage() {
                     <div className={styles.txMain}>
                       <div className={styles.txTopRow}>
                         <span className={styles.txName}>
-                          {isTransfer ? (t.payer ? t.payer : 'Transfer') : (t.category?.name ?? 'Uncategorised')}
+                          {isTransfer ? 'Transfer' : (t.category?.name ?? 'Uncategorised')}
                         </span>
                         {t.labels && t.labels.length > 0 && (
                           <div className={styles.txLabels}>
@@ -641,7 +641,7 @@ export default function DashboardPage() {
                               {t.wallet.name}
                             </span>
                           ),
-                          !isTransfer && t.payer && (
+                          t.payer && (
                             <span key="payer" className={styles.txPayee}>{t.payer}</span>
                           ),
                           t.notes && (
