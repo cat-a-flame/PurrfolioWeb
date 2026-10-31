@@ -12,6 +12,7 @@ import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
 import LabelSelect from '@/components/ui/LabelSelect';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
+import SegmentedControl from '@/components/ui/SegmentedControl';
 import Switch from '@/components/ui/Switch';
 import Skeleton from '@/components/ui/Skeleton';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
@@ -22,6 +23,7 @@ import { formatCurrency } from '@/lib/utils';
 import { useBaseCurrency } from '@/contexts/BaseCurrencyContext';
 import type { Currency } from '@/lib/types';
 import { generateDueDates, frequencyLabel, nextDueDate, isoDate } from '@/lib/recurringUtils';
+import { FiSliders } from 'react-icons/fi';
 import { BsThreeDotsVertical } from "react-icons/bs";
 import type {
   RecurringPayment, RecurringOccurrence, RecurrenceFrequency,
@@ -297,6 +299,7 @@ export default function RecurringPage() {
     const amt = parseFloat(form.amount);
     if (!form.amount || isNaN(amt) || amt <= 0) return 'Enter a valid amount.';
     if (!form.walletId) return 'Select an account.';
+    if (!form.categoryId) return 'Select a category.';
     if (!form.startDate) return 'Start date is required.';
     return null;
   }
@@ -488,22 +491,16 @@ export default function RecurringPage() {
           </div>
 
           <div className={styles.toolbar}>
-            <div className={styles.filterTabs}>
-              <button
-                className={[styles.filterTab, view === 'due' ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
-                onClick={() => setView('due')}
-              >
-                Due
-                {!loading && !periodLoading && <span className={styles.filterTabCount}>· {dueItems.length}</span>}
-              </button>
-              <button
-                className={[styles.filterTab, view === 'all' ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
-                onClick={() => setView('all')}
-              >
-                All planned
-                {!loading && <span className={styles.filterTabCount}>· {payments.length}</span>}
-              </button>
-            </div>
+            <SegmentedControl<'due' | 'all'>
+              size="sm"
+              aria-label="Planned payments view"
+              value={view}
+              onChange={setView}
+              options={[
+                { value: 'due', label: <>Due{!loading && !periodLoading && <span className={styles.filterTabCount}>· {dueItems.length}</span>}</> },
+                { value: 'all', label: <>All planned{!loading && <span className={styles.filterTabCount}>· {payments.length}</span>}</> },
+              ]}
+            />
 
             {view === 'due' && <PeriodPicker value={period} onChange={setPeriod} />}
           </div>
@@ -696,13 +693,13 @@ export default function RecurringPage() {
         </div>
 
       {showAddDialog && (
-        <PaymentModal form={addForm} set={setAddForm} title="Add recurring payment"
+        <PaymentModal form={addForm} set={setAddForm} title="Add planned payment"
           error={addError} saving={addSaving} onSave={handleAdd} onClose={() => setShowAddDialog(false)}
           wallets={wallets} categories={categories} labels={labels} />
       )}
 
       {editingPayment && (
-        <PaymentModal form={editForm} set={setEditForm} title="Edit recurring payment"
+        <PaymentModal form={editForm} set={setEditForm} title="Edit planned payment"
           error={editError} saving={editSaving} onSave={handleEdit} onClose={() => setEditingPayment(null)}
           wallets={wallets} categories={categories} labels={labels} />
       )}
@@ -735,7 +732,7 @@ export default function RecurringPage() {
 
       {deletingPayment && (
         <ConfirmDialog
-          title="Delete recurring payment"
+          title="Delete planned payment"
           message={`Delete "${deletingPayment.name}"? This won't affect existing transactions.`}
           confirmLabel="Delete"
           onConfirm={handleDelete}
@@ -781,6 +778,9 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
   categories: Category[];
   labels: Label[];
 }) {
+  const baseCurrency = useBaseCurrency();
+  const [showMoreOptions, setShowMoreOptions] = useState(!!(form.payer || form.notes || form.labelIds.length));
+  const currency = wallets.find(w => w.id === form.walletId)?.currency ?? baseCurrency;
   const rsStyles = makeRsStyles<{ value: string; label: string }>();
   const walletOptions = wallets.filter(w => !w.is_archived || w.id === form.walletId).map(w => ({ value: w.id, label: `${w.icon} ${w.name}` }));
   const selectedWallet = walletOptions.find(o => o.value === form.walletId) ?? null;
@@ -797,37 +797,57 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
         </div>
 
         <div className={styles.modalForm}>
-          <div className={styles.typeTabs}>
-            <button type="button"
-              className={[styles.typeTab, form.type === 'expense' ? styles.typeTabExpense : ''].join(' ')}
-              onClick={() => set({ ...form, type: 'expense' })}>Expense</button>
-            <button type="button"
-              className={[styles.typeTab, form.type === 'income' ? styles.typeTabIncome : ''].join(' ')}
-              onClick={() => set({ ...form, type: 'income' })}>Income</button>
+          <SegmentedControl<TransactionType>
+            aria-label="Payment type"
+            value={form.type}
+            onChange={type => set({ ...form, type })}
+            options={[
+              { value: 'expense', label: 'Expense', tone: 'expense' },
+              { value: 'income', label: 'Income', tone: 'income' },
+            ]}
+          />
+
+          <div className={styles.amountDisplay}>
+            <label htmlFor="planned-amount" className={styles.amountDisplayLabel}>
+              Amount<span className={styles.requiredMark}>*</span>
+            </label>
+            <div className={styles.amountDisplayRow}>
+              <span className={[styles.amountSign, form.type === 'expense' ? styles.amountSignExpense : styles.amountSignIncome].join(' ')}>
+                {form.type === 'expense' ? '−' : '+'}
+              </span>
+              <NumberInput
+                id="planned-amount"
+                value={form.amount}
+                onChange={v => set({ ...form, amount: v })}
+                placeholder="0"
+                size={Math.max((form.amount || '0').length + 1, 2)}
+                className={styles.amountBigInput}
+                style={{
+                  width: 'auto',
+                  fontFamily: 'var(--font-nunito)',
+                  fontSize: '3rem',
+                  fontWeight: 800,
+                  color: 'var(--color-text)',
+                  textAlign: 'center',
+                }}
+              />
+              <span className={styles.amountUnit}>{currency}</span>
+            </div>
           </div>
 
           <div className={styles.field}>
-            <FormLabel required>Name</FormLabel>
-            <Input value={form.name} onChange={e => set({ ...form, name: e.target.value })} placeholder="Mortgage, Phone bill…" />
+            <FormLabel htmlFor="planned-name" required>Name</FormLabel>
+            <Input id="planned-name" value={form.name} onChange={e => set({ ...form, name: e.target.value })} placeholder="e.g. Mortgage, Phone bill" />
           </div>
 
-          <div className={styles.twoCol}>
-            <div className={styles.field}>
-              <FormLabel required>Amount</FormLabel>
-              <NumberInput value={form.amount} onChange={v => set({ ...form, amount: v })} placeholder="0" />
-            </div>
-            <div className={styles.field}>
-              <FormLabel required>Frequency</FormLabel>
-              <ReactSelect<{ value: string; label: string }>
-                options={freqOptions}
-                value={selectedFreq}
-                onChange={opt => opt && set({ ...form, frequency: opt.value as RecurrenceFrequency })}
-                isSearchable={false}
-                styles={rsStyles}
-                theme={rsTheme}
-                menuPosition="fixed"
-              />
-            </div>
+          <div className={styles.field}>
+            <FormLabel required>Category</FormLabel>
+            <SearchableSelect
+              options={categoryOptions}
+              value={form.categoryId}
+              onChange={v => set({ ...form, categoryId: v })}
+              placeholder="Choose category"
+            />
           </div>
 
           <div className={styles.twoCol}>
@@ -845,12 +865,15 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
               />
             </div>
             <div className={styles.field}>
-              <FormLabel>Category</FormLabel>
-              <SearchableSelect
-                options={categoryOptions}
-                value={form.categoryId}
-                onChange={v => set({ ...form, categoryId: v })}
-                placeholder="Choose category"
+              <FormLabel required>Frequency</FormLabel>
+              <ReactSelect<{ value: string; label: string }>
+                options={freqOptions}
+                value={selectedFreq}
+                onChange={opt => opt && set({ ...form, frequency: opt.value as RecurrenceFrequency })}
+                isSearchable={false}
+                styles={rsStyles}
+                theme={rsTheme}
+                menuPosition="fixed"
               />
             </div>
           </div>
@@ -861,44 +884,63 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
               <Input type="date" value={form.startDate} onChange={e => set({ ...form, startDate: e.target.value })} />
             </div>
             <div className={styles.field}>
-              <FormLabel>End date <span className={styles.optional}>(optional)</span></FormLabel>
-              <Input type="date" value={form.endDate} onChange={e => set({ ...form, endDate: e.target.value })} />
+              <FormLabel htmlFor="planned-end-date">End date</FormLabel>
+              <div className={[styles.dateWrap, form.endDate ? '' : styles.dateEmpty].filter(Boolean).join(' ')}>
+                <Input id="planned-end-date" type="date" value={form.endDate} min={form.startDate || undefined} onChange={e => set({ ...form, endDate: e.target.value })} />
+                {!form.endDate && <span className={styles.dateOverlay} aria-hidden="true">No end date</span>}
+                {form.endDate && (
+                  <button type="button" className={styles.dateClear} onClick={() => set({ ...form, endDate: '' })} aria-label="Clear end date">✕</button>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className={styles.twoCol}>
-            <div className={styles.field}>
-              <FormLabel>Payer / payee <span className={styles.optional}>(optional)</span></FormLabel>
-              <Input value={form.payer} onChange={e => set({ ...form, payer: e.target.value })} placeholder="e.g. OTP Bank" />
-            </div>
-            <div className={styles.field}>
-              <FormLabel>Notes <span className={styles.optional}>(optional)</span></FormLabel>
-              <Input value={form.notes} onChange={e => set({ ...form, notes: e.target.value })} />
-            </div>
-          </div>
-
-          <div className={styles.field}>
+          <div className={styles.autoCard}>
+            <label htmlFor="recurring-auto-add" className={styles.autoText}>
+              <span className={styles.autoTitle}>Add automatically</span>
+              <span className={styles.autoSub}>Records it on each due date</span>
+            </label>
             <Switch
               id="recurring-auto-add"
               checked={form.autoAdd}
               onChange={v => set({ ...form, autoAdd: v })}
-              label="Add automatically on the due date"
             />
           </div>
 
-          {labels.length > 0 && (
-            <div className={styles.field}>
-              <FormLabel>Labels <span className={styles.optional}>(optional)</span></FormLabel>
-              <LabelSelect labels={labels} selectedIds={form.labelIds} onChange={ids => set({ ...form, labelIds: ids })} />
+          <button
+            type="button"
+            className={styles.moreOptionsToggle}
+            onClick={() => setShowMoreOptions(v => !v)}
+            aria-expanded={showMoreOptions}
+          >
+            <FiSliders />
+            {showMoreOptions ? 'Fewer options' : 'More options'}
+          </button>
+
+          {showMoreOptions && (
+            <div className={styles.moreOptionsPanel}>
+              {labels.length > 0 && (
+                <div className={styles.field}>
+                  <FormLabel>Labels</FormLabel>
+                  <LabelSelect labels={labels} selectedIds={form.labelIds} onChange={ids => set({ ...form, labelIds: ids })} />
+                </div>
+              )}
+              <div className={styles.field}>
+                <FormLabel htmlFor="planned-payer">Payee</FormLabel>
+                <Input id="planned-payer" value={form.payer} onChange={e => set({ ...form, payer: e.target.value })} placeholder="e.g. OTP Bank" />
+              </div>
+              <div className={styles.field}>
+                <FormLabel htmlFor="planned-notes">Notes</FormLabel>
+                <textarea id="planned-notes" className={styles.textarea} value={form.notes} onChange={e => set({ ...form, notes: e.target.value })} rows={4} />
+              </div>
             </div>
           )}
 
           {error && <p className={styles.formError}>{error}</p>}
 
           <div className={styles.actions}>
-            <Button variant="ghost" size="md" onClick={onClose}>Cancel</Button>
-            <Button variant="primary" size="md" onClick={onSave} disabled={saving}>
-              {saving ? 'Saving…' : 'Save'}
+            <Button variant="primary" size="md" onClick={onSave} disabled={saving} loading={saving}>
+              {title.startsWith('Edit') ? 'Save changes' : 'Add planned payment'}
             </Button>
           </div>
         </div>

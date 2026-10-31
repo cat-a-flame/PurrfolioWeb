@@ -44,6 +44,10 @@
   --color-income: #0f7a57;
   --color-income-light: #d3f5e6;
   --color-expense: var(--color-danger);
+  --color-segment-expense: #d6297a;
+  --color-segment-expense-hover: #c4267a;
+  --color-segment-income: #0b7d82;
+  --color-segment-income-hover: #0a6e72;
   --color-expense-light: var(--color-danger-light);
 
   --toast-success-start: #0f7a57;

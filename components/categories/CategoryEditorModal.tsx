@@ -7,6 +7,7 @@ import ColorSwatchField from '@/components/ui/ColorSwatchField';
 import Dialog from '@/components/ui/Dialog';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
+import SegmentedControl from '@/components/ui/SegmentedControl';
 import EmojiBox from '@/components/ui/EmojiBox';
 import type { TransactionType } from '@/lib/types';
 import styles from './CategoryEditorModal.module.css';
@@ -101,29 +102,16 @@ export default function CategoryEditorModal({
 
         <div className={styles.section}>
           <FormLabel>Type</FormLabel>
-          <div className={styles.typeTabs}>
-            <button
-              type="button"
-              className={[styles.typeTab, draft.type === 'expense' ? styles.typeTabExpenseActive : ''].filter(Boolean).join(' ')}
-              onClick={() => setDraft((d) => ({ ...d, type: 'expense' }))}
-            >
-              Expense
-            </button>
-            <button
-              type="button"
-              className={[styles.typeTab, draft.type === 'income' ? styles.typeTabIncomeActive : ''].filter(Boolean).join(' ')}
-              onClick={() => setDraft((d) => ({ ...d, type: 'income' }))}
-            >
-              Income
-            </button>
-            <button
-              type="button"
-              className={[styles.typeTab, draft.type === 'both' ? styles.typeTabBothActive : ''].filter(Boolean).join(' ')}
-              onClick={() => setDraft((d) => ({ ...d, type: 'both' }))}
-            >
-              Both
-            </button>
-          </div>
+          <SegmentedControl<TransactionType | 'both'>
+            aria-label="Category type"
+            value={draft.type}
+            onChange={(type) => setDraft((d) => ({ ...d, type }))}
+            options={[
+              { value: 'expense', label: 'Expense', tone: 'expense' },
+              { value: 'income', label: 'Income', tone: 'income' },
+              { value: 'both', label: 'Both' },
+            ]}
+          />
         </div>
 
         <div className={styles.section}>

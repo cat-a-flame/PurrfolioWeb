@@ -1,5 +1,6 @@
 'use client';
 
+import { attachLabels } from '@/lib/transactionLabels';
 import { Fragment, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import Button from '@/components/ui/Button';
@@ -323,7 +324,7 @@ export default function TransactionsPage() {
         }
         const transferGroupId = crypto.randomUUID();
         const exchangeRate = await getWalletRate(data.wallet_id, data.date);
-        const { error } = await supabase.from('transactions').insert({
+        const { data: insertedLegs, error } = await supabase.from('transactions').insert({
           user_id: user.id,
           type: data.type,
           amount: data.amount,
@@ -334,8 +335,9 @@ export default function TransactionsPage() {
           payer: data.externalTransfer.account_name,
           transfer_group_id: transferGroupId,
           exchange_rate_to_huf: exchangeRate,
-        });
+        }).select('id');
         if (error) throw error;
+        await attachLabels(supabase, insertedLegs, data.label_ids);
       } else if (data.transfer) {
         if (editingTransaction.transfer_group_id) {
           await supabase.from('transactions').delete().eq('transfer_group_id', editingTransaction.transfer_group_id);
@@ -348,11 +350,12 @@ export default function TransactionsPage() {
           getWalletRate(data.wallet_id, data.date),
           getWalletRate(data.transfer.to_wallet_id, data.date),
         ]);
-        const { error } = await supabase.from('transactions').insert([
+        const { data: insertedLegs, error } = await supabase.from('transactions').insert([
           { ...common, type: 'expense', amount: data.amount, wallet_id: data.wallet_id, exchange_rate_to_huf: expenseRate },
           { ...common, type: 'income', amount: data.transfer.to_amount, wallet_id: data.transfer.to_wallet_id, exchange_rate_to_huf: incomeRate },
-        ]);
+        ]).select('id');
         if (error) throw error;
+        await attachLabels(supabase, insertedLegs, data.label_ids);
       } else {
         if (editingTransaction.transfer_group_id) {
           const { data: paired } = await supabase
@@ -397,7 +400,7 @@ export default function TransactionsPage() {
       if (data.externalTransfer) {
         const transferGroupId = crypto.randomUUID();
         const exchangeRate = await getWalletRate(data.wallet_id, data.date);
-        const { error } = await supabase.from('transactions').insert({
+        const { data: insertedLegs, error } = await supabase.from('transactions').insert({
           user_id: user.id,
           type: data.type,
           amount: data.amount,
@@ -408,8 +411,9 @@ export default function TransactionsPage() {
           payer: data.externalTransfer.account_name,
           transfer_group_id: transferGroupId,
           exchange_rate_to_huf: exchangeRate,
-        });
+        }).select('id');
         if (error) throw error;
+        await attachLabels(supabase, insertedLegs, data.label_ids);
       } else if (data.transfer) {
         const transferGroupId = crypto.randomUUID();
         const common = { user_id: user.id, date: data.date, notes: data.notes || null, transfer_group_id: transferGroupId };
@@ -417,11 +421,12 @@ export default function TransactionsPage() {
           getWalletRate(data.wallet_id, data.date),
           getWalletRate(data.transfer.to_wallet_id, data.date),
         ]);
-        const { error } = await supabase.from('transactions').insert([
+        const { data: insertedLegs, error } = await supabase.from('transactions').insert([
           { ...common, type: 'expense', amount: data.amount, wallet_id: data.wallet_id, exchange_rate_to_huf: expenseRate },
           { ...common, type: 'income', amount: data.transfer.to_amount, wallet_id: data.transfer.to_wallet_id, exchange_rate_to_huf: incomeRate },
-        ]);
+        ]).select('id');
         if (error) throw error;
+        await attachLabels(supabase, insertedLegs, data.label_ids);
       } else {
         const exchangeRate = await getWalletRate(data.wallet_id, data.date);
         const { data: inserted, error } = await supabase
@@ -602,7 +607,7 @@ export default function TransactionsPage() {
                               onClick={e => e.stopPropagation()}
                             />
                             <EmojiBox
-                              emoji={isTransfer ? (t.payer ? (t.type === 'expense' ? '↑' : '↓') : '↔') : (t.category?.icon ?? '?')}
+                              emoji={isTransfer ? '⇄' : (t.category?.icon ?? '?')}
                               color={t.category?.color ?? '#94a3b8'}
                               size="sm"
                               style={isTransfer ? { background: 'var(--color-accent-light)' } : undefined}
@@ -611,7 +616,7 @@ export default function TransactionsPage() {
                               <div className={styles.txTopRow}>
                                 <span className={styles.txCategory}>
                                   {isTransfer
-                                    ? (t.payer ? t.payer : 'Transfer')
+                                    ? 'Transfer'
                                     : (t.category?.name ?? 'Uncategorised')}
                                 </span>
                                 {t.labels && t.labels.length > 0 && (
@@ -634,7 +639,7 @@ export default function TransactionsPage() {
                                       {t.wallet.name}
                                     </span>
                                   ),
-                                  !isTransfer && t.payer && (
+                                  t.payer && (
                                     <span key="payer" className={styles.txPayee}>{t.payer}</span>
                                   ),
                                   t.notes && (

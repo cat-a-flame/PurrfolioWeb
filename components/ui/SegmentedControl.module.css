@@ -1,0 +1,103 @@
+.track {
+  display: inline-grid;
+  grid-auto-flow: column;
+  gap: 0;
+  padding: 4px;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-full);
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.md {
+  display: grid;
+  width: 100%;
+  height: 48px;
+  --seg-option-height: 40px;
+  --seg-font-size: 0.9375rem;
+}
+
+.sm {
+  height: 38px;
+  --seg-option-height: 30px;
+  --seg-font-size: 0.8125rem;
+}
+
+.disabled {
+  opacity: 0.5;
+}
+
+.option {
+  --seg-tone: var(--color-accent);
+  --seg-tone-hover: var(--color-accent-hover);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--seg-option-height);
+  min-width: 0;
+  padding: 0 var(--space-4);
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-nunito);
+  font-size: var(--seg-font-size);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 140ms var(--ease-out), color 140ms var(--ease-out), transform 140ms var(--ease-out), box-shadow 140ms var(--ease-out);
+}
+
+.expense {
+  --seg-tone: var(--color-segment-expense);
+  --seg-tone-hover: var(--color-segment-expense-hover);
+}
+
+.income {
+  --seg-tone: var(--color-segment-income);
+  --seg-tone-hover: var(--color-segment-income-hover);
+}
+
+.option:hover:not(:disabled):not(.selected) {
+  background: var(--color-surface-3);
+  color: var(--color-text);
+}
+
+.option:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.option:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.option:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.disabled .option:disabled {
+  opacity: 1;
+}
+
+.selected {
+  background: var(--seg-tone);
+  color: var(--color-on-accent);
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--seg-tone) 55%, transparent);
+}
+
+.selected:hover:not(:disabled) {
+  background: var(--seg-tone-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .option {
+    transition: none;
+  }
+
+  .option:active:not(:disabled) {
+    transform: none;
+  }
+}

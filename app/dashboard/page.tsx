@@ -1,5 +1,6 @@
 'use client';
 
+import { attachLabels } from '@/lib/transactionLabels';
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useCountUp } from '@/lib/useCountUp';
 import Link from 'next/link';
@@ -352,7 +353,7 @@ export default function DashboardPage() {
       }
       const transferGroupId = crypto.randomUUID();
       const exchangeRate = await getWalletRate(data.wallet_id, data.date);
-      const { error } = await supabase.from('transactions').insert({
+      const { data: insertedLegs, error } = await supabase.from('transactions').insert({
         user_id: user.id,
         type: data.type,
         amount: data.amount,
@@ -363,8 +364,9 @@ export default function DashboardPage() {
         payer: data.externalTransfer.account_name,
         transfer_group_id: transferGroupId,
         exchange_rate_to_huf: exchangeRate,
-      });
+      }).select('id');
       if (error) throw error;
+      await attachLabels(supabase, insertedLegs, data.label_ids);
     } else if (data.transfer) {
       // Deletes both legs if it was a transfer.
       if (editingTransaction.transfer_group_id) {
@@ -378,11 +380,12 @@ export default function DashboardPage() {
         getWalletRate(data.wallet_id, data.date),
         getWalletRate(data.transfer.to_wallet_id, data.date),
       ]);
-      const { error } = await supabase.from('transactions').insert([
+      const { data: insertedLegs, error } = await supabase.from('transactions').insert([
         { ...common, type: 'expense', amount: data.amount, wallet_id: data.wallet_id, exchange_rate_to_huf: expenseRate },
         { ...common, type: 'income', amount: data.transfer.to_amount, wallet_id: data.transfer.to_wallet_id, exchange_rate_to_huf: incomeRate },
-      ]);
+      ]).select('id');
       if (error) throw error;
+      await attachLabels(supabase, insertedLegs, data.label_ids);
     } else {
       // Converting a transfer to a regular record: delete the paired leg.
       if (editingTransaction.transfer_group_id) {
@@ -611,7 +614,7 @@ export default function DashboardPage() {
                 return (
                   <div key={t.id} className={styles.txRow} onClick={() => openEdit(t)}>
                     <EmojiBox
-                      emoji={isTransfer ? (t.payer ? (t.type === 'expense' ? '↑' : '↓') : '↔') : (t.category?.icon ?? '?')}
+                      emoji={isTransfer ? '⇄' : (t.category?.icon ?? '?')}
                       color={t.category?.color ?? '#94a3b8'}
                       size="md"
                       style={isTransfer ? { background: 'var(--color-accent-light)' } : undefined}
@@ -619,7 +622,7 @@ export default function DashboardPage() {
                     <div className={styles.txMain}>
                       <div className={styles.txTopRow}>
                         <span className={styles.txName}>
-                          {isTransfer ? (t.payer ? t.payer : 'Transfer') : (t.category?.name ?? 'Uncategorised')}
+                          {isTransfer ? 'Transfer' : (t.category?.name ?? 'Uncategorised')}
                         </span>
                         {t.labels && t.labels.length > 0 && (
                           <div className={styles.txLabels}>
@@ -641,7 +644,7 @@ export default function DashboardPage() {
                               {t.wallet.name}
                             </span>
                           ),
-                          !isTransfer && t.payer && (
+                          t.payer && (
                             <span key="payer" className={styles.txPayee}>{t.payer}</span>
                           ),
                           t.notes && (

@@ -1,5 +1,6 @@
 'use client';
 
+import SegmentedControl from '@/components/ui/SegmentedControl';
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Button from './Button';
@@ -200,15 +201,16 @@ export default function PeriodPicker({ value, onChange, onClear, hideNav }: Prop
       {open && pos && createPortal(
         <div className={styles.dropdown} ref={dropdownRef} style={{ top: pos.top, left: pos.left }}>
           <div className={styles.tabs}>
-            {(['custom', 'weeks', 'months', 'years'] as PeriodTab[]).map(t => (
-              <button
-                key={t}
-                className={[styles.tab, tab === t ? styles.tabActive : ''].filter(Boolean).join(' ')}
-                onClick={() => switchTab(t)}
-              >
-                {t === 'custom' ? 'Custom range' : t.charAt(0).toUpperCase() + t.slice(1)}
-              </button>
-            ))}
+            <SegmentedControl<PeriodTab>
+              size="sm"
+              aria-label="Period type"
+              value={tab}
+              onChange={switchTab}
+              options={(['custom', 'weeks', 'months', 'years'] as PeriodTab[]).map(t => ({
+                value: t,
+                label: t === 'custom' ? 'Custom' : t.charAt(0).toUpperCase() + t.slice(1),
+              }))}
+            />
           </div>
 
           {tab === 'months' && (

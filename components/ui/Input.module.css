@@ -45,3 +45,44 @@
   font-size: 0.8125rem;
   color: var(--color-danger);
 }
+
+.adorned {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 38px;
+  padding: 0 var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-base);
+}
+
+.adorned:hover:not(:focus-within) {
+  border-color: var(--color-accent);
+}
+
+.adorned:focus-within {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 1px var(--color-border-focus), 0 0 0 5px var(--color-accent-halo);
+}
+
+.inputBare,
+.inputBare:hover:not(:focus),
+.inputBare:focus {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.adornment {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+}
