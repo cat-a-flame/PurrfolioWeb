@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import ReactSelect from 'react-select';
 import { FiSliders } from 'react-icons/fi';
 import Button from '@/components/ui/Button';
+import SegmentedControl from '@/components/ui/SegmentedControl';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import FormLabel from '@/components/ui/FormLabel';
 import Input from '@/components/ui/Input';
@@ -351,11 +352,16 @@ export default function TransactionForm({
                 </div>
 
                 <form onSubmit={handleSubmit} className={styles.form}>
-                    <div className={styles.typeTabs}>
-                        <button type="button" className={[styles.typeTab, mode === 'expense' ? styles.typeTabExpenseActive : ''].filter(Boolean).join(' ')} onClick={() => setMode('expense')}>Expense</button>
-                        <button type="button" className={[styles.typeTab, mode === 'income' ? styles.typeTabIncomeActive : ''].filter(Boolean).join(' ')} onClick={() => setMode('income')}>Income</button>
-                        <button type="button" className={[styles.typeTab, mode === 'transfer' ? styles.typeTabTransferActive : ''].filter(Boolean).join(' ')} onClick={() => setMode('transfer')}>Transfer</button>
-                    </div>
+                    <SegmentedControl<FormMode>
+                        aria-label="Record type"
+                        value={mode}
+                        onChange={setMode}
+                        options={[
+                            { value: 'expense', label: 'Expense', tone: 'expense' },
+                            { value: 'income', label: 'Income', tone: 'income' },
+                            { value: 'transfer', label: 'Transfer' },
+                        ]}
+                    />
 
                     {mode === 'transfer' ? (
                         <div className={styles.transferGrid}>

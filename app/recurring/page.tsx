@@ -12,6 +12,7 @@ import Input from '@/components/ui/Input';
 import NumberInput from '@/components/ui/NumberInput';
 import LabelSelect from '@/components/ui/LabelSelect';
 import PeriodPicker, { PeriodValue } from '@/components/ui/PeriodPicker';
+import SegmentedControl from '@/components/ui/SegmentedControl';
 import Switch from '@/components/ui/Switch';
 import Skeleton from '@/components/ui/Skeleton';
 import SearchableSelect, { SelectOption } from '@/components/ui/SearchableSelect';
@@ -490,22 +491,16 @@ export default function RecurringPage() {
           </div>
 
           <div className={styles.toolbar}>
-            <div className={styles.filterTabs}>
-              <button
-                className={[styles.filterTab, view === 'due' ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
-                onClick={() => setView('due')}
-              >
-                Due
-                {!loading && !periodLoading && <span className={styles.filterTabCount}>· {dueItems.length}</span>}
-              </button>
-              <button
-                className={[styles.filterTab, view === 'all' ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
-                onClick={() => setView('all')}
-              >
-                All planned
-                {!loading && <span className={styles.filterTabCount}>· {payments.length}</span>}
-              </button>
-            </div>
+            <SegmentedControl<'due' | 'all'>
+              size="sm"
+              aria-label="Planned payments view"
+              value={view}
+              onChange={setView}
+              options={[
+                { value: 'due', label: <>Due{!loading && !periodLoading && <span className={styles.filterTabCount}>· {dueItems.length}</span>}</> },
+                { value: 'all', label: <>All planned{!loading && <span className={styles.filterTabCount}>· {payments.length}</span>}</> },
+              ]}
+            />
 
             {view === 'due' && <PeriodPicker value={period} onChange={setPeriod} />}
           </div>
@@ -802,14 +797,15 @@ function PaymentModal({ form, set, title, error, saving, onSave, onClose, wallet
         </div>
 
         <div className={styles.modalForm}>
-          <div className={styles.typeTabs}>
-            <button type="button"
-              className={[styles.typeTab, form.type === 'expense' ? styles.typeTabExpense : ''].join(' ')}
-              onClick={() => set({ ...form, type: 'expense' })}>Expense</button>
-            <button type="button"
-              className={[styles.typeTab, form.type === 'income' ? styles.typeTabIncome : ''].join(' ')}
-              onClick={() => set({ ...form, type: 'income' })}>Income</button>
-          </div>
+          <SegmentedControl<TransactionType>
+            aria-label="Payment type"
+            value={form.type}
+            onChange={type => set({ ...form, type })}
+            options={[
+              { value: 'expense', label: 'Expense', tone: 'expense' },
+              { value: 'income', label: 'Income', tone: 'income' },
+            ]}
+          />
 
           <div className={styles.amountDisplay}>
             <label htmlFor="planned-amount" className={styles.amountDisplayLabel}>

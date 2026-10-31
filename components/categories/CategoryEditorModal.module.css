@@ -44,47 +44,6 @@
   margin-top: var(--space-2);
 }
 
-.typeTabs {
-  display: flex;
-  background: var(--color-surface-2);
-  border-radius: var(--radius-md);
-  padding: 3px;
-  gap: 2px;
-}
-
-.typeTab {
-  flex: 1;
-  height: 38px;
-  border-radius: calc(var(--radius-md) - 2px);
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
-  font-family: var(--font-nunito);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
-}
-
-.typeTab:hover {
-  color: var(--color-text);
-}
-
-.typeTabExpenseActive {
-  background: var(--color-expense);
-  color: #fff;
-}
-
-.typeTabIncomeActive {
-  background: var(--color-income);
-  color: #fff;
-}
-
-.typeTabBothActive {
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-}
-
 .subsHeader {
   margin-top: var(--space-6);
   display: flex;

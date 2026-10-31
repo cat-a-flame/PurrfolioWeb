@@ -1,5 +1,6 @@
 'use client';
 
+import SegmentedControl from '@/components/ui/SegmentedControl';
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import Link from 'next/link';
 import ReactSelect from 'react-select';
@@ -1120,19 +1121,17 @@ export default function ImportPage() {
                     </div>
                   )}
                 </div>
-                <div className={styles.filterTabs}>
-                  {(['all', 'valid', 'invalid'] as const).map(v => (
-                    <button
-                      key={v}
-                      className={[styles.filterTab, filterView === v ? styles.filterTabActive : ''].filter(Boolean).join(' ')}
-                      onClick={() => setFilterView(v)}
-                    >
-                      {v === 'all' && `All (${previewRows.length})`}
-                      {v === 'valid' && `✓ Valid (${validCount})`}
-                      {v === 'invalid' && `✕ Issues (${skippedCount})`}
-                    </button>
-                  ))}
-                </div>
+                <SegmentedControl<'all' | 'valid' | 'invalid'>
+                  size="sm"
+                  aria-label="Filter rows"
+                  value={filterView}
+                  onChange={setFilterView}
+                  options={[
+                    { value: 'all', label: `All (${previewRows.length})` },
+                    { value: 'valid', label: `✓ Valid (${validCount})` },
+                    { value: 'invalid', label: `✕ Issues (${skippedCount})` },
+                  ]}
+                />
               </div>
 
               <div className={styles.tableScroll}>
