@@ -17,6 +17,8 @@ import styles from './TransactionForm.module.css';
 
 type FormMode = 'expense' | 'income' | 'transfer';
 
+const OUTSIDE = '__outside__';
+
 export interface TransactionFormData {
     type: TransactionType;
     amount: number;
@@ -142,6 +144,60 @@ export default function TransactionForm({
     // Hide archived wallets except the selected one
     const activeWallets = wallets.filter(w => !w.is_archived || w.id === walletId);
     const activeToWallets = wallets.filter(w => !w.is_archived || w.id === toWalletId);
+
+    // Transfer sides: one From -> To model. Either side may be outside Purrfolio (not both).
+    const fromExternal = transferScope === 'external' && externalDirection === 'in';
+    const toExternal = transferScope === 'external' && externalDirection === 'out';
+    const fromSideWalletId = fromExternal ? '' : walletId;
+    const toSideWalletId = toExternal ? '' : transferScope === 'external' ? walletId : toWalletId;
+    const fx = transferScope === 'internal' && !!selectedWallet && !!toWallet && !sameCurrency;
+
+    function setFromSide(value: string) {
+        if (value === OUTSIDE) {
+            if (fromExternal) return;
+            const accountSide = toWalletId || walletId;
+            setTransferScope('external');
+            setExternalDirection('in');
+            setWalletId(accountSide);
+        } else if (fromExternal) {
+            // The account side was the "to" account
+            setTransferScope('internal');
+            setToWalletId(walletId);
+            setWalletId(value);
+        } else if (toExternal) {
+            setWalletId(value);
+        } else {
+            handleFromWalletChange(value);
+        }
+    }
+
+    function setToSide(value: string) {
+        if (value === OUTSIDE) {
+            if (toExternal) return;
+            setTransferScope('external');
+            setExternalDirection('out');
+        } else if (toExternal) {
+            setTransferScope('internal');
+            setToWalletId(value);
+        } else if (fromExternal) {
+            setWalletId(value);
+        } else {
+            handleToWalletChange(value);
+        }
+    }
+
+    function swapSides() {
+        if (transferScope === 'external') {
+            setExternalDirection(d => d === 'out' ? 'in' : 'out');
+            return;
+        }
+        const prevWallet = walletId;
+        const prevAmount = amount;
+        setWalletId(toWalletId);
+        setToWalletId(prevWallet);
+        setAmount(toAmount || amount);
+        setToAmount(toAmount ? prevAmount : '');
+    }
 
     // Same currency: copy the amount to the to-amount
     function handleFromAmountChange(val: string) {
@@ -300,105 +356,57 @@ export default function TransactionForm({
 
                     {mode === 'transfer' ? (
                         <div className={styles.transferGrid}>
-                            <div className={`${styles.field} ${styles.transferScopeRow}`}>
-                                <button
-                                    type="button"
-                                    className={[styles.scopeTab, transferScope === 'internal' ? styles.scopeTabActive : ''].filter(Boolean).join(' ')}
-                                    onClick={() => setTransferScope('internal')}
-                                >
-                                    ↔ Between my accounts
-                                </button>
-                                <button
-                                    type="button"
-                                    className={[styles.scopeTab, transferScope === 'external' ? styles.scopeTabActive : ''].filter(Boolean).join(' ')}
-                                    onClick={() => setTransferScope('external')}
-                                >
-                                    ⇄ External account
-                                </button>
+                            <div className={styles.sides}>
+                                {([
+                                    { key: 'from', label: 'From', external: fromExternal, walletId: fromSideWalletId, onChange: setFromSide, otherExternal: toExternal },
+                                    { key: 'to', label: 'To', external: toExternal, walletId: toSideWalletId, onChange: setToSide, otherExternal: fromExternal },
+                                ] as const).map(side => {
+                                    const wallet = wallets.find(w => w.id === side.walletId);
+                                    const otherWalletId = side.key === 'from' ? toSideWalletId : fromSideWalletId;
+                                    const options = [
+                                        { value: OUTSIDE, label: 'Outside Purrfolio', isDisabled: side.otherExternal },
+                                        ...wallets
+                                            .filter(w => (!w.is_archived || w.id === side.walletId) && w.id !== otherWalletId)
+                                            .map(w => ({ value: w.id, label: `${w.icon} ${w.name} · ${w.currency}`, isDisabled: false })),
+                                    ];
+                                    const current = side.external
+                                        ? options[0]
+                                        : wallet ? options.find(o => o.value === wallet.id) ?? null : null;
+                                    return (
+                                        <div key={side.key} className={styles.sideCard}>
+                                            <div className={styles.sideHeader}>
+                                                <label htmlFor={`${side.key}-side`} className={styles.sideLabel}>{side.label}</label>
+                                                <span className={styles.sideKind}>{side.external ? 'Outside Purrfolio' : 'Your account'}</span>
+                                            </div>
+                                            <ReactSelect<{ value: string; label: string; isDisabled: boolean }>
+                                                inputId={`${side.key}-side`}
+                                                options={options}
+                                                value={current}
+                                                onChange={(opt) => opt && side.onChange(opt.value)}
+                                                isOptionDisabled={o => o.isDisabled}
+                                                isSearchable
+                                                styles={makeRsStyles()}
+                                                theme={rsTheme}
+                                                menuPosition="fixed"
+                                                placeholder="Select account…"
+                                            />
+                                            {side.external && (
+                                                <Input
+                                                    type="text"
+                                                    aria-label={side.key === 'from' ? 'Who is sending the money' : 'Who receives the money'}
+                                                    value={externalAccount}
+                                                    onChange={e => setExternalAccount(e.target.value)}
+                                                    placeholder="e.g. Employer, Anna, PayPal"
+                                                />
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                                <button type="button" className={styles.swapBtn} onClick={swapSides} aria-label="Swap From and To">⇅</button>
                             </div>
 
-                            {transferScope === 'external' ? (
-                                <>
-                                    <div className={`${styles.field} ${styles.transferScopeRow}`}>
-                                        <button
-                                            type="button"
-                                            className={[styles.scopeTab, externalDirection === 'out' ? styles.scopeTabActive : ''].filter(Boolean).join(' ')}
-                                            onClick={() => setExternalDirection('out')}
-                                        >
-                                            ↑ Sending out
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={[styles.scopeTab, externalDirection === 'in' ? styles.scopeTabActive : ''].filter(Boolean).join(' ')}
-                                            onClick={() => setExternalDirection('in')}
-                                        >
-                                            ↓ Receiving
-                                        </button>
-                                    </div>
-
-                                    <div className={styles.field}>
-                                        <FormLabel htmlFor="ext-wallet" required>
-                                            {externalDirection === 'out' ? 'From account' : 'To account'}
-                                        </FormLabel>
-                                        <ReactSelect<{ value: string; label: string }>
-                                            inputId="ext-wallet"
-                                            options={activeWallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` }))}
-                                            value={selectedWallet ? { value: walletId, label: `${selectedWallet.icon} ${selectedWallet.name}` } : null}
-                                            onChange={(opt) => opt && setWalletId(opt.value)}
-                                            isSearchable
-                                            styles={makeRsStyles()}
-                                            theme={rsTheme}
-                                            menuPosition="fixed"
-                                            placeholder="Select account…"
-                                        />
-                                    </div>
-
-                                    <div className={styles.field}>
-                                        <FormLabel htmlFor="ext-amount" required>Amount</FormLabel>
-                                        <div className={styles.amountRow}>
-                                            <NumberInput id="ext-amount" value={amount} onChange={setAmount} placeholder="0" required autoFocus />
-                                            <span className={styles.currencyBadge}>{selectedWallet?.currency ?? '—'}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className={styles.field}>
-                                        <FormLabel htmlFor="ext-account" required>External account</FormLabel>
-                                        <Input
-                                            id="ext-account"
-                                            type="text"
-                                            value={externalAccount}
-                                            onChange={e => setExternalAccount(e.target.value)}
-                                            placeholder="e.g. PayPal, Bank transfer, John Doe…"
-                                        />
-                                    </div>
-
-                                    <div className={styles.field}>
-                                        <FormLabel htmlFor="ext-date" required>Date</FormLabel>
-                                        <Input id="ext-date" type="date" value={date} onChange={e => setDate(e.target.value)} required />
-                                    </div>
-
-                                    <div className={styles.field}>
-                                        <FormLabel htmlFor="ext-notes">Note</FormLabel>
-                                        <textarea id="ext-notes" className={styles.textarea} value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Optional note" />
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className={styles.field}>
-                                        <FormLabel htmlFor="from-wallet" required>From account</FormLabel>
-                                        <ReactSelect<{ value: string; label: string }>
-                                            inputId="from-wallet"
-                                            options={activeWallets.map(w => ({ value: w.id, label: `${w.icon} ${w.name}` }))}
-                                            value={selectedWallet ? { value: walletId, label: `${selectedWallet.icon} ${selectedWallet.name}` } : null}
-                                            onChange={(opt) => opt && handleFromWalletChange(opt.value)}
-                                            isSearchable
-                                            styles={makeRsStyles()}
-                                            theme={rsTheme}
-                                            menuPosition="fixed"
-                                            placeholder="Select account…"
-                                        />
-                                    </div>
-
+                            {fx ? (
+                                <div className={styles.fxRow}>
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="from-amount" required>Amount sent</FormLabel>
                                         <div className={styles.amountRow}>
@@ -406,59 +414,38 @@ export default function TransactionForm({
                                             <span className={styles.currencyBadge}>{selectedWallet?.currency ?? '—'}</span>
                                         </div>
                                     </div>
-
-                                    <div className={styles.transferArrowRow}>
-                                        <span className={styles.transferArrow}>↓</span>
-                                    </div>
-
-                                    <div className={styles.field}>
-                                        <FormLabel htmlFor="to-wallet" required>To account</FormLabel>
-                                        {(() => {
-                                            const toWalletOptions = activeToWallets.filter(w => w.id !== walletId).map(w => ({ value: w.id, label: `${w.icon} ${w.name}` }));
-                                            const toWalletValue = toWalletOptions.find(o => o.value === toWalletId) ?? null;
-                                            return (
-                                                <ReactSelect<{ value: string; label: string }>
-                                                    inputId="to-wallet"
-                                                    options={toWalletOptions}
-                                                    value={toWalletValue}
-                                                    onChange={(opt) => opt && handleToWalletChange(opt.value)}
-                                                    isSearchable
-                                                    styles={makeRsStyles()}
-                                                    theme={rsTheme}
-                                                    menuPosition="fixed"
-                                                    placeholder="Select account…"
-                                                />
-                                            );
-                                        })()}
-                                    </div>
-
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="to-amount" required>Amount received</FormLabel>
                                         <div className={styles.amountRow}>
-                                            <NumberInput
-                                                id="to-amount"
-                                                value={toAmount}
-                                                onChange={setToAmount}
-                                                placeholder="0"
-                                                required
-                                                readOnly={sameCurrency ?? false}
-                                            />
+                                            <NumberInput id="to-amount" value={toAmount} onChange={setToAmount} placeholder="0" required />
                                             <span className={styles.currencyBadge}>{toWallet?.currency ?? '—'}</span>
                                         </div>
-                                        {sameCurrency && <p className={styles.sameHint}>Same currency — amount auto-matched</p>}
                                     </div>
-
-                                    <div className={styles.field}>
-                                        <FormLabel htmlFor="transfer-date" required>Date</FormLabel>
-                                        <Input id="transfer-date" type="date" value={date} onChange={e => setDate(e.target.value)} required />
+                                </div>
+                            ) : (
+                                <div className={styles.field}>
+                                    <FormLabel htmlFor="from-amount" required>Amount</FormLabel>
+                                    <div className={styles.amountRow}>
+                                        {transferScope === 'external' && (
+                                            <span className={[styles.amountSign, toExternal ? styles.amountSignExpense : styles.amountSignIncome].join(' ')}>
+                                                {toExternal ? '−' : '+'}
+                                            </span>
+                                        )}
+                                        <NumberInput id="from-amount" value={amount} onChange={handleFromAmountChange} placeholder="0" required autoFocus />
+                                        <span className={styles.currencyBadge}>{selectedWallet?.currency ?? '—'}</span>
                                     </div>
-
-                                    <div className={styles.field}>
-                                        <FormLabel htmlFor="transfer-notes">Note</FormLabel>
-                                        <textarea id="transfer-notes" className={styles.textarea} value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Optional note" />
-                                    </div>
-                                </>
+                                </div>
                             )}
+
+                            <div className={styles.field}>
+                                <FormLabel htmlFor="transfer-date" required>Date</FormLabel>
+                                <Input id="transfer-date" type="date" value={date} onChange={e => setDate(e.target.value)} required />
+                            </div>
+
+                            <div className={styles.field}>
+                                <FormLabel htmlFor="transfer-notes">Note</FormLabel>
+                                <textarea id="transfer-notes" className={styles.textarea} value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Optional note" />
+                            </div>
                         </div>
                     ) : (
                         <div className={styles.recordFields}>
