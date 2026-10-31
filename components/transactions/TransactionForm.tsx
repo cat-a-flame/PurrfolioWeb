@@ -407,31 +407,28 @@ export default function TransactionForm({
                                 <div className={styles.fxRow}>
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="from-amount" required>Amount sent</FormLabel>
-                                        <div className={styles.amountRow}>
-                                            <NumberInput id="from-amount" value={amount} onChange={handleFromAmountChange} placeholder="0" required autoFocus />
-                                            <span className={styles.currencyBadge}>{selectedWallet?.currency ?? '—'}</span>
-                                        </div>
+                                        <NumberInput id="from-amount" value={amount} onChange={handleFromAmountChange} placeholder="0" required autoFocus suffix={selectedWallet?.currency ?? '—'} />
                                     </div>
                                     <div className={styles.field}>
                                         <FormLabel htmlFor="to-amount" required>Amount received</FormLabel>
-                                        <div className={styles.amountRow}>
-                                            <NumberInput id="to-amount" value={toAmount} onChange={setToAmount} placeholder="0" required />
-                                            <span className={styles.currencyBadge}>{toWallet?.currency ?? '—'}</span>
-                                        </div>
+                                        <NumberInput id="to-amount" value={toAmount} onChange={setToAmount} placeholder="0" required suffix={toWallet?.currency ?? '—'} />
                                     </div>
                                 </div>
                             ) : (
                                 <div className={styles.field}>
                                     <FormLabel htmlFor="from-amount" required>Amount</FormLabel>
-                                    <div className={styles.amountRow}>
-                                        {transferScope === 'external' && (
-                                            <span className={[styles.amountSign, toExternal ? styles.amountSignExpense : styles.amountSignIncome].join(' ')}>
-                                                {toExternal ? '−' : '+'}
-                                            </span>
-                                        )}
-                                        <NumberInput id="from-amount" value={amount} onChange={handleFromAmountChange} placeholder="0" required autoFocus />
-                                        <span className={styles.currencyBadge}>{selectedWallet?.currency ?? '—'}</span>
-                                    </div>
+                                    <NumberInput
+                                        id="from-amount"
+                                        value={amount}
+                                        onChange={handleFromAmountChange}
+                                        placeholder="0"
+                                        required
+                                        autoFocus
+                                        prefix={transferScope === 'external' ? (
+                                            <span className={toExternal ? styles.amountSignExpense : styles.amountSignIncome}>{toExternal ? '−' : '+'}</span>
+                                        ) : undefined}
+                                        suffix={selectedWallet?.currency ?? '—'}
+                                    />
                                 </div>
                             )}
 
@@ -440,17 +437,30 @@ export default function TransactionForm({
                                 <Input id="transfer-date" type="date" value={date} onChange={e => setDate(e.target.value)} required />
                             </div>
 
-                            {labels.length > 0 && (
-                                <div className={styles.field}>
-                                    <FormLabel>Labels</FormLabel>
-                                    <LabelSelect labels={labels} selectedIds={labelIds} onChange={setLabelIds} />
+                            <button
+                                type="button"
+                                className={styles.moreOptionsToggle}
+                                onClick={() => setShowMoreOptions(v => !v)}
+                                aria-expanded={showMoreOptions}
+                            >
+                                <FiSliders />
+                                {showMoreOptions ? 'Fewer options' : 'More options'}
+                            </button>
+
+                            {showMoreOptions && (
+                                <div className={styles.moreOptionsPanel}>
+                                    {labels.length > 0 && (
+                                        <div className={styles.field}>
+                                            <FormLabel>Labels</FormLabel>
+                                            <LabelSelect labels={labels} selectedIds={labelIds} onChange={setLabelIds} />
+                                        </div>
+                                    )}
+                                    <div className={styles.field}>
+                                        <FormLabel htmlFor="transfer-notes">Notes</FormLabel>
+                                        <textarea id="transfer-notes" className={styles.textarea} value={notes} onChange={e => setNotes(e.target.value)} rows={4} />
+                                    </div>
                                 </div>
                             )}
-
-                            <div className={styles.field}>
-                                <FormLabel htmlFor="transfer-notes">Note</FormLabel>
-                                <textarea id="transfer-notes" className={styles.textarea} value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Optional note" />
-                            </div>
                         </div>
                     ) : (
                         <div className={styles.recordFields}>

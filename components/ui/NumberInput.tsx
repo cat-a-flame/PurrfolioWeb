@@ -36,12 +36,16 @@ function cursorAfterNonSpaces(formatted: string, nonSpaces: number): number {
   return formatted.length;
 }
 
-interface Props extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'onChange' | 'value'> {
+interface Props extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'onChange' | 'value' | 'prefix'> {
   value: string;
   onChange: (raw: string) => void;
+  /** Rendered inside the field, before the number (e.g. a sign) */
+  prefix?: React.ReactNode;
+  /** Rendered inside the field, after the number (e.g. a currency code) */
+  suffix?: React.ReactNode;
 }
 
-export default function NumberInput({ value, onChange, className, placeholder, onFocus, onBlur, ...rest }: Props) {
+export default function NumberInput({ value, onChange, className, placeholder, onFocus, onBlur, prefix, suffix, ...rest }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [focused, setFocused] = useState(false);
 
@@ -66,20 +70,32 @@ export default function NumberInput({ value, onChange, className, placeholder, o
     });
   }
 
+  const input = (
+    <input
+      ref={inputRef}
+      {...rest}
+      placeholder={focused ? undefined : placeholder}
+      onFocus={(e) => { setFocused(true); onFocus?.(e); }}
+      onBlur={(e) => { setFocused(false); onBlur?.(e); }}
+      type="text"
+      inputMode="decimal"
+      className={[styles.input, prefix || suffix ? styles.inputBare : '', className ?? ''].filter(Boolean).join(' ')}
+      value={addSpaces(value)}
+      onChange={handleChange}
+    />
+  );
+
+  if (!prefix && !suffix) {
+    return <div className={styles.wrapper}>{input}</div>;
+  }
+
   return (
     <div className={styles.wrapper}>
-      <input
-        ref={inputRef}
-        {...rest}
-        placeholder={focused ? undefined : placeholder}
-        onFocus={(e) => { setFocused(true); onFocus?.(e); }}
-        onBlur={(e) => { setFocused(false); onBlur?.(e); }}
-        type="text"
-        inputMode="decimal"
-        className={[styles.input, className ?? ''].filter(Boolean).join(' ')}
-        value={addSpaces(value)}
-        onChange={handleChange}
-      />
+      <div className={styles.adorned}>
+        {prefix ? <span className={styles.adornment}>{prefix}</span> : null}
+        {input}
+        {suffix ? <span className={styles.adornment}>{suffix}</span> : null}
+      </div>
     </div>
   );
 }
