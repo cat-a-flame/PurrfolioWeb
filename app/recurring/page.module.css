@@ -345,7 +345,7 @@
   box-shadow: var(--shadow-lg);
   padding: var(--space-8);
   width: 100%;
-  max-width: 680px;
+  max-width: 480px;
   max-height: 90vh;
   overflow-y: auto;
   display: flex;
@@ -440,11 +440,6 @@
   height: 40px;
 }
 
-.optional {
-  font-weight: 400;
-  color: var(--color-text-muted);
-  font-size: 0.8125rem;
-}
 
 .formError {
   color: var(--color-danger);
@@ -453,9 +448,185 @@
 
 .actions {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
   gap: var(--space-3);
   padding-top: var(--space-2);
+}
+
+.actions > * {
+  width: 100%;
+}
+
+.amountDisplay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.amountDisplayLabel {
+  font-family: var(--font-nunito);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+}
+
+.requiredMark {
+  margin-left: 2px;
+  color: var(--color-danger);
+}
+
+.amountDisplayRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-2);
+  max-width: 100%;
+}
+
+.amountSign {
+  font-family: var(--font-nunito);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.amountSignExpense { color: var(--color-expense); }
+.amountSignIncome { color: var(--color-income); }
+
+.amountUnit {
+  font-family: var(--font-nunito);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.amountBigInput,
+.amountBigInput:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  height: auto !important;
+}
+
+.dateWrap {
+  position: relative;
+}
+
+.dateOverlay {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-text-faint);
+  pointer-events: none;
+}
+
+.dateEmpty input:not(:focus) {
+  color: transparent;
+}
+
+.dateEmpty input:not(:focus)::-webkit-datetime-edit {
+  color: transparent;
+}
+
+.dateEmpty:focus-within .dateOverlay {
+  display: none;
+}
+
+.dateClear {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: var(--space-1);
+  font-size: 0.8125rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.dateClear:hover { color: var(--color-text); }
+
+.autoCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-lg);
+}
+
+.autoText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.autoTitle {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.autoSub {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.moreOptionsToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  background: none;
+  border: none;
+  padding: var(--space-2);
+  font-family: var(--font-nunito);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.moreOptionsToggle:hover { color: var(--color-text); }
+
+.moreOptionsPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.textarea {
+  width: 100%;
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-family: var(--font-nunito);
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  resize: vertical;
+  outline: none;
+  line-height: 1.6;
+}
+
+.textarea:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 1px var(--color-border-focus), 0 0 0 5px var(--color-accent-halo);
 }
 
 @media (max-width: 600px) {
