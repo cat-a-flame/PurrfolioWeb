@@ -26,7 +26,7 @@ import { generateDueDates, frequencyLabel, isoDate } from '@/lib/recurringUtils'
 import type { Transaction, Wallet, Category, Label, RecurringPayment, RecurringOccurrence } from '@/lib/types';
 import styles from './page.module.css';
 
-const NUMBER_MASK = '★★★★';
+const NUMBER_MASK = '****';
 
 function defaultPeriod(): PeriodValue {
   const now = new Date();
