@@ -119,10 +119,26 @@
 }
 
 .itemLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
   min-width: 0;
+  white-space: nowrap;
+}
+
+.itemIcon {
+  flex-shrink: 0;
+}
+
+.itemText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.itemName {
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .itemParent {

@@ -255,10 +255,13 @@ export default function CategoryPicker({
         ) : (
           <>
             <span className={styles.itemLabel}>
-              {searchResults && parentOf(row.category) && (
-                <span className={styles.itemParent}>{parentOf(row.category)!.name}</span>
-              )}
-              {row.category.icon} {row.category.name}
+              <span className={styles.itemIcon}>{row.category.icon}</span>
+              <span className={styles.itemText}>
+                {searchResults && parentOf(row.category) && (
+                  <span className={styles.itemParent}>{parentOf(row.category)!.name}</span>
+                )}
+                <span className={styles.itemName}>{row.category.name}</span>
+              </span>
             </span>
             {row.kind === 'parent' && <FiChevronRight className={styles.itemChevron} />}
           </>
