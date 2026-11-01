@@ -369,8 +369,8 @@
   gap: var(--space-4);
   /* Side padding (offset by negative margin) leaves room for the row hover
      background, which would otherwise be clipped by overflow. */
-  margin: 0 calc(-1 * var(--space-2));
-  padding: 0 var(--space-2);
+  margin: 0 calc(-1 * var(--space-4));
+  padding: 0 var(--space-5) 0 var(--space-4);
 }
 
 .plannedRow {
@@ -379,6 +379,7 @@
   gap: var(--space-3);
   cursor: pointer;
   border-radius: var(--radius-md);
+  margin: 0 calc(-1 * var(--space-2));
   padding: var(--space-2);
   transition: background var(--transition-fast);
 }
