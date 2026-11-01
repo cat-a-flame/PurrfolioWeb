@@ -79,8 +79,16 @@ export default function CategoryPicker({
   const selected = categories.find(c => c.id === value) ?? null;
   const drillNode = drillId ? topNodes.find(n => n.category.id === drillId) ?? null : null;
 
+  const parentOf = (c: Category) =>
+    c.parent_id ? categories.find(p => p.id === c.parent_id) ?? null : null;
+
+  // Match on the category name or its parent's name ("pets medicine").
   const searchResults = search.trim()
-    ? allSelectable.filter(c => c.name.toLowerCase().includes(search.trim().toLowerCase()))
+    ? allSelectable.filter(c => {
+        const term = search.trim().toLowerCase();
+        const parent = parentOf(c);
+        return c.name.toLowerCase().includes(term) || (parent?.name.toLowerCase().includes(term) ?? false);
+      })
     : null;
 
   const rows: MenuRow[] = searchResults
@@ -246,7 +254,12 @@ export default function CategoryPicker({
           <><FiChevronLeft /> {row.category.icon} {row.category.name}</>
         ) : (
           <>
-            <span className={styles.itemLabel}>{row.category.icon} {row.category.name}</span>
+            <span className={styles.itemLabel}>
+              {row.category.icon} {row.category.name}
+              {searchResults && parentOf(row.category) && (
+                <span className={styles.itemParent}> · {parentOf(row.category)!.name}</span>
+              )}
+            </span>
             {row.kind === 'parent' && <FiChevronRight className={styles.itemChevron} />}
           </>
         )}

@@ -125,6 +125,10 @@
   white-space: nowrap;
 }
 
+.itemParent {
+  color: var(--color-text-faint);
+}
+
 .itemChevron {
   flex-shrink: 0;
   color: var(--color-text-faint);
