@@ -119,10 +119,36 @@
 }
 
 .itemLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
   min-width: 0;
+  white-space: nowrap;
+}
+
+.itemIcon {
+  flex-shrink: 0;
+}
+
+.itemText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.itemName {
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.itemParent {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--color-text-faint);
 }
 
 .itemChevron {

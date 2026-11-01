@@ -12,7 +12,7 @@ type GroupKey = 'cash' | 'bonds' | 'investments' | 'other';
 const GROUPS: { key: GroupKey; label: string; types: AccountType[] }[] = [
   { key: 'cash', label: 'Cash & bank', types: ['bank', 'cash', 'savings', 'credit_card'] },
   { key: 'bonds', label: 'Bonds', types: ['bond'] },
-  { key: 'investments', label: 'Investments', types: ['investment', 'crypto'] },
+  { key: 'investments', label: 'Investments', types: ['investment', 'stock', 'crypto'] },
   { key: 'other', label: 'Other', types: ['other'] },
 ];
 

@@ -1,12 +1,13 @@
 import type { AccountType, Currency } from './types';
 
-export const ACCOUNT_TYPES: AccountType[] = ['bank', 'cash', 'savings', 'credit_card', 'investment', 'bond', 'crypto', 'other'];
+export const ACCOUNT_TYPES: AccountType[] = ['bank', 'cash', 'savings', 'credit_card', 'investment', 'stock', 'bond', 'crypto', 'other'];
 export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   bank: 'Bank',
   cash: 'Cash',
   savings: 'Savings',
   credit_card: 'Credit card',
   investment: 'Investment',
+  stock: 'Stock',
   bond: 'Bond',
   crypto: 'Crypto',
   other: 'Other',

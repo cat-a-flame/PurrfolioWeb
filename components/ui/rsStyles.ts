@@ -31,6 +31,8 @@ export function makeRsStyles<
       border: '1px solid var(--color-border)',
       borderRadius: 'var(--radius-lg)',
       boxShadow: 'var(--shadow-md)',
+      // Clip highlighted options to the menu's rounded corners.
+      overflow: 'hidden',
       zIndex: 400,
     }),
     menuList: (base) => ({ ...base, padding: '4px 0' }),

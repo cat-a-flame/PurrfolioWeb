@@ -708,13 +708,15 @@ export default function DashboardPage() {
                 {plannedDialogItem.payment.type === 'income' ? '+' : '−'}
                 {formatCurrency(plannedDialogItem.payment.amount, plannedDialogItem.payment.wallet?.currency ?? baseCurrency)}
               </span>
-              {`Due ${plannedDialogItem.dueDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}. Add this as a transaction, or skip this occurrence?`}
+              {`Due ${plannedDialogItem.dueDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`}
+              {plannedDialogItem.payment.wallet?.name && ` · ${plannedDialogItem.payment.wallet.name}`}
             </>
           }
           confirmLabel="Add transaction"
           cancelLabel="Skip"
           confirmVariant="primary"
           cancelVariant="ghost"
+          showClose
           onConfirm={handlePlannedAdd}
           onCancel={handlePlannedSkip}
           onDismiss={() => setPlannedDialogItem(undefined)}
