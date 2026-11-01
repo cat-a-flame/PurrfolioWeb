@@ -16,8 +16,8 @@ interface ConfirmDialogProps {
   onCancel: () => void;
   /** Called when the overlay is clicked to dismiss. Defaults to onCancel. */
   onDismiss?: () => void;
-  /** When set, adds a third button that calls onDismiss without confirming or cancelling. */
-  dismissLabel?: string;
+  /** Shows an X in the top-right corner that calls onDismiss (or onCancel) without confirming. */
+  showClose?: boolean;
   loading?: boolean;
 }
 
@@ -31,7 +31,7 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
   onDismiss,
-  dismissLabel,
+  showClose = false,
   loading = false,
 }: ConfirmDialogProps) {
   const titleId = useId();
@@ -50,6 +50,17 @@ export default function ConfirmDialog({
         aria-labelledby={titleId}
         aria-describedby={messageId}
       >
+        {showClose && (
+          <button
+            type="button"
+            className={styles.closeBtn}
+            onClick={onDismiss ?? onCancel}
+            disabled={loading}
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        )}
         <h2 id={titleId} className={styles.title}>
           {title}
         </h2>
@@ -57,11 +68,6 @@ export default function ConfirmDialog({
           {message}
         </div>
         <div className={styles.actions}>
-          {dismissLabel && (
-            <Button variant="ghost" size="md" onClick={onDismiss ?? onCancel} disabled={loading}>
-              {dismissLabel}
-            </Button>
-          )}
           <Button variant={cancelVariant} size="md" data-cancel onClick={onCancel} disabled={loading}>
             {cancelLabel}
           </Button>

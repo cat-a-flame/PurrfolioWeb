@@ -716,7 +716,7 @@ export default function DashboardPage() {
           cancelLabel="Skip"
           confirmVariant="primary"
           cancelVariant="ghost"
-          dismissLabel="Close"
+          showClose
           onConfirm={handlePlannedAdd}
           onCancel={handlePlannedSkip}
           onDismiss={() => setPlannedDialogItem(undefined)}
