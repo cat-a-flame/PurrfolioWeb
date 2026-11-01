@@ -100,6 +100,7 @@ const ACCOUNT_GROUPS: { label: string; types: AccountType[] }[] = [
   { label: 'Credit cards', types: ['credit_card'] },
   { label: 'Bonds', types: ['bond'] },
   { label: 'Investments', types: ['investment'] },
+  { label: 'Stocks', types: ['stock'] },
   { label: 'Crypto', types: ['crypto'] },
   { label: 'Other', types: ['other'] },
 ];
