@@ -129,6 +129,7 @@ const HISTORY_MONTHS = 6;
 // Minimum history buckets a category must appear in to count as a pattern.
 const MIN_BUCKETS_SEEN = 2;
 const MAX_PREDICTIONS_PER_TYPE = 15;
+const MAX_ITEMS_PER_TIER = 4;
 
 const AVG_DAYS_PER_MONTH = 365.25 / 12;
 
@@ -182,9 +183,9 @@ function predictionFrequencyLabel(totalCount: number, bucketsSeen: number, isAgg
 
 const PREDICTION_TIERS = [
   { id: 'certain', label: 'Almost certain', hint: '95% or more', bars: 3, min: 95 },
-  { id: 'likely', label: 'Likely', hint: '80–94%', bars: 2, min: 80, maxItems: 4 },
+  { id: 'likely', label: 'Likely', hint: '80–94%', bars: 2, min: 80 },
   { id: 'might', label: 'Might happen', hint: 'under 80%', bars: 1, min: 0 },
-] as readonly { id: string; label: string; hint: string; bars: number; min: number; maxItems?: number }[];
+] as readonly { id: string; label: string; hint: string; bars: number; min: number }[];
 
 function predictionTierFor(pct: number) {
   return PREDICTION_TIERS.find(t => pct >= t.min) ?? PREDICTION_TIERS[PREDICTION_TIERS.length - 1];
@@ -246,7 +247,7 @@ function PredictionPanel({ variant, title, subtitle, items, loading }: {
                   <span className={styles.predictionGroupTotal}>{sign}{formatBase(Math.round(subtotal))}</span>
                 </div>
                 <ul className={styles.predictionRows}>
-                  {tierItems.slice(0, tier.maxItems ?? tierItems.length).map(item => (
+                  {tierItems.slice(0, MAX_ITEMS_PER_TIER).map(item => (
                     <li key={item.key} className={styles.predictionRow}>
                       <EmojiBox emoji={item.icon} color={item.color} size="sm" />
                       <div className={styles.predictionMain}>
