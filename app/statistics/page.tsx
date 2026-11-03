@@ -182,9 +182,9 @@ function predictionFrequencyLabel(totalCount: number, bucketsSeen: number, isAgg
 
 const PREDICTION_TIERS = [
   { id: 'certain', label: 'Almost certain', hint: '95% or more', bars: 3, min: 95 },
-  { id: 'likely', label: 'Likely', hint: '80–94%', bars: 2, min: 80 },
+  { id: 'likely', label: 'Likely', hint: '80–94%', bars: 2, min: 80, maxItems: 4 },
   { id: 'might', label: 'Might happen', hint: 'under 80%', bars: 1, min: 0 },
-] as const;
+] as readonly { id: string; label: string; hint: string; bars: number; min: number; maxItems?: number }[];
 
 function predictionTierFor(pct: number) {
   return PREDICTION_TIERS.find(t => pct >= t.min) ?? PREDICTION_TIERS[PREDICTION_TIERS.length - 1];
@@ -246,7 +246,7 @@ function PredictionPanel({ variant, title, subtitle, items, loading }: {
                   <span className={styles.predictionGroupTotal}>{sign}{formatBase(Math.round(subtotal))}</span>
                 </div>
                 <ul className={styles.predictionRows}>
-                  {tierItems.map(item => (
+                  {tierItems.slice(0, tier.maxItems ?? tierItems.length).map(item => (
                     <li key={item.key} className={styles.predictionRow}>
                       <EmojiBox emoji={item.icon} color={item.color} size="sm" />
                       <div className={styles.predictionMain}>
