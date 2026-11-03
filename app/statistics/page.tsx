@@ -221,7 +221,7 @@ function PredictionPanel({ variant, title, subtitle, items, loading }: {
   const isIncome = variant === 'income';
   const sign = isIncome ? '+' : '−';
   return (
-    <div className={styles.card}>
+    <div className={[styles.card, styles.cardWide].join(' ')}>
       <div>
         <h2 className={styles.cardTitle}>{title}</h2>
         <p className={styles.cardSubtitle}>{subtitle}</p>

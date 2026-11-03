@@ -603,11 +603,7 @@
 .predictionList {
   display: flex;
   flex-direction: column;
-}
-
-.predictionList {
-  display: flex;
-  flex-direction: column;
+  gap: var(--space-3);
 }
 
 .predictionGroups {
