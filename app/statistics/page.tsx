@@ -128,7 +128,8 @@ function changeInfo(current: number, prev: number): { text: string; tone: 'up' |
 const HISTORY_MONTHS = 6;
 // Minimum history buckets a category must appear in to count as a pattern.
 const MIN_BUCKETS_SEEN = 2;
-const MAX_PREDICTIONS_PER_TYPE = 10;
+const MAX_PREDICTIONS_PER_TYPE = 15;
+const MAX_ITEMS_PER_TIER = 4;
 
 const AVG_DAYS_PER_MONTH = 365.25 / 12;
 
@@ -166,6 +167,49 @@ function sampleStats(samples: number[]): { mean: number; cv: number } {
   return { mean, cv: Math.sqrt(variance) / mean };
 }
 
+// "Every month", "About 5x a month", "4 of the last 6 months" ...
+function predictionFrequencyLabel(totalCount: number, bucketsSeen: number, isAggregate: boolean): string {
+  if (!isAggregate) {
+    return bucketsSeen >= HISTORY_MONTHS ? 'Every month' : `${bucketsSeen} of the last ${HISTORY_MONTHS} months`;
+  }
+  if (bucketsSeen < HISTORY_MONTHS) return `${totalCount} times in ${HISTORY_MONTHS} months`;
+  const avg = totalCount / bucketsSeen;
+  const lo = Math.floor(avg);
+  const hi = Math.ceil(avg);
+  if (avg - lo < 0.25) return `About ${lo}x a month`;
+  if (hi - avg < 0.25) return `About ${hi}x a month`;
+  return `About ${lo}–${hi}x a month`;
+}
+
+const PREDICTION_TIERS = [
+  { id: 'certain', label: 'Almost certain', hint: '95% or more', bars: 3, min: 95 },
+  { id: 'likely', label: 'Likely', hint: '80–94%', bars: 2, min: 80 },
+  { id: 'might', label: 'Might happen', hint: 'under 80%', bars: 1, min: 0 },
+] as readonly { id: string; label: string; hint: string; bars: number; min: number }[];
+
+function predictionTierFor(pct: number) {
+  return PREDICTION_TIERS.find(t => pct >= t.min) ?? PREDICTION_TIERS[PREDICTION_TIERS.length - 1];
+}
+
+function ConfidenceBars({ level }: { level: number }) {
+  return (
+    <svg className={styles.tierBars} width="14" height="12" viewBox="0 0 14 12" aria-hidden>
+      {[0, 1, 2].map(i => (
+        <rect
+          key={i}
+          x={i * 5}
+          y={8 - i * 4}
+          width="3"
+          height={4 + i * 4}
+          rx="1"
+          fill="currentColor"
+          opacity={i < level ? 1 : 0.2}
+        />
+      ))}
+    </svg>
+  );
+}
+
 function PredictionPanel({ variant, title, subtitle, items, loading }: {
   variant: 'income' | 'expense';
   title: string;
@@ -177,7 +221,7 @@ function PredictionPanel({ variant, title, subtitle, items, loading }: {
   const isIncome = variant === 'income';
   const sign = isIncome ? '+' : '−';
   return (
-    <div className={styles.card}>
+    <div className={[styles.card, styles.cardWide].join(' ')}>
       <div>
         <h2 className={styles.cardTitle}>{title}</h2>
         <p className={styles.cardSubtitle}>{subtitle}</p>
@@ -189,60 +233,42 @@ function PredictionPanel({ variant, title, subtitle, items, loading }: {
       ) : items.length === 0 ? (
         <EmptyState compact icon={isIncome ? '💰' : '🧾'} hint={`No recurring ${variant} pattern found yet.`} />
       ) : (
-        <table className={styles.predictionTable}>
-          <colgroup>
-            <col className={styles.predictionColCategory} />
-            <col />
-            <col className={styles.predictionColConfidence} />
-            <col className={styles.predictionColAmount} />
-          </colgroup>
-          <tbody>
-            {items.map(item => (
-              <tr key={item.key} className={styles.predictionRow}>
-                <td className={styles.predictionCellCategory}>
-                  <EmojiBox emoji={item.icon} color={item.color} size="sm" />
-                </td>
-                <td className={styles.predictionCellMain}>
-                  <div className={styles.predictionMain}>
-                    <span className={styles.predictionTitle}>{item.title}</span>
-                    <span className={styles.predictionSubtitle}>{item.subtitle}</span>
-                    {/* Mobile only: the confidence column is hidden there */}
-                    <div className={styles.predictionConfidenceInline}>
-                      <div className={styles.predictionConfidenceTrack}>
-                        <div
-                          className={[styles.predictionConfidenceFill, isIncome ? styles.predictionConfidenceFillIncome : styles.predictionConfidenceFillExpense].join(' ')}
-                          style={{ width: `${item.confidencePct}%` }}
-                        />
+        <div className={styles.predictionGroups}>
+          {PREDICTION_TIERS.map(tier => {
+            const tierItems = items.filter(i => predictionTierFor(i.confidencePct).id === tier.id);
+            if (tierItems.length === 0) return null;
+            const subtotal = tierItems.reduce((sum, i) => sum + i.predictedAmount, 0);
+            return (
+              <section key={tier.id} className={styles.predictionGroup}>
+                <div className={styles.predictionGroupHeader}>
+                  <ConfidenceBars level={tier.bars} />
+                  <span className={styles.predictionGroupLabel}>{tier.label}</span>
+                  <span className={styles.predictionGroupHint}>{tier.hint}</span>
+                  <span className={styles.predictionGroupTotal}>{sign}{formatBase(Math.round(subtotal))}</span>
+                </div>
+                <ul className={styles.predictionRows}>
+                  {tierItems.slice(0, MAX_ITEMS_PER_TIER).map(item => (
+                    <li key={item.key} className={styles.predictionRow}>
+                      <EmojiBox emoji={item.icon} color={item.color} size="sm" />
+                      <div className={styles.predictionMain}>
+                        <span className={styles.predictionTitle}>{item.title}</span>
+                        <span className={styles.predictionSubtitle}>{item.subtitle}</span>
                       </div>
-                      <span className={styles.predictionConfidenceLabel}>{item.confidencePct}% sure</span>
-                    </div>
-                  </div>
-                </td>
-                <td className={styles.predictionCellConfidence}>
-                  <div className={styles.predictionConfidence}>
-                    <span className={styles.predictionConfidenceLabel}>{item.confidencePct}% sure</span>
-                    <div className={styles.predictionConfidenceTrack}>
-                      <div
-                        className={[styles.predictionConfidenceFill, isIncome ? styles.predictionConfidenceFillIncome : styles.predictionConfidenceFillExpense].join(' ')}
-                        style={{ width: `${item.confidencePct}%` }}
-                      />
-                    </div>
-                  </div>
-                </td>
-                <td className={styles.predictionCellAmount}>
-                  <div className={styles.predictionAmountCol}>
-                    <span className={[styles.predictionAmount, isIncome ? styles.statAmountIncome : styles.statAmountExpense].join(' ')}>
-                      {sign}{formatBase(item.predictedAmount)}
-                    </span>
-                    <span className={styles.predictionRangeText}>
-                      {item.isStable ? 'stable' : `${formatNumber(Math.round(item.rangeLow))} – ${formatNumber(Math.round(item.rangeHigh))}`}
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                      <div className={styles.predictionAmountCol}>
+                        <span className={[styles.predictionAmount, isIncome ? styles.statAmountIncome : styles.statAmountExpense].join(' ')}>
+                          {sign}{formatBase(item.predictedAmount)}
+                        </span>
+                        <span className={styles.predictionRangeText}>
+                          {item.isStable ? 'fixed amount' : `usually ${formatNumber(Math.round(item.rangeLow))}–${formatNumber(Math.round(item.rangeHigh))}`}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
       )}
     </div>
   );
@@ -481,9 +507,7 @@ export default function StatisticsPage() {
         }
         if (dominantPayer && dominantCount / g.totalCount >= 0.6) title = `${g.name} — ${dominantPayer}`;
       }
-      const subtitle = isAggregate
-        ? `${g.totalCount} entries / ${HISTORY_MONTHS} months`
-        : `seen ${bucketsSeen} of ${HISTORY_MONTHS} months`;
+      const subtitle = predictionFrequencyLabel(g.totalCount, bucketsSeen, isAggregate);
 
       const presenceRatio = bucketsSeen / HISTORY_MONTHS;
       const consistency = Math.max(0, 1 - cv);
