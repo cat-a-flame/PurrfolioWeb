@@ -116,8 +116,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  /* Show ~3 rows (56px each + 2px gaps); scroll for the rest. */
-  max-height: 172px;
+  /* Show 5 rows (56px each + 2px gaps); scroll for the rest. */
+  max-height: 288px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
