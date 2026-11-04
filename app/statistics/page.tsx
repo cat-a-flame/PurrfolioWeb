@@ -237,14 +237,12 @@ function PredictionPanel({ variant, title, subtitle, items, loading }: {
           {PREDICTION_TIERS.map(tier => {
             const tierItems = items.filter(i => predictionTierFor(i.confidencePct).id === tier.id);
             if (tierItems.length === 0) return null;
-            const subtotal = tierItems.reduce((sum, i) => sum + i.predictedAmount, 0);
             return (
               <section key={tier.id} className={styles.predictionGroup}>
                 <div className={styles.predictionGroupHeader}>
                   <ConfidenceBars level={tier.bars} />
                   <span className={styles.predictionGroupLabel}>{tier.label}</span>
                   <span className={styles.predictionGroupHint}>{tier.hint}</span>
-                  <span className={styles.predictionGroupTotal}>{sign}{formatBase(Math.round(subtotal))}</span>
                 </div>
                 <ul className={styles.predictionRows}>
                   {tierItems.slice(0, MAX_ITEMS_PER_TIER).map(item => (
@@ -285,7 +283,16 @@ export default function StatisticsPage() {
   const [loading, setLoading] = useState(true);
   // Period refetch in progress (`loading` only covers the first load).
   const [periodLoading, setPeriodLoading] = useState(false);
-  const [period, setPeriod]   = useState<PeriodValue>(defaultPeriod);
+  const [period, setPeriod]   = useState<PeriodValue>(() => {
+    try {
+      const saved = sessionStorage.getItem('purrfolio_period');
+      if (saved) try { return JSON.parse(saved) as PeriodValue; } catch {}
+    } catch {}
+    return defaultPeriod();
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem('purrfolio_period', JSON.stringify(period)); } catch {}
+  }, [period]);
   const [todayRates, setTodayRates] = useState<Record<string, number>>({});
   const [ratesByDate, setRatesByDate] = useState<Record<string, Record<string, number>>>({});
   const [recurringPayments, setRecurringPayments]     = useState<RecurringPayment[]>([]);
