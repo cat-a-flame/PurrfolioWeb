@@ -116,6 +116,10 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  /* Show ~3 rows (56px each + 2px gaps); scroll for the rest. */
+  max-height: 172px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .empty {
