@@ -149,11 +149,10 @@ html[data-theme="dark"] {
   --color-danger-hover: #ff4d63;
   --color-danger-light: #3a1220;
 
-  /* Lightened for WCAG AAA (>=7:1) on dark surfaces. */
-  --color-income: #11c6ce;
-  --color-income-light: #0b2c2e;
-  --color-expense: #ec9bc1;
-  --color-expense-light: #3a1228;
+  --color-income: #4ef0a8;
+  --color-income-light: #0b2c20;
+  --color-expense: var(--color-danger);
+  --color-expense-light: var(--color-danger-light);
 
   --aurora-1: rgba(124, 77, 255, 0.42);
   --aurora-2: rgba(219, 39, 119, 0.28);
